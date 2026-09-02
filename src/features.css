@@ -695,3 +695,65 @@
 }
 .prov-measured { color: #2f9e5e; background: rgba(47, 158, 94, 0.09); }
 .prov-stated   { color: #b8791a; background: rgba(184, 121, 26, 0.12); }
+
+/* ── "We cannot tell you what this is" ───────────────────────────────────────
+   Shown INSTEAD of a balance when a raw 64-hex lookup came back all-zero. On
+   Genesis-4 a block id, a script hash and a transaction id are all thirty-two
+   bytes, so that response is identical for a txid, an unused key and a typo.
+   Styled as prose rather than as a data panel on purpose: there is no figure
+   here to read off, and it must not look like there is. */
+.hex64-title {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.hex64-subject {
+  display: block;
+  margin-bottom: 16px;
+  word-break: break-all;
+  font-size: 12px;
+}
+.hex64-lede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  max-width: 74ch;
+}
+.hex64-lede code { color: var(--brass-hi); word-break: break-word; }
+.hex64-h3 {
+  margin: 20px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.hex64-detail {
+  margin-top: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+/* `.errbox` is referenced by twelve sites across eight pages and was defined
+   by none of them — only the `.errbox.warn` modifier in `blocks.css` existed,
+   and `border-color` with no `border-style` paints nothing. So every error
+   message on this explorer rendered as unstyled body text. An error nobody
+   sees is close enough to no error to matter. The modifier keeps winning: it
+   is two classes to this one's one. */
+.errbox {
+  border: 1px solid var(--warn-bord);
+  background: var(--warn-bg);
+  border-radius: 12px;
+  padding: 13px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  max-width: 74ch;
+}

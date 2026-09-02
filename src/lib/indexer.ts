@@ -17,7 +17,7 @@
 //      time. At genesis that same hash held 426,194 of the chain's 452,726
 //      carryover outputs.
 //
-//   2. HISTORY. There are no transaction ids at this layer. `gettransaction`
+//   2. HISTORY. Nothing is indexed by transaction id here. `gettransaction`
 //      refuses BY DESIGN, in those words ("this is a permanent answer for this
 //      build, not a transient failure — do not retry"), because
 //      `PosTransaction::Transfer` encodes only fee-market terms and the block

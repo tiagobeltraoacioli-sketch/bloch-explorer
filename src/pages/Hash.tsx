@@ -22,6 +22,24 @@
 //  3. It does not present a truncated UTXO list as a complete one. `getutxos`
 //     has no cursor; when the set is larger than one page, the page says how
 //     much of it you are not seeing and why.
+//
+//  4. It does not answer a question it cannot answer. `getbalance` succeeds for
+//     ANY thirty-two bytes — an unused key is not an error — and on Genesis-4 a
+//     block id, a script hash and a transaction id are all thirty-two bytes. So
+//     `balance_sat: "0", utxo_count: 0` is the identical response to a txid, to
+//     a block id, to an unused script hash and to a typo, and rendering it as a
+//     balance turned the most obvious question anyone asks an explorer — did my
+//     transfer arrive? — into a confident "no".
+//
+//     The search box already refuses to route a zero here (see `g4search`), but
+//     `/hash/<64 hex>` is the permalink this explorer mints for every entry, so
+//     it is the form that gets bookmarked, pasted into a chat and mailed to
+//     support. A guard that lived only in the search box would leave the same
+//     wrong answer one shared link away. The zero is reported as a balance only
+//     when the input carried positive evidence of being an address: a verified
+//     `bloch1q…` checksum, or a hash-160 zero-padded to thirty-two bytes, which
+//     is the same padding rule consensus uses to decide whether a key owns an
+//     output. `lib/resolve64.ts` owns that decision and is tested against it.
 import { useEffect, useState } from "react";
 import {
   g4rpc,
@@ -40,6 +58,8 @@ import {
   outpointLink,
 } from "../lib/scriptHash";
 import { indexerHealth, indexedUtxos, IndexedUtxo, IndexerHealth } from "../lib/indexer";
+import { verdictFor, isReadableBalance } from "../lib/resolve64";
+import { Hex64Indeterminate } from "../components/hex64";
 import { fmtBloch, fmtInt, short, toSats } from "../lib/format";
 import { Link, useRouter } from "../lib/router";
 import { Loading } from "../components/ui";
@@ -60,10 +80,25 @@ interface Loaded {
 
 type Row = { txid: string; vout: number; value_sat: string; created_slot?: number };
 
+/**
+ * What one load of this page established.
+ *
+ * `indeterminate` is not a failure and not an empty balance — it is a
+ * successful read that proved nothing, and it is the whole reason this type
+ * exists rather than a `Loaded | null`. Collapsing it into either neighbour is
+ * how the wrong answer got shipped in the first place.
+ */
+type Verdict =
+  | { kind: "ok"; loaded: Loaded }
+  | { kind: "indeterminate" }
+  | { kind: "unreadable" };
+
 export function HashPage({ q }: { q: string }) {
   const { navigate } = useRouter();
   const parsed = classify(q);
   const [d, setD] = useState<Loaded | null>(null);
+  // Set when the lookup succeeded but established nothing — see note 4 above.
+  const [unknown, setUnknown] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [idx, setIdx] = useState<IndexerHealth | null | undefined>(undefined);
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -91,24 +126,53 @@ export function HashPage({ q }: { q: string }) {
     let stop = false;
     setD(null);
     setErr(null);
+    setUnknown(null);
     setRows(null);
     setMore(null);
 
     const sib = siblingOf(scriptHash);
-    (async () => {
+    (async (): Promise<Verdict> => {
       // Head first, so "as of" is never later than the balance it labels.
       // Two calls means two reads of a moving chain; the page says so rather
       // than implying the node stamped the balance with a slot. It does not.
       const head = await g4rpc<G4Head>("getchaininfo");
       const balance = await g4rpc<G4Balance>("getbalance", [scriptHash]);
+
+      // Judge the balance BEFORE spending three more calls decorating it, and
+      // before any of it reaches the screen.
+      if (!isReadableBalance(balance)) {
+        // Never reached in normal operation, and that is the point: without
+        // this, `toSats` below silently answers `0n` for an amount it cannot
+        // parse and the page prints a confident zero in 24-point type.
+        return { kind: "unreadable" };
+      }
+      if (verdictFor(scriptHash, balance) === "indeterminate") {
+        // A successful lookup that proved nothing. Showing the zero here is
+        // the defect: it would be a real, formatted, confident number that
+        // means nothing at all.
+        return { kind: "indeterminate" };
+      }
+
       const sibling = sib ? await g4rpc<G4Balance>("getbalance", [sib]) : null;
       const page = await g4rpc<G4UtxoPage>("getutxos", [scriptHash, FIRST_PAGE]);
-      return { head, balance, sibling, page, endpoint: G4_RPC };
+      return { kind: "ok", loaded: { head, balance, sibling, page, endpoint: G4_RPC } };
     })()
       .then((r) => {
         if (stop) return;
-        setD(r);
-        setRows(r.page.utxos.map(toRow));
+        if (r.kind === "indeterminate") {
+          setUnknown(scriptHash);
+          return;
+        }
+        if (r.kind === "unreadable") {
+          setErr(
+            "The endpoint returned a balance this page could not read exactly, so nothing is " +
+              "being shown rather than a rounded or zeroed figure. This is a fault here, not a " +
+              "statement about your coins.",
+          );
+          return;
+        }
+        setD(r.loaded);
+        setRows(r.loaded.page.utxos.map(toRow));
       })
       .catch((e) => !stop && setErr(String(e?.message ?? e)));
 
@@ -119,6 +183,18 @@ export function HashPage({ q }: { q: string }) {
   }, [scriptHash]);
 
   if (!scriptHash) return <Refused parsed={parsed} onRetry={(v) => navigate(`/hash/${v}`)} />;
+
+  // Rendered INSTEAD of the entry view, never above it. Leaving the balance
+  // card on screen underneath a disclaimer would keep the confident zero that
+  // is the entire defect.
+  if (unknown) {
+    return (
+      <div className="container">
+        <h1 className="page-title">Thirty-two bytes</h1>
+        <Hex64Indeterminate hex={unknown} />
+      </div>
+    );
+  }
 
   const shape = shapeOf(scriptHash);
 
@@ -421,8 +497,10 @@ function History({
       <p className="lookup-hint">
         There is no transaction history for this entry, and there is no honest way to build
         one the way a Bitcoin explorer does. <code>gettransaction</code> is refused by the
-        node <em>by design</em>: at this layer a Genesis-4 transaction carries no id, and
-        the block store keeps no txid index. The <code>tx_hash</code> that{" "}
+        node <em>by design</em> — though not for the reason the node's own error text gives.
+        A Genesis-4 transaction does have an id, <code>SHA3-256(DS_TXID ‖ spend_signing_root)</code>;
+        what the block store keeps is no <em>index</em> from that id back to a block, and that is
+        what makes the lookup impossible rather than merely absent. The <code>tx_hash</code> that{" "}
         <code>sendrawtransaction</code> hands back is node-local — other nodes do not agree
         on it, and feeding it to <code>gettxout</code> returns a well-formed{" "}
         <code>unspent: false</code> that is indistinguishable from a lost withdrawal.

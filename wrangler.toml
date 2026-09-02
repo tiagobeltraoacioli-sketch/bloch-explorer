@@ -19,9 +19,33 @@ pages_build_output_dir = "dist"
 # read-only public RPC; there is nothing here to keep secret.
 #
 # Deploy (production → blochl1.com):
-#   npm run build
-#   CLOUDFLARE_ACCOUNT_ID=CLOUDFLARE_ACCOUNT_ID \
-#     npx wrangler pages deploy dist --project-name bloch-explorer --branch main --commit-dirty=true
+#   npm test && npm run build && npm run deploy
+#
+# That is `npx wrangler pages deploy --project-name bloch-explorer --branch main`
+# — the output directory comes from `pages_build_output_dir` above, so it is not
+# repeated on the command line where it could disagree with this file.
+#
+# The command this comment used to carry had two defects, both of which shipped:
+#
+#   CLOUDFLARE_ACCOUNT_ID=CLOUDFLARE_ACCOUNT_ID
+#     A literal placeholder, not a value. Anyone pasting the runbook exported
+#     the string "CLOUDFLARE_ACCOUNT_ID" as the account id. Leave the variable
+#     unset and let wrangler resolve the account from `wrangler login`, or
+#     export the real id; do not reintroduce a placeholder that looks set.
+#
+#   --commit-dirty=true
+#     Publishes whatever happens to be sitting in dist/ without checking the
+#     tree is clean, so an uncommitted experiment can reach blochl1.com and
+#     nothing afterwards records which source produced it. Omitted on purpose:
+#     wrangler's refusal to deploy a dirty tree is the check, not a nuisance.
+#     Commit first — the deploy is meant to be attributable to a revision.
+#
+# Verify a deploy by content, never by size: fetch the asset path out of the
+# served index.html and diff the bundle against a local build. The live bundle
+# on 2026-09-02 was index-2cONz5e5.js, sha256
+# 6c8c2d5e5271d8ca88f4b5465b936b2cf8fd01f5b9b061c7843516c0d39c205c, reproduced
+# byte-identically from this branch — that reproduction is what establishes
+# which tree is actually deployed.
 
 [vars]
 # ─────────────────────────────────────────────────────────────────────────────

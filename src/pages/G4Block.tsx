@@ -388,10 +388,11 @@ export function BlockBody({
         <p className="page-lede">
           This block carries <strong>{fmtInt(b.tx_count)}</strong>{" "}
           {b.tx_count === 1 ? "transaction" : "transactions"}. That count is all there is — the
-          node exposes no transaction list for a block, and a Genesis-4 transaction has no id to
-          list it under. To follow value, read the eUTXO set directly with{" "}
+          node exposes no transaction list for a block, and no index maps a transaction id back
+          to the block that carried it, so there is nothing to enumerate them from. To follow
+          value, read the eUTXO set directly with{" "}
           <Link to="/balance">a balance lookup</Link>, which is exact.{" "}
-          <Link to="/tx">Why there are no transaction ids</Link>.
+          <Link to="/tx">Why a transaction id does not get you a page</Link>.
         </p>
       </section>
 

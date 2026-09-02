@@ -100,7 +100,7 @@ function TrapDemo({ hash }: { hash: string }) {
 export function TxAnswerPage({ hash }: { hash?: string }) {
   return (
     <div className="container">
-      <h1 className="page-title">There are no transaction ids on Genesis-4</h1>
+      <h1 className="page-title">A transaction id does not get you a page here</h1>
 
       {hash && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -138,10 +138,21 @@ export function TxAnswerPage({ hash }: { hash?: string }) {
           permanent answer for this build, not a transient failure — do not retry.
         </blockquote>
         <p className="lookup-hint">
-          Two separate facts stack up there: the transfer format is not frozen yet, so there is
-          nothing stable to hash into an id; and even if there were, no index maps one to a block.
-          A block page can tell you a block carries <code>tx_count: 3</code> and cannot tell you
-          which three.
+          <strong>One half of that quote is wrong, and it is the node's error, not ours.</strong>{" "}
+          A Genesis-4 transaction <em>does</em> have an id: consensus computes{" "}
+          <code>txid = SHA3-256(DS_TXID ‖ spend_signing_root)</code> —{" "}
+          <code>PosTransaction::txid</code> in{" "}
+          <code>bloch-pos-committee/src/transition.rs</code> — taken over the witness-free root
+          precisely so that re-encoding the signatures cannot move it, and with it the key of every
+          output the transfer creates.
+        </p>
+        <p className="lookup-hint">
+          What is missing is the <strong>index</strong>. Nothing maps that id back to the block that
+          carried it, and the node exposes no transaction list for a block, so a block page can tell
+          you a block carries <code>tx_count: 3</code> and cannot tell you which three. The refusal
+          is therefore correct and permanent even though its wording is not — and it is still not the
+          identifier your wallet handed you, which is the separate trap above. The remedy is the same
+          either way: the lookups below do not need an id at all.
         </p>
       </section>
 

@@ -18,7 +18,7 @@
 //
 // Two things this page deliberately refuses to draw:
 //
-//   1. A transaction tracker. There are no transaction ids (§ "What cannot be
+//   1. A transaction tracker. Nothing is indexed by txid (§ "What cannot be
 //      tracked"). Inventing an identifier so the UI feels familiar would be
 //      the single most harmful thing this page could do.
 //   2. A fee-history chart. The RPC exposes the CURRENT base fee and no
@@ -859,8 +859,11 @@ function NotTrackable() {
     <section className="card fee-card">
       <h2 className="section-title">What this page cannot show you</h2>
       <p className="page-lede" style={{ maxWidth: 760 }}>
-        <strong>There are no transaction ids.</strong> Not "we haven't indexed them" — there is no
-        identifier to index. Asking a node for one is refused by design:
+        <strong>A transaction id gets you nothing here.</strong> Not because there is no
+        identifier — consensus computes one,{" "}
+        <code>txid = SHA3-256(DS_TXID ‖ spend_signing_root)</code> — but because nothing indexes it
+        back to a block, and no node exposes a block's transaction list. Asking for the lookup is
+        refused by design, in wording whose first clause the node gets wrong:
       </p>
       <pre className="fee-quote">
         <code>

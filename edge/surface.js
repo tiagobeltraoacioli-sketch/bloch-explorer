@@ -255,9 +255,16 @@ export const EDGE_ABSENT = [
   ],
   [
     'gettransaction',
-    'the node routes this to a permanent NO_TRANSACTION_INDEX refusal: a ' +
-      'Genesis-4 transaction has no id at this layer. Forwarding it would ' +
-      'spend an upstream call to be told so.',
+    'the node routes this to a permanent NO_TRANSACTION_INDEX refusal, so ' +
+      'forwarding it would spend an upstream call to be told so. Note that ' +
+      'the node\'s own refusal text says a transaction "carries no id", and ' +
+      'that is not true: consensus computes ' +
+      'txid = SHA3-256(DS_TXID || spend_signing_root) over the witness-free ' +
+      'root (PosTransaction::txid, bloch-pos-committee/src/transition.rs). ' +
+      'What is missing is the INDEX from that id back to a block — ' +
+      'getblockbyslot reports tx_count and carries no transactions — so ' +
+      'track transfers by outpoint and by balance via getbalance / ' +
+      'listunspent, which are exact.',
   ],
   [
     'getnewaddress',

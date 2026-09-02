@@ -2,12 +2,14 @@
 //
 // One outpoint — the honest replacement for a transaction page.
 //
-// A Bitcoin explorer is organised around transaction ids. Genesis-4 has none:
-// `gettransaction` is refused by the node in so many words ("at Genesis-4's
-// current layer a transaction carries no id … This is a permanent answer for
-// this build, not a transient failure — do not retry"), because
-// `PosTransaction::Transfer` encodes only fee-market terms and the block store
-// keeps no txid index.
+// A Bitcoin explorer is organised around transaction ids. Genesis-4 has ids —
+// consensus computes `SHA3-256(DS_TXID ‖ spend_signing_root)` in
+// `PosTransaction::txid` — but nothing you can look one up in: the block store
+// keeps no txid index, so `gettransaction` is refused by the node in so many
+// words ("at Genesis-4's current layer a transaction carries no id … This is a
+// permanent answer for this build, not a transient failure — do not retry").
+// Read that quote as the node's, not as ours: the "carries no id" half of it is
+// false, and only the missing index is load-bearing.
 //
 // What the chain does have is outpoints: a 32-byte reference plus an output
 // index, which `getutxos` returns and `gettxout` answers questions about. So
@@ -87,9 +89,9 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
           {txid}:{vout}
         </code>
         <br />
-        Not a transaction page — Genesis-4 has no transaction ids, so there is nothing to
-        put on one. This is the output itself: a value, an owner, and whether it is still
-        unspent.
+        Not a transaction page — Genesis-4 computes a transaction id but indexes nothing by
+        it, so there is nothing to put on one. This is the output itself: a value, an owner,
+        and whether it is still unspent.
       </p>
 
       {err && <div className="err-box">{err}</div>}

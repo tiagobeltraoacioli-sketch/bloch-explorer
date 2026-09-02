@@ -4,10 +4,14 @@
 //
 // Search on a Bitcoin explorer is a solved, boring problem, because a
 // transaction id is a universal handle: paste one and you get the thing. On
-// Genesis-4 that handle **does not exist**. `gettransaction` is refused by
-// design and permanently — a transaction at this layer carries no id and the
-// block store keeps no index — so the single most-used search on every
-// explorer anyone has used before is not available here.
+// Genesis-4 that handle **does not resolve**. `gettransaction` is refused by
+// design and permanently — not because a transaction has no id (consensus
+// computes one: `SHA3-256(DS_TXID ‖ spend_signing_root)`, `PosTransaction::txid`
+// in `bloch-pos-committee/src/transition.rs`) but because nothing indexes that
+// id back to a block. The node's own refusal text says "carries no id"; that
+// part of it is wrong, and this explorer does not repeat it. Either way the
+// single most-used search on every explorer anyone has used before does not
+// resolve here.
 //
 // That fact drives the whole design of this file. Two consequences:
 //

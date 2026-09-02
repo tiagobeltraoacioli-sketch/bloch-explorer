@@ -60,7 +60,7 @@ const ROUTES: (Route & { nav?: string })[] = [
     render: (p) => <HashPage q={p.h} />,
     key: (p) => "h" + p.h,
   },
-  // An OUTPOINT, not a transaction: this chain has no transaction ids, so
+  // An OUTPOINT, not a transaction: this chain indexes nothing by txid, so
   // there is no /tx/:id to offer and pretending otherwise would promise a
   // lookup `gettransaction` refuses by design.
   {

@@ -29,6 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "../lib/router";
 import { parseQuery, Candidate, epochSlots } from "../lib/query";
 import { read, RpcRefusal, CODE, findSlotForHeight, HeightSearch } from "../lib/source";
+import { probeOutcome, verdictFor, isReadableBalance } from "../lib/resolve64";
 import { G4Block, G4Head } from "../lib/g4";
 import { fmtInt } from "../lib/format";
 
@@ -71,7 +72,12 @@ export function G4Search({ hero }: { hero?: boolean }) {
       go(b.finality === "not_canonical" ? `/block/${hex}` : `/slot/${b.slot}`);
       return;
     } catch (e) {
-      if (!(e instanceof RpcRefusal && e.code === CODE.BLOCK_NOT_FOUND)) {
+      // Classified through `lib/resolve64.ts` rather than inline, so the rule
+      // the tests pin and the rule the bundle ships are the same line. The
+      // trap it encodes: `-32050` (our proxy found no archival) arrives shaped
+      // exactly like a node refusal, code and all, so "it has a code" is not
+      // "the chain spoke".
+      if (probeOutcome(e) === "endpoint_fault") {
         if (signal.aborted) return;
         // Could not ask. Do not fall through to "it must be an address" —
         // that would turn an outage into a wrong answer.
@@ -87,11 +93,15 @@ export function G4Search({ hero }: { hero?: boolean }) {
         [hex],
         { signal },
       );
-      // Only treat it as an address if something is actually there. Every
-      // 32-byte value has a balance of zero, so a zero reading is not evidence
-      // that this was a script hash — and routing a tx_hash to a balance page
-      // showing 0 is the confident-wrong-answer failure all over again.
-      if (bal.utxo_count > 0 || (bal.balance_sat && bal.balance_sat !== "0")) {
+      // Only route to the entry page when the reading actually established
+      // something. Every 32-byte value has a balance of zero, so a zero is not
+      // evidence that this was a script hash — and routing a tx_hash to a
+      // balance page showing 0 is the confident-wrong-answer failure again.
+      //
+      // `verdictFor` also keeps the one case a bare non-zero test got wrong: a
+      // raw 64-hex in the CARRIED shape holding nothing is a real, reportable
+      // empty carried entry, not an unknown, and belongs on the entry page.
+      if (isReadableBalance(bal) && verdictFor(hex, bal) !== "indeterminate") {
         go(`/hash/${hex}`);
         return;
       }
