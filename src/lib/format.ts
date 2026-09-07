@@ -41,6 +41,30 @@ export function fmtBloch(sats: number | string | bigint, maxFrac = 4): string {
 }
 
 /**
+ * A compact BLCH figure for a tile that cannot hold eleven digits — "730.02M",
+ * "57.16B", "4,134.90". DISPLAY ONLY, and never alone: every caller pairs it
+ * with the exact `fmtBloch` figure in a subtitle or a title, because a rounded
+ * number standing by itself is the kind of thing this codebase exists to
+ * avoid. The conversion to a float happens after the exact integer division,
+ * on a value that is a magnitude, not an amount.
+ */
+export function fmtCompactBloch(sats: number | string | bigint): string {
+  const s = toSats(sats);
+  const neg = s < 0n;
+  const abs = neg ? -s : s;
+  const whole = Number(abs / SATS_PER_BLOCH);
+  const frac = Number(abs % SATS_PER_BLOCH) / 1e8;
+  const v = whole + frac;
+  let out: string;
+  if (v >= 1e9) out = (v / 1e9).toFixed(2) + "B";
+  else if (v >= 1e6) out = (v / 1e6).toFixed(2) + "M";
+  else if (v >= 1e4) out = Math.round(v).toLocaleString("en-US");
+  else if (v >= 1) out = v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  else out = v.toLocaleString("en-US", { maximumFractionDigits: 6 });
+  return (neg ? "-" : "") + out;
+}
+
+/**
  * Group-separate an integer. Also the raw-satoshi renderer (`… sat` subtitles),
  * so it MUST have an exact path: routing a satoshi value through Number() is
  * the corruption site this function used to be. bigint and integer-strings are

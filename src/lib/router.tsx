@@ -34,13 +34,32 @@ export function useRouter() {
   return useContext(Ctx);
 }
 
-export function Link({ to, children, className }: { to: string; children: ReactNode; className?: string }) {
+export function Link({
+  to,
+  children,
+  className,
+  title,
+  onClick,
+  ...rest
+}: {
+  to: string;
+  children: ReactNode;
+  className?: string;
+  title?: string;
+  /** Runs before the navigation — for closing a drawer, say. */
+  onClick?: () => void;
+  "aria-label"?: string;
+  "aria-current"?: "page" | undefined;
+}) {
   const { navigate } = useRouter();
   return (
     <a
       href={to}
       className={className}
+      title={title}
+      {...rest}
       onClick={(e) => {
+        onClick?.();
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
         navigate(to);

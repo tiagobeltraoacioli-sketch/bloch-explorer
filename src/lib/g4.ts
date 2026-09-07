@@ -113,10 +113,26 @@ export class G4Error extends Error {
   reason: string | null;
   /** Milliseconds to wait, when the edge said to wait. */
   retryAfterMs: number | null;
-  constructor(message: string, reason: string | null = null, retryAfterMs: number | null = null) {
+  /**
+   * The JSON-RPC error code, when the answer carried one.
+   *
+   * Carried so a caller can tell the node's `-32007 SLOT_EMPTY` — a missed
+   * proposal, which is DATA — from a timeout, a throttle or a fault, which are
+   * not. Without it every failed slot read through this client had to be
+   * rendered as "unknown", which is why the dashboard used to take the
+   * uncached `/g4` path for its slot strip. `lib/source.ts` names the codes.
+   */
+  code: number | null;
+  constructor(
+    message: string,
+    reason: string | null = null,
+    retryAfterMs: number | null = null,
+    code: number | null = null,
+  ) {
     super(message);
     this.reason = reason;
     this.retryAfterMs = retryAfterMs;
+    this.code = code;
   }
 }
 
@@ -160,11 +176,16 @@ let lastSalt: number | null = null;
  * second node until one of them happens to be broken enough to say something
  * else.
  */
-export async function g4rpc<T>(method: string, params: unknown[] = []): Promise<T> {
+export async function g4rpc<T>(
+  method: string,
+  params: unknown[] = [],
+  opts: { signal?: AbortSignal } = {},
+): Promise<T> {
   const res = await fetch(G4_RPC, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    signal: opts.signal,
   });
   const body = await res.json();
   if (body.error) {
@@ -172,6 +193,7 @@ export async function g4rpc<T>(method: string, params: unknown[] = []): Promise<
       body.error.message ?? "rpc error",
       body.error.data?.reason ?? null,
       body.error.data?.retry_after_ms ?? null,
+      typeof body.error.code === "number" ? body.error.code : null,
     );
   }
   const corro: G4Corroboration | undefined = body.result?.corroboration;
@@ -365,6 +387,17 @@ async function mapLimit<T, R>(
 function honourSalt(salt: number | null | undefined) {
   if (salt === null || salt === undefined) return;
   lastSalt = salt;
+}
+
+/**
+ * The edge's current cache salt, as last reported.
+ *
+ * A client-side cache keyed on anything lineage-shaped must include this in
+ * its key, or compare against it, so the reorg that invalidates the edge's
+ * cache invalidates the browser's too. `lib/slots.ts` does exactly that.
+ */
+export function cacheSalt(): number | null {
+  return lastSalt;
 }
 
 /** How many RPC calls this page will have in flight at once. */
