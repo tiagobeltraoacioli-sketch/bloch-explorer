@@ -30,15 +30,27 @@
 
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import { EDGE_SURFACE, EDGE_ABSENT, edgeMethodNames, methodSpec, CacheClass, Cost } from '../surface.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const RPC_RS = resolve(here, '../../../../crates/bloch-pos-node/src/rpc.rs');
-const SOURCE = readFileSync(RPC_RS, 'utf8');
+// Where the node source is. Inside the node monorepo this file lives at
+// apps/explorer/edge/tests/, so the default relative path finds
+// crates/bloch-pos-node/src/rpc.rs. In the standalone explorer repository
+// the node is not checked out next to us; point BLOCH_NODE_RPC_RS at a
+// checkout of bloch-pos to run the cross-repo half of this file. Without it
+// the tests that need the node source are SKIPPED — reported as skipped,
+// not passed — and the edge's own golden list is still enforced.
+const RPC_RS = process.env.BLOCH_NODE_RPC_RS
+  ? resolve(process.env.BLOCH_NODE_RPC_RS)
+  : resolve(here, '../../../../crates/bloch-pos-node/src/rpc.rs');
+const SOURCE = existsSync(RPC_RS) ? readFileSync(RPC_RS, 'utf8') : '';
+const NEEDS_NODE = SOURCE
+  ? {}
+  : { skip: `node source not found at ${RPC_RS}; set BLOCH_NODE_RPC_RS to bloch-pos/crates/bloch-pos-node/src/rpc.rs` };
 
 /** Names out of `pub const RPC_SURFACE: &[Method] = &[ … ]`. */
 function nodeSurfaceNames() {
@@ -114,7 +126,7 @@ test('the edge method namespace is frozen', () => {
   assert.equal(new Set(golden).size, golden.length, 'the golden list must be free of duplicates');
 });
 
-test('every edge method exists in the node RPC_SURFACE', () => {
+test('every edge method exists in the node RPC_SURFACE', NEEDS_NODE, () => {
   const nodeNames = new Set(nodeSurfaceNames());
   assert.ok(nodeNames.size >= 10, `RPC_SURFACE parse found only ${nodeNames.size} names — the extractor has stopped seeing the table`);
   for (const name of edgeMethodNames()) {
@@ -127,7 +139,7 @@ test('every edge method exists in the node RPC_SURFACE', () => {
   }
 });
 
-test('every edge method is actually dispatched by the node', () => {
+test('every edge method is actually dispatched by the node', NEEDS_NODE, () => {
   // RPC_SURFACE being right is not enough — the node's own test proves the
   // table and the dispatcher agree, but this edge is built against the
   // DISPATCHER, and reading it directly means this test still fails correctly
@@ -140,7 +152,7 @@ test('every edge method is actually dispatched by the node', () => {
   }
 });
 
-test('every node method is either exposed or absent for a written reason', () => {
+test('every node method is either exposed or absent for a written reason', NEEDS_NODE, () => {
   const exposed = new Set(edgeMethodNames());
   const absent = new Map(EDGE_ABSENT);
   for (const name of nodeSurfaceNames()) {
@@ -199,7 +211,7 @@ test('the two full-set walks are priced as walks', () => {
   assert.equal(methodSpec('getblockcount').cost, Cost.Cheap);
 });
 
-test('the node source still says its RPC has no authentication', () => {
+test('the node source still says its RPC has no authentication', NEEDS_NODE, () => {
   // The single fact this whole layer is built on. If the node ever grows auth
   // or a rate limit, this test failing is the prompt to revisit the design
   // rather than to keep a workaround that has stopped being necessary.
@@ -214,7 +226,7 @@ test('the node source still says its RPC has no authentication', () => {
   );
 });
 
-test('the node still serves RPC from the consensus thread', () => {
+test('the node still serves RPC from the consensus thread', NEEDS_NODE, () => {
   assert.ok(
     SOURCE.includes('The engine services RPC between slot duties'),
     'the RPC/consensus coupling statement has moved; the governor rates are chosen ' +
@@ -222,7 +234,7 @@ test('the node still serves RPC from the consensus thread', () => {
   );
 });
 
-test('mempool is declared node-local, matching the node own words', () => {
+test('mempool is declared node-local, matching the node own words', NEEDS_NODE, () => {
   assert.equal(methodSpec('getmempoolinfo').cacheClass, CacheClass.NodeLocal);
   assert.equal(methodSpec('getmempoolinfo').corroboration, 'none');
   assert.ok(
