@@ -32,6 +32,11 @@ bundle served in production byte for byte.
 
 ## Develop
 
+The data expansion adds dedicated **mempool** (`/mempool`) and **network/RPC**
+(`/network`) views, a latest-slot ribbon and optional `getbuildinfo` /
+`gettxstatus` reads. See [data sources, RPC configuration and limits](docs/observatory-expansion.md)
+for the endpoint contracts and the data still requiring an indexer.
+
 ```sh
 npm ci
 npm run dev        # Vite dev server

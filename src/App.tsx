@@ -23,8 +23,11 @@ import { FeesPage } from "./pages/Fees";
 import { AnalyticsPage } from "./pages/Analytics";
 import { EpochPage } from "./pages/Epoch";
 import { TransactionsPage } from "./pages/Transactions";
+import { MempoolPage } from "./pages/Mempool";
+import { NetworkPage } from "./pages/Network";
 import "./features.css";
 import "./blocks.css";
+import "./observatory.css";
 
 // The Bloch sphere — one qubit, every state. Canonical protocol mark,
 // self-theming via the brand tokens.
@@ -67,16 +70,18 @@ const ROUTES: NavRoute[] = [
   { pattern: "/", nav: "Chain", group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
   { pattern: "/transactions", nav: "Txs", group: "Chain", hint: "where they landed; each one, when indexed", render: () => <TransactionsPage /> },
-  { pattern: "/analytics", nav: "Analytics", group: "Chain", hint: "epochs, proposers, emission", render: () => <AnalyticsPage /> },
-  { pattern: "/finality", nav: "Finality", group: "Chain", hint: "the guarantee and its support", render: () => <FinalityPage /> },
+  { pattern: "/analytics", desktop: false, nav: "Analytics", group: "Chain", hint: "epochs, proposers, emission", render: () => <AnalyticsPage /> },
+  { pattern: "/finality", desktop: false, nav: "Finality", group: "Chain", hint: "the guarantee and its support", render: () => <FinalityPage /> },
   { pattern: "/validators", nav: "Validators", group: "Economy", hint: "the set, its stake, the leak", render: () => <ValidatorsPage /> },
   { pattern: "/supply", nav: "Supply", group: "Economy", hint: "cap, issuance, concentration", render: () => <SupplyPage /> },
-  { pattern: "/fees", nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
+  { pattern: "/mempool", nav: "Mempool", group: "Economy", hint: "pending transactions, bytes and admission", render: () => <MempoolPage /> },
+  { pattern: "/network", nav: "Network", group: "Network", hint: "RPC nodes, build identities and API", render: () => <NetworkPage /> },
+  { pattern: "/fees", desktop: false, nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
   // `/hash/<64 hex>` is the canonical name of an eUTXO-set entry, and every
   // other identifier a person can paste redirects into it. `/balance…` are the
   // old URLs, kept resolving rather than 404'd: a permalink that stops working
   // is how a reader concludes the balance is gone.
-  { pattern: "/hash", nav: "Balance", group: "Lookup", hint: "an entry in the unspent set", render: () => <BalancePage /> },
+  { pattern: "/hash", desktop: false, nav: "Balance", group: "Lookup", hint: "an entry in the unspent set", render: () => <BalancePage /> },
   { pattern: "/snapshot", nav: "Snapshot", group: "Lookup", desktop: false, hint: "the Genesis-3 handover", render: () => <SnapshotPage /> },
   { pattern: "/balance", render: () => <BalancePage /> },
   {

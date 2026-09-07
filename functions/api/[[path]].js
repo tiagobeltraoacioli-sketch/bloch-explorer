@@ -61,7 +61,7 @@ export async function onRequestGet(context) {
     ...CORS,
   };
   const retry =
-    out.body && out.body.truncated_because && out.body.truncated_because.retry_after_ms;
+    out.body?.retry_after_ms ?? out.body?.error?.data?.retry_after_ms ?? out.body?.truncated_because?.retry_after_ms;
   if (out.status === 429 && retry) headers['retry-after'] = String(Math.ceil(retry / 1000));
 
   return new Response(JSON.stringify(out.body, null, 2), { status: out.status, headers });

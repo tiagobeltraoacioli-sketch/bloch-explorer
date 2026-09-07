@@ -41,7 +41,8 @@
 //     means a cold range simply degrades to fewer blocks rather than to a
 //     burst — the response says which slots it could not fill and why.
 
-import { handleRead, Level } from './core.js';
+import { handleRead, Level, capabilitiesJson, planeView } from './core.js';
+import { poolSnapshot, MAX_POOL_SIZE } from './pool.js';
 import { witnessView, salt as lineageSalt, events as lineageEvents } from './lineage.js';
 import { counters } from './governor.js';
 import { toScriptHash, displayAddress } from './address.js';
@@ -125,6 +126,12 @@ export async function handleApi(pathname, searchParams, opts) {
       return capabilities(opts);
     case 'status':
       return status(opts);
+    case 'network':
+      return network(opts);
+    case 'build':
+      return build(opts);
+    case 'tx-status':
+      return txStatus(arg, opts);
     case 'block':
       return block(arg, opts);
     case 'blocks':
@@ -154,6 +161,9 @@ function notFound(detail) {
       routes: [
         'GET /api/v1/capabilities',
         'GET /api/v1/status',
+        'GET /api/v1/network',
+        'GET /api/v1/build',
+        'GET /api/v1/tx-status/<txid-hex>',
         'GET /api/v1/blocks?from=<slot>&limit=<1..20>',
         'GET /api/v1/block/<block-id | slot number>',
         'GET /api/v1/validators?from=<index>&limit=<1..16>',
@@ -175,6 +185,47 @@ async function capabilities(opts) {
 async function status(opts) {
   const out = await call('getchaininfo', [], opts);
   return { status: statusFor(out), body: envelope(out, { chain: chainStamp(opts.now()) }) };
+}
+
+async function build(opts) {
+  const out = await call('getbuildinfo', [], opts);
+  return { status: statusFor(out), body: envelope(out, { chain: chainStamp(opts.now()) }) };
+}
+
+async function txStatus(arg, opts) {
+  if (!/^[0-9a-f]{64}$/i.test(arg)) return badRequest('give a 64-hex transaction id');
+  const out = await call('gettxstatus', [arg.toLowerCase()], opts);
+  return { status: statusFor(out), body: envelope(out, { chain: chainStamp(opts.now()) }) };
+}
+
+/** Two metered reads; everything else is passive isolate telemetry. A request
+ * cannot choose an upstream URL or promote a witness to the data plane. */
+async function network(opts) {
+  const head = await call('getchaininfo', [], opts);
+  // Skip optional work when the primary read fails; retain passive diagnostics.
+  const buildRead = head.body?.error ? null : await call('getbuildinfo', [], opts);
+  const at = opts.now();
+  return {
+    status: head.status === 429 ? 429 : 200,
+    body: {
+      data: {
+        sampled_at: at,
+        scope: 'this edge isolate; measurements reset on recycle',
+        head: envelope(head),
+        build: buildRead ? envelope(buildRead) : null,
+        nodes: poolSnapshot(opts.pools, at),
+        pool: { observers: opts.pools.archivals.length, witnesses: opts.pools.fleet.length, max_per_pool: MAX_POOL_SIZE },
+        capabilities: capabilitiesJson(at),
+        counters: { ...counters },
+        plane: planeView(at),
+        witness: witnessView(at),
+      },
+      corroboration: head.corroboration ?? { level: Level.Uncorroborated },
+      cache: { state: 'bypass', age_ms: 0 },
+      partial: !!head.body?.error || !!buildRead?.body?.error || !buildRead,
+      ...(head.status === 429 ? { error: head.body?.error, retry_after_ms: head.retryAfterMs } : {}),
+    },
+  };
 }
 
 async function block(arg, opts) {

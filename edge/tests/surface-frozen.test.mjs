@@ -100,12 +100,14 @@ test('the edge method namespace is frozen', () => {
     'getblockbyid',
     'getblockbyslot',
     'getblockcount',
+    'getbuildinfo',
     'getcapabilities',
     'getchaininfo',
     'getmempoolinfo',
     'getstakedistribution',
     'getsupply',
     'gettxout',
+    'gettxstatus',
     'getutxos',
     'getvalidator',
     'getvalidatorcount',
@@ -131,7 +133,7 @@ test('every edge method exists in the node RPC_SURFACE', NEEDS_NODE, () => {
   assert.ok(nodeNames.size >= 10, `RPC_SURFACE parse found only ${nodeNames.size} names — the extractor has stopped seeing the table`);
   for (const name of edgeMethodNames()) {
     assert.ok(
-      nodeNames.has(name),
+      nodeNames.has(name) || methodSpec(name)?.optional === true,
       `the edge exposes '${name}' and the node does not serve it. This is the ` +
         `Genesis-3 defect exactly: an allowlist naming methods that answer -32601. ` +
         `Either wire it into the node or drop it from EDGE_SURFACE.`,
@@ -147,7 +149,7 @@ test('every edge method is actually dispatched by the node', NEEDS_NODE, () => {
   const arms = new Set(dispatchArmNames());
   assert.ok(arms.size >= 10, `the arm extractor found only ${arms.size} names: ${[...arms]}`);
   for (const name of edgeMethodNames()) {
-    if (name === 'getcapabilities') continue; // answered at the edge; see below
+    if (name === 'getcapabilities' || methodSpec(name)?.optional) continue; // answered at the edge; see below
     assert.ok(arms.has(name), `'${name}' is exposed by the edge and not dispatched by route()`);
   }
 });

@@ -391,6 +391,7 @@ export async function fleetWitness(opts) {
       { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
       ATTEMPT_TIMEOUT_MS,
       fetchImpl,
+      now,
     );
     const at = now();
     if (r.settled && r.value.result) {

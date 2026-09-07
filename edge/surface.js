@@ -102,6 +102,24 @@ export const Cost = {
  */
 export const EDGE_SURFACE = [
   {
+    name: 'getbuildinfo',
+    cacheClass: CacheClass.NodeLocal,
+    cost: Cost.Cheap,
+    corroboration: 'none',
+    ttlMs: 60_000,
+    optional: true,
+    summary: 'the answering observer binary, source digest, compiler and target; newer nodes only',
+  },
+  {
+    name: 'gettxstatus',
+    cacheClass: CacheClass.NodeLocal,
+    cost: Cost.Cheap,
+    corroboration: 'none',
+    ttlMs: 4_000,
+    optional: true,
+    summary: 'one observer remembered transaction status; unknown is not proof of absence',
+  },
+  {
     name: 'getchaininfo',
     cacheClass: CacheClass.Head,
     cost: Cost.Cheap,

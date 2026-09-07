@@ -31,7 +31,7 @@ import { SlotCell, slotWindow, windowStats, wallSlot } from "../lib/slots";
 import { SlotTable } from "../components/blockstream";
 import { Kpi, SlotStrip, StripLegend } from "../components/kit";
 import { TxLandings } from "../components/txBits";
-import { BlochSphere } from "../components/blochSphere";
+import { ChainOverview } from "../components/chainOverview";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
 import { Loading, Copyable } from "../components/ui";
@@ -115,8 +115,12 @@ export function G4Dashboard() {
 
   useEffect(() => {
     let stop = false;
+    let inFlight = false;
+    let slotFlight: Promise<unknown> = Promise.resolve();
     const ac = new AbortController();
     const tick = async () => {
+      if (inFlight || stop) return;
+      inFlight = true;
       try {
         // Through the EDGE (/rpc), never a validator: the node RPC has no auth
         // or rate limiting and is served by the consensus thread itself. The
@@ -134,7 +138,7 @@ export function G4Dashboard() {
         // re-read every tick, because those are the ones whose finality word
         // can still move.
         const lo = Math.max(0, h.slot - WINDOW + 1);
-        void slotWindow(lo, h.slot, {
+        slotFlight = slotWindow(lo, h.slot, {
           signal: ac.signal,
           fresh: (s) => s > h.slot - REREAD,
           onCell: (c) => {
@@ -159,13 +163,16 @@ export function G4Dashboard() {
         ]);
         if (stop) return;
         if (v.status === "fulfilled") setVals(v.value);
-        if (m.status === "fulfilled") setMp(m.value);
+        setMp(m.status === "fulfilled" ? m.value : null);
         if (sd.status === "fulfilled") setStake(sd.value);
         else if (notServed(sd.reason)) setStake("absent");
         if (sp.status === "fulfilled") setSupply(sp.value);
         else if (notServed(sp.reason)) setSupply("absent");
       } catch (e: any) {
         if (!stop && e?.name !== "AbortError") setErr(String(e?.message ?? e));
+      } finally {
+        await slotFlight.catch(() => {});
+        inFlight = false;
       }
     };
     const teardown = pollWhileVisible(() => void tick(), POLL_MS);
@@ -231,16 +238,17 @@ export function G4Dashboard() {
 
   return (
     <div className="container">
+      <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} />
       {/* ── the hero: head, finality, the clock ─────────────────────────── */}
       <section className="hero-card dash-hero">
         <div className="dash-hero-main">
           <div className="dash-hero-top">
             <span className="g4-badge">
-              <span className="dot live" /> Genesis-4 · live
+              <span className={"dot " + (err ? "warn" : "live")} /> Genesis-4 · {err ? "last reading" : "observed"}
             </span>
             <CorroborationBadge c={corro} />
           </div>
-          <h1 className="dash-title">Bloch, under proof of stake</h1>
+          <h2 className="dash-title">Chain checkpoints</h2>
           <p className="dash-sub">
             {G4.validators} genesis validators · {G4.slotSecs} s slots · {head.slots_per_epoch}-slot
             epochs · ML-DSA ‖ Falcon signatures
@@ -344,9 +352,6 @@ export function G4Dashboard() {
               state <Copyable text={head.state_root}><code>{head.state_root.slice(0, 20)}…</code></Copyable>
             </span>
           </div>
-        </div>
-        <div className="dash-hero-side">
-          <BlochSphere size={196} className="dash-sphere" />
         </div>
       </section>
 
