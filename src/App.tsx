@@ -22,6 +22,7 @@ import { SupplyPage } from "./pages/Supply";
 import { FeesPage } from "./pages/Fees";
 import { AnalyticsPage } from "./pages/Analytics";
 import { EpochPage } from "./pages/Epoch";
+import { TransactionsPage } from "./pages/Transactions";
 import "./features.css";
 import "./blocks.css";
 
@@ -65,6 +66,7 @@ type NavRoute = Route & { nav?: string; group?: string; desktop?: boolean; hint?
 const ROUTES: NavRoute[] = [
   { pattern: "/", nav: "Chain", group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
+  { pattern: "/transactions", nav: "Txs", group: "Chain", hint: "where they landed; each one, when indexed", render: () => <TransactionsPage /> },
   { pattern: "/analytics", nav: "Analytics", group: "Chain", hint: "epochs, proposers, emission", render: () => <AnalyticsPage /> },
   { pattern: "/finality", nav: "Finality", group: "Chain", hint: "the guarantee and its support", render: () => <FinalityPage /> },
   { pattern: "/validators", nav: "Validators", group: "Economy", hint: "the set, its stake, the leak", render: () => <ValidatorsPage /> },

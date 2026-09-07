@@ -225,7 +225,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
         <input
           id={hero ? undefined : SEARCH_INPUT_ID}
           className="search-input"
-          placeholder={hero ? "Slot, height, epoch, block id, address, script hash, outpoint, v‹n›" : "Search the chain…"}
+          placeholder={hero ? "Slot, height, epoch, block id, address, script hash, outpoint, v‹n›" : "Search…"}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);

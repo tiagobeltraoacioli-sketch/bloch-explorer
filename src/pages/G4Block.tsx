@@ -50,6 +50,8 @@ import { slotStartMs, slotDelaySecs } from "../lib/slots";
 import { seatsPerSlot } from "../lib/participation";
 import { fmtNum } from "../lib/format";
 import { G4 } from "../lib/g4";
+import { indexerHealth, indexedBlockTransactions, IndexerHealth, IndexedBlockTxs } from "../lib/indexer";
+import { TxRows, OutpointCheck } from "../components/txBits";
 
 function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -392,6 +394,91 @@ function EpochContext({ b, headSlot }: { b: G4Block; headSlot: number | null }) 
   );
 }
 
+/**
+ * The block's transactions — listed when an indexer is attached, counted when
+ * not. The count is the chain's; the list is the indexer's; the section says
+ * which it is showing and compares the two when it has both.
+ */
+function BlockTransactions({ b }: { b: G4Block }) {
+  const [idx, setIdx] = useState<IndexerHealth | null | undefined>(undefined);
+  const [txs, setTxs] = useState<IndexedBlockTxs | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let stop = false;
+    setTxs(null);
+    setErr(null);
+    indexerHealth().then((h) => {
+      if (stop) return;
+      setIdx(h);
+      if (h && b.tx_count > 0) {
+        indexedBlockTransactions(b.block_id)
+          .then((t) => !stop && setTxs(t))
+          .catch((e) => !stop && setErr(String(e?.message ?? e)));
+      }
+    });
+    return () => {
+      stop = true;
+    };
+  }, [b.block_id, b.tx_count]);
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2 className="snap-h2" style={{ margin: 0 }}>Transactions</h2>
+        <span className={"pill pill-sm " + (b.tx_count > 0 ? "ok" : "quiet")}>{fmtInt(b.tx_count)} in the header</span>
+        {idx ? (
+          <span className="pill brass pill-sm">indexer · slot {fmtInt(idx.indexed_to_slot)}</span>
+        ) : idx === null ? (
+          <span className="pill quiet pill-sm">no indexer attached</span>
+        ) : null}
+        <span className="spacer" />
+        <Link to="/transactions" className="pill-tab">all transactions →</Link>
+      </div>
+
+      {b.tx_count === 0 ? (
+        <p className="lookup-hint" style={{ margin: 0 }}>
+          An empty block — the usual case on this chain today. The header's count is the chain's
+          own word; there is nothing here to list and nothing an index would add.
+        </p>
+      ) : idx === undefined ? (
+        <Loading label="Asking whether an indexer is attached…" />
+      ) : idx && txs ? (
+        <>
+          {txs.tx_count !== b.tx_count && (
+            <div className="errbox warn">
+              <strong>The indexer and the header disagree.</strong> The header says{" "}
+              {fmtInt(b.tx_count)} transactions; the indexer lists {fmtInt(txs.tx_count)}. One of the
+              two is reading a different block at this id, or the indexer has not finished folding
+              it. Neither is trusted over the other here.
+            </div>
+          )}
+          <TxRows txs={txs.transactions} asOfSlot={txs.as_of_slot} showBlock={false} />
+        </>
+      ) : idx && err ? (
+        <div className="errbox">The indexer did not answer for this block: {err}</div>
+      ) : idx ? (
+        <Loading label="Reading the block's transactions from the indexer…" />
+      ) : (
+        <>
+          <p className="page-lede" style={{ marginBottom: 12 }}>
+            <strong>{fmtInt(b.tx_count)}</strong> {b.tx_count === 1 ? "transaction landed" : "transactions landed"} in
+            this block, and that count is all the node gives: it serves the header and no body, and
+            no index maps a transaction id back to the block that carried it. The list appears here
+            the day an indexer is attached. What the chain <em>does</em> answer, exactly, is whether
+            one output is still unspent — if you hold the id, check it below.
+          </p>
+          <OutpointCheck />
+          <p className="lookup-hint">
+            To follow value without an id, read the recipient's entry in the unspent set with{" "}
+            <Link to="/hash">a balance lookup</Link>; a transfer is visible as its outputs appearing
+            there. <Link to="/tx">Why a transaction id does not get you a page</Link>.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 /** The block itself. Exported so it can be rendered against real data. */
 export function BlockBody({
   b,
@@ -456,18 +543,7 @@ export function BlockBody({
 
       <Sightings seen={seen} />
 
-      <section className="card">
-        <h2 className="snap-h2">Transactions</h2>
-        <p className="page-lede">
-          This block carries <strong>{fmtInt(b.tx_count)}</strong>{" "}
-          {b.tx_count === 1 ? "transaction" : "transactions"}. That count is all there is — the
-          node exposes no transaction list for a block, and no index maps a transaction id back
-          to the block that carried it, so there is nothing to enumerate them from. To follow
-          value, read the eUTXO set directly with{" "}
-          <Link to="/balance">a balance lookup</Link>, which is exact.{" "}
-          <Link to="/tx">Why a transaction id does not get you a page</Link>.
-        </p>
-      </section>
+      <BlockTransactions b={b} />
 
       <section className="card">
         <h2 className="snap-h2">What the header commits</h2>

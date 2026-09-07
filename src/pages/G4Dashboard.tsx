@@ -30,6 +30,7 @@ import { CorroborationBadge, CorroborationNote } from "../components/corroborati
 import { SlotCell, slotWindow, windowStats, wallSlot } from "../lib/slots";
 import { SlotTable } from "../components/blockstream";
 import { Kpi, SlotStrip, StripLegend } from "../components/kit";
+import { TxLandings } from "../components/txBits";
 import { BlochSphere } from "../components/blochSphere";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
@@ -566,6 +567,26 @@ export function G4Dashboard() {
           </p>
         </section>
       </div>
+
+      {/* ── transactions: where they landed in this window ──────────────── */}
+      <section className="card">
+        <div className="card-head">
+          <h2 className="snap-h2" style={{ margin: 0 }}>Latest transactions</h2>
+          <span className={"pill pill-sm " + (stats.txs > 0 ? "ok" : "quiet")}>{fmtInt(stats.txs)} in the last {WINDOW} slots</span>
+          <span className="spacer" />
+          <Link to="/transactions" className="pill-tab">transactions →</Link>
+        </div>
+        {stats.txs > 0 ? (
+          <TxLandings cells={ordered} limit={6} />
+        ) : (
+          <p className="lookup-hint" style={{ margin: 0 }}>
+            No block in the last {WINDOW} slots carried a transaction — usual here, and not a fault:
+            the opening ledger was issued at genesis rather than transferred into place. The chain
+            says how many transactions a block carried and not which; where they last landed, and
+            each one when an indexer is attached, is on the <Link to="/transactions">transactions page</Link>.
+          </p>
+        )}
+      </section>
 
       {/* ── how this page was served ────────────────────────────────────── */}
       <section className="card dash-served">

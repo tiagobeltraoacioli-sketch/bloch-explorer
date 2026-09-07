@@ -95,6 +95,19 @@
 .prop-inline .prop-track { display: block; height: 10px; }
 .prop-inline .prop-fill { display: block; }
 
+/* ── transactions ─────────────────────────────────────────────────────────── */
+.opcheck-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.opcheck-row .lookup-input { flex: 1 1 280px; }
+.opcheck-row .opcheck-vout { flex: 0 0 96px; }
+.opcheck-colon { font-family: var(--font-mono); color: var(--faint); font-size: 16px; }
+.tx-table td:first-child { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.tx-io { display: grid; grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+.tx-io-arrow { align-self: center; text-align: center; color: var(--brass); font-size: 22px; font-family: var(--font-mono); }
+@media (max-width: 960px) {
+  .tx-io { grid-template-columns: 1fr; }
+  .tx-io-arrow { transform: rotate(90deg); }
+}
+
 /* ── analytics ────────────────────────────────────────────────────────────── */
 .an-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .an-head .page-title { margin-bottom: 4px; }
