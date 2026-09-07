@@ -60,7 +60,10 @@ import {
 import { indexerHealth, indexedUtxos, IndexedUtxo, IndexerHealth } from "../lib/indexer";
 import { verdictFor, isReadableBalance } from "../lib/resolve64";
 import { Hex64Indeterminate } from "../components/hex64";
-import { fmtBloch, fmtInt, short, toSats } from "../lib/format";
+import { fmtBloch, fmtCompactBloch, fmtInt, short, toSats } from "../lib/format";
+import { Kpi } from "../components/kit";
+import { composition, ppb, ppmText, pctText, DUST_SATS } from "../lib/coins";
+import { TOTAL_SUPPLY_SAT, GENESIS_ISSUED_SAT } from "../lib/supply";
 import { Link, useRouter } from "../lib/router";
 import { Loading } from "../components/ui";
 
@@ -283,6 +286,8 @@ export function HashPage({ q }: { q: string }) {
       {err && <div className="err-box">{err}</div>}
       {!d && !err && <Loading label="Asking the archival…" />}
 
+      {d && rows && rows.length > 0 && <Composition d={d} rows={rows} />}
+
       {d && <Sibling scriptHash={scriptHash} d={d} />}
 
       {d && (
@@ -337,6 +342,66 @@ export function HashPage({ q }: { q: string }) {
 
       <History scriptHash={scriptHash} idx={idx} />
     </div>
+  );
+}
+
+/**
+ * What the coins look like, and how large the entry is against the supply.
+ *
+ * The composition figures are arithmetic over the outputs ON THIS PAGE, and
+ * the card says so whenever the page is not the whole set: `getutxos` has no
+ * cursor, so on a large entry the largest, smallest and median describe the
+ * first thousand outputs and nothing more. The balance and the count are
+ * exact from `getbalance` and are what the supply shares are taken from.
+ */
+function Composition({ d, rows }: { d: Loaded; rows: Row[] }) {
+  const c = composition(rows.map((r) => r.value_sat));
+  const bal = toSats(d.balance.balance_sat);
+  const ofCap = ppb(bal, TOTAL_SUPPLY_SAT);
+  const ofIssued = ppb(bal, GENESIS_ISSUED_SAT);
+  const partial = rows.length < d.balance.utxo_count;
+  const coin = (v: bigint | null) => (v === null ? "—" : fmtCompactBloch(v));
+  const exact = (v: bigint | null) => (v === null ? undefined : `${fmtBloch(v, 8)} BLOCH · ${fmtInt(v)} sat`);
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2 className="snap-h2" style={{ margin: 0 }}>What the coins look like</h2>
+        {partial ? (
+          <span className="pill warn pill-sm">
+            {fmtInt(rows.length)} of {fmtInt(d.balance.utxo_count)} outputs — this page only
+          </span>
+        ) : (
+          <span className="pill quiet pill-sm">all {fmtInt(rows.length)} outputs</span>
+        )}
+      </div>
+      <div className="kpi-grid">
+        <Kpi k="Largest coin" v={coin(c.largest)} unit="BLOCH" sub={exact(c.largest)} />
+        <Kpi k="Median coin" v={coin(c.median)} unit="BLOCH" sub={exact(c.median)} />
+        <Kpi k="Smallest coin" v={coin(c.smallest)} unit="BLOCH" sub={exact(c.smallest)} />
+        <Kpi k="Dust coins" v={fmtInt(c.dust)} sub={`outputs below ${fmtInt(DUST_SATS)} sat`} />
+        <Kpi
+          k="In the largest coin"
+          v={c.largestSharePpm === null ? "—" : pctText(c.largestSharePpm * 1000n)}
+          sub="of the value on this page"
+        />
+        <Kpi
+          k="Share of the cap"
+          v={ofCap === null ? "—" : pctText(ofCap)}
+          sub={ofCap === null ? undefined : `${ppmText(ofCap)} of ${fmtBloch(TOTAL_SUPPLY_SAT, 0)} BLOCH · from the exact balance`}
+        />
+        <Kpi
+          k="Share of genesis issuance"
+          v={ofIssued === null ? "—" : pctText(ofIssued)}
+          sub={ofIssued === null ? undefined : `${ppmText(ofIssued)} of ${fmtBloch(GENESIS_ISSUED_SAT, 0)} BLOCH issued at slot 0`}
+        />
+      </div>
+      <p className="lookup-hint">
+        {partial
+          ? "Largest, median, smallest and dust describe the outputs this page holds, not the entry: the node returns at most a thousand and offers no way to ask for the rest. The two supply shares are taken from the exact balance and are complete."
+          : "Every output of this entry is on this page, so the coin figures describe the whole of it."}{" "}
+        Nothing here is a value claim; a share of the cap is a fraction of a fixed integer.
+      </p>
+    </section>
   );
 }
 
