@@ -21,37 +21,17 @@
    ========================================================================== */
 
 :root {
-  --fin-final: var(--accent);
-  --fin-final-soft: var(--accent-soft);
-  --fin-just: #6f7fbe;
-  --fin-just-soft: #e8ebf6;
-  --fin-build: #9aaaa4;
-  --fin-build-soft: #eef2f0;
-  --fin-warn: var(--signal);
-  --fin-warn-soft: var(--signal-soft);
-  --fin-danger: #b23830;
-  --fin-danger-soft: #fbeceb;
-  --fin-hollow: var(--border-hi);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --fin-just: #9aa8e4;
-    --fin-just-soft: #1a1e34;
-    --fin-build: #6d817a;
-    --fin-build-soft: #16221e;
-    --fin-danger: #e0736a;
-    --fin-danger-soft: #2c1614;
-  }
-}
-
-:root[data-theme="dark"] {
-  --fin-just: #9aa8e4;
-  --fin-just-soft: #1a1e34;
-  --fin-build: #6d817a;
-  --fin-build-soft: #16221e;
-  --fin-danger: #e0736a;
-  --fin-danger-soft: #2c1614;
+  --fin-final: var(--brass);
+  --fin-final-soft: var(--brass-dim);
+  --fin-just: var(--info);
+  --fin-just-soft: var(--info-dim);
+  --fin-build: var(--faint);
+  --fin-build-soft: var(--bg3);
+  --fin-warn: var(--warn);
+  --fin-warn-soft: var(--warn-dim);
+  --fin-danger: var(--crit);
+  --fin-danger-soft: var(--crit-dim);
+  --fin-hollow: var(--line-strong);
 }
 
 .fin-page { padding-bottom: 48px; }
@@ -157,15 +137,15 @@
 /* Loud, permanent, and top of document. A demo that can be mistaken for the
    live chain is worse than no demo.                                          */
 .fin-replay {
-  background: var(--violet);
-  color: #fff;
+  background: var(--info);
+  color: var(--bg0);
   padding: 9px 0;
   font-size: 13px;
 }
 .fin-replay-inner { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
 .fin-replay strong { letter-spacing: 0.08em; }
 .fin-replay span { opacity: 0.92; flex: 1 1 340px; }
-.fin-replay a { color: #fff; text-decoration: underline; white-space: nowrap; }
+.fin-replay a { color: var(--bg0); text-decoration: underline; white-space: nowrap; }
 
 /* ── Checkpoint row ───────────────────────────────────────────────────────── */
 .fin-primary { margin-top: 8px; }
@@ -179,9 +159,9 @@
 .fin-cp {
   flex: 1 1 150px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg3);
   position: relative;
 }
 .fin-cp-head { border-color: var(--fin-build); }
@@ -270,7 +250,7 @@
   position: relative;
   height: 14px;
   border-radius: 7px;
-  background: var(--surface);
+  background: var(--bg3);
   margin-bottom: 54px;
 }
 .fin-meter-zone { position: absolute; top: 0; bottom: 0; opacity: 0.5; }

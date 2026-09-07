@@ -25,6 +25,9 @@ import { fmtInt } from "../lib/format";
 import { Link, useRouter } from "../lib/router";
 import { Loading } from "../components/ui";
 import { epochOf } from "../lib/query";
+import { SlotStrip, StripLegend } from "../components/kit";
+import { windowStats } from "../lib/slots";
+import { fmtNum } from "../lib/format";
 
 /**
  * Slots per page.
@@ -109,14 +112,16 @@ export function G4BlocksPage({ from }: { from?: number }) {
 
   const bottom = Math.max(0, top - PAGE + 1);
   const atHead = head !== null && top >= head.slot;
+  const asc = [...cells].sort((a, b) => a.slot - b.slot);
+  const st = windowStats(asc);
 
   return (
     <div className="container">
       <h1 className="page-title">Blocks, by slot</h1>
       <p className="page-lede">
         Slots {fmtInt(bottom)}–{fmtInt(top)}, newest first — epoch{" "}
-        {fmtInt(epochOf(bottom))}
-        {epochOf(bottom) !== epochOf(top) ? `–${fmtInt(epochOf(top))}` : ""}. Every slot gets a
+        <Link to={`/epoch/${epochOf(bottom)}`}>{fmtInt(epochOf(bottom))}</Link>
+        {epochOf(bottom) !== epochOf(top) ? <>–<Link to={`/epoch/${epochOf(top)}`}>{fmtInt(epochOf(top))}</Link></> : ""}. Every slot gets a
         row, including the ones that produced nothing: a slot is a scheduled
         opportunity to propose, and on this chain about{" "}
         {head ? ((1 - head.height / Math.max(1, head.slot)) * 100).toFixed(1) : "38"}% of them
@@ -175,6 +180,39 @@ export function G4BlocksPage({ from }: { from?: number }) {
           </button>
         </div>
 
+        <SlotStrip cells={asc} current={head?.slot} />
+        <div className="strip-axis">
+          <span>slot {fmtInt(bottom)}</span>
+          <span>slot {fmtInt(top)}{atHead ? " · head" : ""}</span>
+        </div>
+        <StripLegend />
+        <div className="stats" style={{ margin: "14px 0" }}>
+          <div className="stat">
+            <span className="label">Fill rate</span>
+            <span className="value">{st.fillRate === null ? "—" : `${fmtNum(st.fillRate * 100, 0)}%`}</span>
+            <span className="sub">{fmtInt(st.blocks)} blocks · {fmtInt(st.empty)} missed{st.unknown ? ` · ${fmtInt(st.unknown)} unread` : ""}</span>
+          </div>
+          <div className="stat">
+            <span className="label">Transactions</span>
+            <span className="value">{fmtInt(st.txs)}</span>
+            <span className="sub">carried in these slots</span>
+          </div>
+          <div className="stat">
+            <span className="label">Attestations</span>
+            <span className="value">{st.meanAttestations === null ? "—" : fmtNum(st.meanAttestations, 2)}</span>
+            <span className="sub">mean per block · {fmtInt(st.votes)} in all</span>
+          </div>
+          <div className="stat">
+            <span className="label">Proposers</span>
+            <span className="value">{fmtInt(st.distinctProposers)}</span>
+            <span className="sub">distinct validators</span>
+          </div>
+          <div className="stat">
+            <span className="label">Block interval</span>
+            <span className="value">{st.meanIntervalSecs === null ? "—" : `${fmtNum(st.meanIntervalSecs, 0)}s`}</span>
+            <span className="sub">mean between blocks</span>
+          </div>
+        </div>
         <SlotTable cells={cells} />
         <SlotTally cells={cells} />
       </div>

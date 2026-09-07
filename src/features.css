@@ -20,27 +20,10 @@
   color: var(--muted);
 }
 .mine-inline { display: flex; gap: 8px; align-items: stretch; }
-.mine-input {
-  flex: 1;
-  min-width: 0;
-  height: 42px;
-  padding: 0 13px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-ui);
-}
+.mine-input { flex: 1; }
 .mine-input.mono { font-family: var(--font-mono); font-size: 13px; }
-.mine-input::placeholder { color: var(--muted); }
-.mine-input:focus {
-  outline: none;
-  border-color: var(--brass);
-  box-shadow: 0 0 0 3px var(--brass-glow);
-}
-.mine-input.good { border-color: color-mix(in srgb, var(--green) 55%, var(--border)); }
-.mine-input.bad { border-color: color-mix(in srgb, var(--red) 55%, var(--border)); }
+.mine-input.good { border-color: var(--brass-line); }
+.mine-input.bad { border-color: var(--crit); }
 .mine-select {
   height: 42px;
   padding: 0 10px;
@@ -53,15 +36,6 @@
   cursor: pointer;
 }
 .mine-select:focus { outline: none; border-color: var(--brass); }
-.pill-tab.go {
-  padding: 0 20px;
-  height: 42px;
-  color: var(--brass-ink);
-  background: var(--brass);
-  border-color: var(--brass);
-  font-weight: 600;
-}
-.pill-tab.go:disabled { opacity: 0.45; cursor: not-allowed; }
 .linklike {
   background: none;
   border: none;
@@ -74,21 +48,7 @@
 }
 .linklike:hover { color: var(--link-hover); }
 
-/* ── Warning box (wizard bare-address caution) ───────────────────────────── */
-.warn-box {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  border: 1px solid var(--warn-bord);
-  background: var(--warn-bg);
-  border-radius: 12px;
-  padding: 13px 16px;
-  font-size: 13px;
-  color: var(--text-dim);
-  line-height: 1.55;
-}
-.warn-box code { color: var(--brass-hi); }
-.warn-ico { font-size: 18px; line-height: 1.2; }
+/* .warn-box / .warn-ico: styles.css §11 */
 
 /* ── Setup wizard config blocks ──────────────────────────────────────────── */
 .wiz-grid {
@@ -283,21 +243,15 @@
   font-variant-numeric: tabular-nums;
   font-weight: 500;
 }
-.corro-ok   { color: #2f9e5e; background: rgba(47, 158, 94, 0.08); }
-.corro-warn { color: #b8791a; background: rgba(184, 121, 26, 0.10); }
-.corro-info { color: #5a6b86; background: rgba(90, 107, 134, 0.10); }
-
-@media (prefers-color-scheme: dark) {
-  .corro-ok   { color: #57c98a; background: rgba(87, 201, 138, 0.12); }
-  .corro-warn { color: #e0a54a; background: rgba(224, 165, 74, 0.14); }
-  .corro-info { color: #93a4bf; background: rgba(147, 164, 191, 0.14); }
-}
+.corro-ok   { color: var(--ok); background: var(--ok-dim); }
+.corro-warn { color: var(--warn); background: var(--warn-dim); }
+.corro-info { color: var(--info); background: var(--info-dim); }
 
 .corro-note {
   margin: 12px 0 4px;
   padding: 10px 13px;
-  border-left: 3px solid #b8791a;
-  background: rgba(184, 121, 26, 0.07);
+  border-left: 3px solid var(--warn);
+  background: var(--warn-dim);
   border-radius: 0 6px 6px 0;
   font-size: 13px;
   line-height: 1.55;
@@ -541,11 +495,6 @@
 }
 .fee-quote code { font-size: 12px; line-height: 1.6; color: var(--ink-2); white-space: pre; }
 
-.pill.ok { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.pill.bad {
-  background: var(--warn-bg); color: var(--ink-2); border-color: var(--warn-bord);
-  font-variant-numeric: tabular-nums;
-}
 .fee-eras p { font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
 /* ── The validator surface ──────────────────────────────────────────────
    Two ideas carry the visual language here.
@@ -688,13 +637,13 @@
 .conc-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .conc-table th.num { text-align: right; }
 .conc-note { display: block; font-size: 12px; opacity: 0.7; margin-top: 4px; max-width: 46ch; }
-.conc-table tr.row-stated { background: rgba(184, 121, 26, 0.07); }
+.conc-table tr.row-stated { background: var(--warn-dim); }
 .prov {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
   font-size: 11.5px; font-weight: 600; border: 1px solid currentColor;
 }
-.prov-measured { color: #2f9e5e; background: rgba(47, 158, 94, 0.09); }
-.prov-stated   { color: #b8791a; background: rgba(184, 121, 26, 0.12); }
+.prov-measured { color: var(--ok); background: var(--ok-dim); }
+.prov-stated   { color: var(--warn); background: var(--warn-dim); }
 
 /* ── "We cannot tell you what this is" ───────────────────────────────────────
    Shown INSTEAD of a balance when a raw 64-hex lookup came back all-zero. On
@@ -740,20 +689,4 @@
   word-break: break-word;
 }
 
-/* `.errbox` is referenced by twelve sites across eight pages and was defined
-   by none of them — only the `.errbox.warn` modifier in `blocks.css` existed,
-   and `border-color` with no `border-style` paints nothing. So every error
-   message on this explorer rendered as unstyled body text. An error nobody
-   sees is close enough to no error to matter. The modifier keeps winning: it
-   is two classes to this one's one. */
-.errbox {
-  border: 1px solid var(--warn-bord);
-  background: var(--warn-bg);
-  border-radius: 12px;
-  padding: 13px 16px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-dim);
-  max-width: 74ch;
-}
+/* .errbox: styles.css §11 */

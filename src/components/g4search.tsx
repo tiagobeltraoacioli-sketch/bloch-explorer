@@ -27,7 +27,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "../lib/router";
-import { parseQuery, Candidate, epochSlots } from "../lib/query";
+import { parseQuery, Candidate } from "../lib/query";
 import { read, RpcRefusal, CODE, findSlotForHeight, HeightSearch } from "../lib/source";
 import { probeOutcome, verdictFor, isReadableBalance } from "../lib/resolve64";
 import { G4Block, G4Head } from "../lib/g4";
@@ -41,6 +41,9 @@ type Phase =
   | { kind: "heightSearch"; height: number; probes: number }
   | { kind: "heightNarrowed"; height: number; lo: number; hi: number }
   | { kind: "error"; message: string };
+
+/** The id the shell focuses on ⌘K / "/" — one box, reachable from anywhere. */
+export const SEARCH_INPUT_ID = "g4-search-input";
 
 export function G4Search({ hero }: { hero?: boolean }) {
   const { navigate } = useRouter();
@@ -148,14 +151,11 @@ export function G4Search({ hero }: { hero?: boolean }) {
         go(`/slot/${c.slot}`);
         return;
       case "validator":
-        go(`/validators#v${c.index}`);
+        go(`/validators/${c.index}`);
         return;
-      case "epoch": {
-        const [lo, hi] = epochSlots(c.epoch);
-        go(`/blocks/${hi}`);
-        void lo;
+      case "epoch":
+        go(`/epoch/${c.epoch}`);
         return;
-      }
       case "scriptHash":
         go(`/hash/${c.scriptHash}`);
         return;
@@ -217,10 +217,15 @@ export function G4Search({ hero }: { hero?: boolean }) {
 
   return (
     <div className={"search-wrap" + (hero ? " hero" : "")}>
-      <form className={"search" + (hero ? " hero" : "")} onSubmit={submit}>
+      <form className={"search" + (hero ? " hero" : "")} onSubmit={submit} role="search">
+        <svg className="search-ico" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
         <input
+          id={hero ? undefined : SEARCH_INPUT_ID}
           className="search-input"
-          placeholder="Slot, height, block id, address, script hash, outpoint, v‹n›"
+          placeholder={hero ? "Slot, height, epoch, block id, address, script hash, outpoint, v‹n›" : "Search…"}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -230,6 +235,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
           autoComplete="off"
           aria-label="Search Genesis-4"
         />
+        {!hero && phase.kind === "idle" && !q && <kbd className="kbd">⌘K</kbd>}
         <button className="search-go" type="submit" disabled={phase.kind === "busy"}>
           {phase.kind === "busy" || phase.kind === "heightSearch" ? "…" : "Go"}
         </button>

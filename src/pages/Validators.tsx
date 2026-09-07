@@ -41,16 +41,40 @@ import {
   CorroborationLine,
   OneOperatorNote,
 } from "../components/validatorBits";
+import { g4rpc, G4Error } from "../lib/g4";
+import { recentWindow, proposalRecord, silentInWindow, ProposalRecord, SlotWindow } from "../lib/participation";
+import { ProposerBars } from "../components/kit";
+import "../dashboard.css";
+
+/** Two epochs of slots — enough for the record to mean something, cheap to cache. */
+const WINDOW_SLOTS = 64;
+
+/** The two totals `getstakedistribution` names apart. See the dashboard for why. */
+interface StakeTotals {
+  epoch: number;
+  total_active_stake_sat: string;
+  duty_total_active_stake_sat: string;
+}
 
 export function ValidatorsPage() {
   const [set, setSet] = useState<ValidatorSet | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [win, setWin] = useState<SlotWindow | null>(null);
+  const [sd, setSd] = useState<StakeTotals | null | "absent">(null);
 
   useEffect(() => {
     let stop = false;
     fetchValidatorSet()
       .then((s) => !stop && setSet(s))
       .catch((e) => !stop && setErr(String(e?.message ?? e)));
+    // The recent window and the node's own totals are secondary: they refine
+    // the table and neither may hold it up or blank it on failure.
+    recentWindow(WINDOW_SLOTS)
+      .then((w) => !stop && setWin(w))
+      .catch(() => {});
+    g4rpc<StakeTotals>("getstakedistribution")
+      .then((t) => !stop && setSd(t))
+      .catch((e) => !stop && setSd(e instanceof G4Error && e.code === -32601 ? "absent" : null));
     return () => {
       stop = true;
     };
@@ -104,6 +128,18 @@ export function ValidatorsPage() {
 
   const capBpsNow = cohortCapBps(set.head.epoch);
   const independentNow = independentFloorBps(set.head.epoch);
+
+  // The observed proposal record over the recent window, and the largest count
+  // in it, for the bars in the table.
+  const rec: ProposalRecord | null = win ? proposalRecord(win) : null;
+  const maxProp = rec ? Math.max(1, ...rec.byProposer.values()) : 1;
+  const silent = rec ? silentInWindow(live, rec) : [];
+
+  // The node's own post-leak total against the sum of the records this page
+  // read. They should agree to the satoshi; if they do not, one of the two
+  // reads was taken against a different epoch, and the page says which.
+  const nodeConsensus = sd && sd !== "absent" ? BigInt(sd.total_active_stake_sat) : null;
+  const nodeDuty = sd && sd !== "absent" ? BigInt(sd.duty_total_active_stake_sat) : null;
 
   return (
     <div className="container">
@@ -185,6 +221,106 @@ export function ValidatorsPage() {
       </section>
 
       <OneOperatorNote withdrawalHash={PARAMS.withdrawalScriptHash.value} />
+
+      {/* ── The node's own totals, checked against the records ────────── */}
+      <section className="card">
+        <h2 className="snap-h2">The node's own totals, against this page's arithmetic</h2>
+        {sd === "absent" ? (
+          <p className="lookup-hint">
+            <code>getstakedistribution</code> is in the node source and not in the deployed build,
+            so the post-leak total above is this page's own sum over the {fmtInt(live.length)}{" "}
+            records it read. Nothing corroborates it from the node yet.
+          </p>
+        ) : sd === null ? (
+          <p className="lookup-hint">The node's stake distribution did not answer this round.</p>
+        ) : (
+          <>
+            <div className="g4-grid">
+              <div className="g4-stat">
+                <span className="g4-k">Consensus stake · node</span>
+                <span className="g4-v">{fmtBloch(nodeConsensus!, 0)}</span>
+                <span className="g4-dim">post-leak, at epoch {fmtInt(sd.epoch)}</span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Consensus stake · this page</span>
+                <span className="g4-v">{fmtBloch(total, 0)}</span>
+                <span className="g4-dim">sum of {fmtInt(shares.length)} effective stakes</span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Agreement</span>
+                <span className="g4-v">
+                  {nodeConsensus === total ? (
+                    <span className="pill ok">to the satoshi</span>
+                  ) : (
+                    <span className="pill warn">differ by {fmtBloch(nodeConsensus! > total ? nodeConsensus! - total : total - nodeConsensus!, 0)}</span>
+                  )}
+                </span>
+                <span className="g4-dim">
+                  {nodeConsensus === total
+                    ? "the node and this page count the same roster"
+                    : sd.epoch !== set.head.epoch
+                      ? `the two reads are from different epochs (${fmtInt(sd.epoch)} vs ${fmtInt(set.head.epoch)}) — effective stake moves on the boundary`
+                      : "same epoch, different total — worth reporting"}
+                </span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Duty stake · node</span>
+                <span className="g4-v">{fmtBloch(nodeDuty!, 0)}</span>
+                <span className="g4-dim">
+                  {nodeDuty === ownTotal ? "matches the bonded total above" : `bonded total here is ${fmtBloch(ownTotal, 0)}`}
+                </span>
+              </div>
+            </div>
+            <p className="lookup-hint">
+              Two independent routes to the same number: the node sums its post-leak roster in one
+              call, this page sums the sixty-four records it fetched one by one. Their agreement is
+              the check that the leak arithmetic on this page is the chain's and not ours.
+            </p>
+          </>
+        )}
+      </section>
+
+      {/* ── Who proposed recently ─────────────────────────────────────── */}
+      <section className="card">
+        <h2 className="snap-h2">Who proposed in the last {fmtInt(WINDOW_SLOTS)} slots</h2>
+        {!rec || !win ? (
+          <Loading label="Reading the recent window…" />
+        ) : (
+          <>
+            <div className="g4-grid" style={{ marginBottom: 14 }}>
+              <div className="g4-stat">
+                <span className="g4-k">Blocks</span>
+                <span className="g4-v">{fmtInt(rec.filled)}</span>
+                <span className="g4-dim">of {fmtInt(rec.slots)} slots · {fmtInt(rec.empty)} missed{rec.unreadable ? ` · ${fmtInt(rec.unreadable)} unread` : ""}</span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Distinct proposers</span>
+                <span className="g4-v">{fmtInt(rec.distinctProposers)}</span>
+                <span className="g4-dim">of {fmtInt(set.counts.active)} counted active</span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Silent in the window</span>
+                <span className="g4-v">{fmtInt(silent.length)}</span>
+                <span className="g4-dim">expected about {fmtNum(Math.max(0, set.counts.active - rec.filled), 0)} by chance alone</span>
+              </div>
+              <div className="g4-stat">
+                <span className="g4-k">Attestations per block</span>
+                <span className="g4-v">{fmtNum(rec.meanAttestations, 2)}</span>
+                <span className="g4-dim">two seats per slot is full participation</span>
+              </div>
+            </div>
+            <ProposerBars proposers={rec.byProposer} blocks={rec.filled} limit={16} />
+            <p className="notebox-inline">
+              <strong>A texture, not a score.</strong> With {fmtInt(set.counts.active)} validators
+              sharing {fmtInt(rec.filled)} blocks a perfectly healthy validator is expected to
+              propose about {fmtNum(rec.filled / Math.max(1, set.counts.active), 1)} times, so silence
+              here is unremarkable and two proposals is not a distinction. A missed slot cannot be
+              charged to anyone — the node serves no duty roster — so only a validator silent across
+              many windows is telling you anything. Slots {fmtInt(win.from)}–{fmtInt(win.to)}.
+            </p>
+          </>
+        )}
+      </section>
 
       {/* ── Concentration ─────────────────────────────────────────────── */}
       <section className="card">
@@ -342,11 +478,12 @@ export function ValidatorsPage() {
               <th className="num">Leaked</th>
               <th className="num">Share</th>
               <th className="num">Activated</th>
+              <th>Proposed <span className="faint">· {fmtInt(WINDOW_SLOTS)} slots</span></th>
             </tr>
           </thead>
           <tbody>
             {set.validators.map((r) => (
-              <ValidatorRowView key={r.index} row={r} total={total} maxOwn={maxOwn} />
+              <ValidatorRowView key={r.index} row={r} total={total} maxOwn={maxOwn} rec={rec} maxProp={maxProp} />
             ))}
           </tbody>
         </table>
@@ -376,10 +513,14 @@ function ValidatorRowView({
   row,
   total,
   maxOwn,
+  rec,
+  maxProp,
 }: {
   row: ValidatorRow;
   total: bigint;
   maxOwn: bigint;
+  rec: ProposalRecord | null;
+  maxProp: number;
 }) {
   if (isGap(row)) {
     return (
@@ -387,7 +528,7 @@ function ValidatorRowView({
         <td className="num">
           <ValidatorLink index={row.index} />
         </td>
-        <td colSpan={7} className="faint">
+        <td colSpan={8} className="faint">
           not read this round — {row.unavailable}
         </td>
       </tr>
@@ -416,6 +557,18 @@ function ValidatorRowView({
       <td className="num">{share === null ? "—" : `${fmtNum(share * 100, 2)}%`}</td>
       <td className="num">
         {row.activation_epoch === null ? <span className="faint">queued</span> : fmtInt(row.activation_epoch)}
+      </td>
+      <td>
+        {rec ? (
+          <span className="prop-inline" title={`${rec.byProposer.get(row.index) ?? 0} blocks in the last ${WINDOW_SLOTS} slots`}>
+            <span className="prop-track">
+              <span className="prop-fill" style={{ width: `${((rec.byProposer.get(row.index) ?? 0) / maxProp) * 100}%` }} />
+            </span>
+            <span className="prop-n">{fmtInt(rec.byProposer.get(row.index) ?? 0)}</span>
+          </span>
+        ) : (
+          <span className="faint">…</span>
+        )}
       </td>
     </tr>
   );

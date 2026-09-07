@@ -11,10 +11,14 @@ bundle served in production byte for byte.
 
 ## What it is
 
-- A **React + Vite** single-page app (`src/`) with pages for blocks, slots,
-  transactions, hashes and outpoints, validators and their queues, finality,
-  fees and mempool, supply, and the founder position with every denominator
-  named.
+- A **React + Vite** single-page app (`src/`) with a live dashboard, pages for
+  blocks and slots, epochs and chain analytics, transactions, hashes and
+  outpoints, validators and their queues, finality, fees and mempool, supply,
+  and the founder position with every denominator named. It is set in the same
+  design system as the Bloch wallet — dark-first, one emerald accent, mono
+  numerals, Fraunces for the display face — with a light theme behind the
+  toggle in the top bar (`src/styles.css` documents the tokens and the rule
+  that status colours never reuse the accent).
 - A **Cloudflare Pages Functions edge layer** (`functions/`, `edge/`) that
   sits between the browser and the chain. Every read is served from two
   keyless archival observers; a fleet validator is asked one question
@@ -36,6 +40,14 @@ npm test           # edge tests (node:test)
 ```
 
 Node 22 or later is required (`--experimental-strip-types`).
+
+The fonts are bundled from npm (`@fontsource-variable/fraunces`,
+`@fontsource/jetbrains-mono`) so the site depends on no third-party font host;
+each face falls back to the system serif or mono stack if the file is blocked.
+
+To look at the pages without a chain, serve `dist/` behind any mock of the edge
+that answers `/rpc`, `/g4`, `/g4/slots` and `/g4/validators` — the shapes are
+those in `edge/surface.js` and `functions/g4/`.
 
 Six tests compare the edge surface against the node source. In this
 standalone repository they are **skipped** unless you point them at a

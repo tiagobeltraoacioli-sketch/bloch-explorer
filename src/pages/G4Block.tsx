@@ -43,6 +43,15 @@ import { Link } from "../lib/router";
 import { Loading, Copyable } from "../components/ui";
 import { FinalityBadge } from "../components/blockstream";
 import { epochOf } from "../lib/query";
+import "../dashboard.css";
+import { SlotStrip, StripLegend, Kpi, TierPill } from "../components/kit";
+import { EpochSummary, loadEpoch, tierOf, epochSlots } from "../lib/epochs";
+import { slotStartMs, slotDelaySecs } from "../lib/slots";
+import { seatsPerSlot } from "../lib/participation";
+import { fmtNum } from "../lib/format";
+import { G4 } from "../lib/g4";
+import { indexerHealth, indexedBlockTransactions, IndexerHealth, IndexedBlockTxs } from "../lib/indexer";
+import { TxRows, OutpointCheck } from "../components/txBits";
 
 function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -119,27 +128,33 @@ function FinalityTruth({ block, agreement, headEpoch }: { block: G4Block; agreem
       <ul className="truth-list">
         <li className={block.finalized ? "yes" : "no"}>
           <span className="mark">{block.finalized ? "✓" : "✗"}</span>
-          The answering node reports this block <strong>{block.finality}</strong>.
-          {!block.finalized && " Not finalized, so it is reorganisable by the ordinary rules."}
+          <span>
+            The answering node reports this block <strong>{block.finality}</strong>.
+            {!block.finalized && " Not finalized, so it is reorganisable by the ordinary rules."}
+          </span>
         </li>
         <li className={agreed ? "yes" : "no"}>
           <span className="mark">{agreed ? "✓" : "✗"}</span>
-          {agreed
-            ? "Both archivals name the same block for this slot."
-            : agreement?.kind === "single"
-              ? "Only one archival answered — no cross-check happened."
-              : agreement?.kind === "disagree"
-                ? "The two archivals do not agree."
-                : "No archival answered the cross-check."}{" "}
-          Published guidance is two independent nodes concurring on root <em>and</em> epoch.
+          <span>
+            {agreed
+              ? "Both archivals name the same block for this slot."
+              : agreement?.kind === "single"
+                ? "Only one archival answered — no cross-check happened."
+                : agreement?.kind === "disagree"
+                  ? "The two archivals do not agree."
+                  : "No archival answered the cross-check."}{" "}
+            Published guidance is two independent nodes concurring on root <em>and</em> epoch.
+          </span>
         </li>
         <li className={margin ? "yes" : "no"}>
           <span className="mark">{margin ? "✓" : "✗"}</span>
-          {epochsPast === null
-            ? "Depth past finality unknown — the head did not answer."
-            : `This block is ${fmtInt(Math.max(0, epochsPast))} ${Math.abs(epochsPast) === 1 ? "epoch" : "epochs"} behind the head.`}{" "}
-          Current guidance asks for a margin of <strong>finalized + 3 epochs</strong>, because the
-          margin is the only thing that absorbs a finality rewind.
+          <span>
+            {epochsPast === null
+              ? "Depth past finality unknown — the head did not answer."
+              : `This block is ${fmtInt(Math.max(0, epochsPast))} ${Math.abs(epochsPast) === 1 ? "epoch" : "epochs"} behind the head.`}{" "}
+            Current guidance asks for a margin of <strong>finalized + 3 epochs</strong>, because the
+            margin is the only thing that absorbs a finality rewind.
+          </span>
         </li>
       </ul>
 
@@ -231,6 +246,7 @@ export function G4BlockPage({ slot, blockId }: { slot?: number; blockId?: string
   const b = view.block;
   const orphan = b.finality === NOT_CANONICAL;
   return <BlockBody b={b} orphan={orphan} agreement={agreement} headEpoch={headEpoch} seen={seen} />;
+
 }
 
 /**
@@ -314,6 +330,155 @@ export function NoSuchId({ id }: { id: string }) {
   );
 }
 
+/**
+ * The block inside its epoch: the other thirty-one slots, with this one ringed.
+ *
+ * Thirty-two edge-cached reads — once finalised, a slot is served from the edge
+ * cache for a week — so the context costs the chain nothing after the first
+ * reader of the epoch. Progressive, and the tier it names is the head's reading
+ * now, not a property of the epoch.
+ */
+function EpochContext({ b, headSlot }: { b: G4Block; headSlot: number | null }) {
+  const [sum, setSum] = useState<EpochSummary | null>(null);
+  const [head, setHead] = useState<{ epoch: number; justified: { epoch: number; root: string }; finalized: { epoch: number; root: string } } | null>(null);
+  useEffect(() => {
+    let stop = false;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const h = await read<{ slot: number; epoch: number; justified: { epoch: number; root: string }; finalized: { epoch: number; root: string } }>("getchaininfo", [], { signal: ac.signal });
+        if (stop) return;
+        setHead(h);
+        const s = await loadEpoch(b.epoch, h.slot, { signal: ac.signal, onProgress: (p) => !stop && setSum(p) });
+        if (!stop) setSum(s);
+      } catch {
+        /* the context is secondary; the block renders without it */
+      }
+    })();
+    return () => {
+      stop = true;
+      ac.abort();
+    };
+  }, [b.epoch, b.slot, headSlot]);
+  const [first, last] = epochSlots(b.epoch);
+  return (
+    <section className="card">
+      <div className="dash-prod-head">
+        <h2 className="snap-h2" style={{ margin: 0 }}>
+          Its epoch — <Link to={`/epoch/${b.epoch}`}>epoch {fmtInt(b.epoch)}</Link>
+        </h2>
+        {head && <TierPill tier={tierOf(b.epoch, head)} />}
+        <span className="spacer" />
+        <Link to={`/epoch/${b.epoch}`} className="pill-tab">the whole epoch →</Link>
+      </div>
+      {sum ? (
+        <>
+          <SlotStrip cells={sum.cells} pending={sum.pending} current={b.slot} variant="tall" />
+          <div className="strip-axis">
+            <span>slot {fmtInt(first)}</span>
+            <span>slot {fmtInt(last)}</span>
+          </div>
+          <StripLegend pending={sum.pending > 0} />
+          <p className="lookup-hint">
+            This block is slot {b.slot % 32 + 1} of {fmtInt(32)} in its epoch. The epoch has{" "}
+            {fmtInt(sum.blocks)} blocks, {fmtInt(sum.empty)} missed slots
+            {sum.unknown ? `, ${fmtInt(sum.unknown)} unread` : ""}
+            {sum.pending ? `, ${fmtInt(sum.pending)} not yet reached` : ""}; {fmtInt(sum.votes)} attestations
+            reached the chain across it, from {fmtInt(sum.distinctProposers)} distinct proposers.
+          </p>
+        </>
+      ) : (
+        <Loading label="Reading the epoch's slots…" />
+      )}
+    </section>
+  );
+}
+
+/**
+ * The block's transactions — listed when an indexer is attached, counted when
+ * not. The count is the chain's; the list is the indexer's; the section says
+ * which it is showing and compares the two when it has both.
+ */
+function BlockTransactions({ b }: { b: G4Block }) {
+  const [idx, setIdx] = useState<IndexerHealth | null | undefined>(undefined);
+  const [txs, setTxs] = useState<IndexedBlockTxs | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let stop = false;
+    setTxs(null);
+    setErr(null);
+    indexerHealth().then((h) => {
+      if (stop) return;
+      setIdx(h);
+      if (h && b.tx_count > 0) {
+        indexedBlockTransactions(b.block_id)
+          .then((t) => !stop && setTxs(t))
+          .catch((e) => !stop && setErr(String(e?.message ?? e)));
+      }
+    });
+    return () => {
+      stop = true;
+    };
+  }, [b.block_id, b.tx_count]);
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2 className="snap-h2" style={{ margin: 0 }}>Transactions</h2>
+        <span className={"pill pill-sm " + (b.tx_count > 0 ? "ok" : "quiet")}>{fmtInt(b.tx_count)} in the header</span>
+        {idx ? (
+          <span className="pill brass pill-sm">indexer · slot {fmtInt(idx.indexed_to_slot)}</span>
+        ) : idx === null ? (
+          <span className="pill quiet pill-sm">no indexer attached</span>
+        ) : null}
+        <span className="spacer" />
+        <Link to="/transactions" className="pill-tab">all transactions →</Link>
+      </div>
+
+      {b.tx_count === 0 ? (
+        <p className="lookup-hint" style={{ margin: 0 }}>
+          An empty block — the usual case on this chain today. The header's count is the chain's
+          own word; there is nothing here to list and nothing an index would add.
+        </p>
+      ) : idx === undefined ? (
+        <Loading label="Asking whether an indexer is attached…" />
+      ) : idx && txs ? (
+        <>
+          {txs.tx_count !== b.tx_count && (
+            <div className="errbox warn">
+              <strong>The indexer and the header disagree.</strong> The header says{" "}
+              {fmtInt(b.tx_count)} transactions; the indexer lists {fmtInt(txs.tx_count)}. One of the
+              two is reading a different block at this id, or the indexer has not finished folding
+              it. Neither is trusted over the other here.
+            </div>
+          )}
+          <TxRows txs={txs.transactions} asOfSlot={txs.as_of_slot} showBlock={false} />
+        </>
+      ) : idx && err ? (
+        <div className="errbox">The indexer did not answer for this block: {err}</div>
+      ) : idx ? (
+        <Loading label="Reading the block's transactions from the indexer…" />
+      ) : (
+        <>
+          <p className="page-lede" style={{ marginBottom: 12 }}>
+            <strong>{fmtInt(b.tx_count)}</strong> {b.tx_count === 1 ? "transaction landed" : "transactions landed"} in
+            this block, and that count is all the node gives: it serves the header and no body, and
+            no index maps a transaction id back to the block that carried it. The list appears here
+            the day an indexer is attached. What the chain <em>does</em> answer, exactly, is whether
+            one output is still unspent — if you hold the id, check it below.
+          </p>
+          <OutpointCheck />
+          <p className="lookup-hint">
+            To follow value without an id, read the recipient's entry in the unspent set with{" "}
+            <Link to="/hash">a balance lookup</Link>; a transfer is visible as its outputs appearing
+            there. <Link to="/tx">Why a transaction id does not get you a page</Link>.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 /** The block itself. Exported so it can be rendered against real data. */
 export function BlockBody({
   b,
@@ -353,48 +518,32 @@ export function BlockBody({
           : `The chain calls it ${b.finality}; it is not finalized yet.`}
       </p>
 
-      <div className="g4-grid card" style={{ marginBottom: 14 }}>
-        <div className="g4-stat">
-          <span className="g4-k">Height</span>
-          <span className="g4-v">
-            {b.height === null ? <span className="faint">none</span> : fmtInt(b.height)}
-          </span>
-        </div>
-        <div className="g4-stat">
-          <span className="g4-k">Slot</span>
-          <span className="g4-v">{fmtInt(b.slot)}</span>
-        </div>
-        <div className="g4-stat">
-          <span className="g4-k">Epoch</span>
-          <span className="g4-v">
-            {fmtInt(b.epoch)}
-            <span className="g4-dim"> · slot {b.slot % 32}/32</span>
-          </span>
-        </div>
-        <div className="g4-stat">
-          <span className="g4-k">Proposer</span>
-          <span className="g4-v">
-            <Link to={`/validators#v${b.proposer_index}`}>v{b.proposer_index}</Link>
-          </span>
-        </div>
+      <div className="kpi-grid" style={{ marginBottom: 14 }}>
+        <Kpi k="Height" v={b.height === null ? <span className="faint">none</span> : fmtInt(b.height)} sub={b.height === null ? "not on the canonical chain" : "blocks before it, plus one"} />
+        <Kpi k="Slot" v={fmtInt(b.slot)} sub={`slot ${(b.slot % 32) + 1} of 32 in epoch ${fmtInt(b.epoch)}`} />
+        <Kpi k="Proposer" v={<Link to={`/validators/${b.proposer_index}`}>v{b.proposer_index}</Link>} sub="the validator that built it" />
+        <Kpi
+          k="Arrived"
+          v={`${slotDelaySecs(b) >= 0 ? "+" : ""}${fmtNum(slotDelaySecs(b), 0)}s`}
+          sub={`after the slot opened at ${fmtTime(slotStartMs(b.slot) / 1000)}`}
+          title="The header timestamp against the slot's scheduled start, from the genesis time and the 30-second slot."
+        />
+        <Kpi
+          k="Attestations"
+          v={`${fmtInt(b.attestation_count)}`}
+          sub={`of ${seatsPerSlot(G4.validators, 32)} seats in this slot's committee — ${b.attestation_count >= seatsPerSlot(G4.validators, 32) ? "all of them" : "some absent, or carried later"}`}
+          title="Genesis-4 cuts the shuffled roster into 32 contiguous chunks; at 64 validators that is two seats per slot, so two attestations is full participation, not a shortfall."
+        />
+        <Kpi k="Transactions" v={fmtInt(b.tx_count)} sub={b.tx_count === 0 ? "an empty block — usual here" : "the count is all the node gives"} />
       </div>
 
       <FinalityTruth block={b} agreement={agreement} headEpoch={headEpoch} />
 
+      {!orphan && <EpochContext b={b} headSlot={null} />}
+
       <Sightings seen={seen} />
 
-      <section className="card">
-        <h2 className="snap-h2">Transactions</h2>
-        <p className="page-lede">
-          This block carries <strong>{fmtInt(b.tx_count)}</strong>{" "}
-          {b.tx_count === 1 ? "transaction" : "transactions"}. That count is all there is — the
-          node exposes no transaction list for a block, and no index maps a transaction id back
-          to the block that carried it, so there is nothing to enumerate them from. To follow
-          value, read the eUTXO set directly with{" "}
-          <Link to="/balance">a balance lookup</Link>, which is exact.{" "}
-          <Link to="/tx">Why a transaction id does not get you a page</Link>.
-        </p>
-      </section>
+      <BlockTransactions b={b} />
 
       <section className="card">
         <h2 className="snap-h2">What the header commits</h2>
