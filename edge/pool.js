@@ -74,24 +74,84 @@ function parseList(raw, fallback) {
     .map((s) => s.trim())
     .filter(Boolean);
   const out = [];
-  for (const u of list) if (!out.includes(u)) out.push(u);
+  for (const value of list) {
+    let url;
+    try { url = new URL(value); } catch { throw new Error('Invalid RPC pool URL'); }
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
+      throw new Error('RPC pools require HTTP(S) URLs without credentials or fragments');
+    }
+    if (!out.includes(url.href)) out.push(url.href);
+  }
+  if (out.length > MAX_POOL_SIZE) throw new Error(`RPC pool exceeds ${MAX_POOL_SIZE} nodes`);
   return out.length ? out : fallback.slice();
 }
+
+// Eight observers cost at most 40 walk tokens, below the 60-token burst.
+export const MAX_POOL_SIZE = 8;
 
 export function parsePools(env) {
   const e = env || {};
   const archivals = parseList(e.EXPLORER_ARCHIVALS, DEFAULT_ARCHIVALS);
-  let fleet = parseList(e.EXPLORER_FLEET, DEFAULT_FLEET);
-  // A fleet box that is also listed as an archival is a configuration mistake
-  // that would quietly put a validator on the data plane. Drop it from the
-  // fleet list rather than from the archival one: being wrong about which is
-  // which must not cost us the witness AND the data plane at once.
-  fleet = fleet.filter((u) => !archivals.includes(u));
+  const fleet = parseList(e.EXPLORER_FLEET, DEFAULT_FLEET);
+  // Refuse an ambiguous role instead of quietly making a validator an observer.
+  const host = u => new URL(u).hostname.replace(/\.nip\.io$/, '');
+  const fleetHosts = new Set([...fleet, ...DEFAULT_FLEET].map(host));
+  if (archivals.some(u => fleetHosts.has(host(u)))) {
+    throw new Error('An archival RPC cannot also be a fleet validator');
+  }
   return { archivals, fleet };
 }
 
 /** Per-upstream cooldown, isolate-local. `url -> coolingUntilEpochMs`. */
 const cooldowns = new Map();
+const observations = new Map();
+const MAX_OBSERVATIONS = 64;
+export const OBSERVATION_FRESH_MS = 60_000;
+
+function record(url, req, outcome, start, at) {
+  const old = observations.get(url);
+  if (!old && observations.size >= MAX_OBSERVATIONS) observations.delete(observations.keys().next().value);
+  const rpcCode = outcome.value?.error?.code;
+  const supported = outcome.settled ? rpcCode !== -32601 : null;
+  const methods = { ...old?.methods, [req.method]: { supported, sampled_at: at } };
+  const data = outcome.value?.result;
+  const safe = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+  const sample = {
+    ...old, at, latency_ms: Math.max(0, at - start),
+    responding: outcome.settled,
+    requests: (old?.requests ?? 0) + 1,
+    failures: (old?.failures ?? 0) + (outcome.settled ? 0 : 1),
+    outcome: outcome.settled ? (rpcCode ? 'rpc_error' : 'ok') : outcome.outcome,
+    methods,
+  };
+  if (req.method === 'getchaininfo' && data && typeof data === 'object') {
+    sample.chain = { slot: safe(data.slot), height: safe(data.height), lag_slots: safe(data.behind_by_slots), sampled_at: at };
+  }
+  if (req.method === 'getbuildinfo' && data && typeof data === 'object') {
+    sample.build = Object.fromEntries(['build_version', 'package_version', 'commit', 'commit_source', 'tree_state', 'source_digest', 'source_digest_alg', 'rustc', 'profile', 'target']
+      .filter(k => typeof data[k] === 'string').map(k => [k, data[k].slice(0, 256)]));
+    sample.build_at = at;
+  }
+  observations.set(url, sample);
+}
+
+/** Passive measurements only. Never probes; never exposes upstream addresses. */
+export function poolSnapshot(pools, now) {
+  return ['archivals', 'fleet'].flatMap(role => pools[role].map((url, i) => {
+    const o = observations.get(url);
+    const age = o ? Math.max(0, now - o.at) : null;
+    return {
+      id: `${role === 'archivals' ? 'archival' : 'witness'}-${i + 1}`,
+      role: role === 'archivals' ? 'observer' : 'witness',
+      status: !o ? 'unobserved' : age > OBSERVATION_FRESH_MS ? 'stale' : o.responding ? 'responding' : 'unavailable',
+      sampled_at: o?.at ?? null, age_ms: age, latency_ms: o?.latency_ms ?? null,
+      requests: o?.requests ?? 0, failures: o?.failures ?? 0,
+      cooling: isCooling(url, now), outcome: o?.outcome ?? null,
+      methods: o?.methods ?? {}, chain: o?.chain ?? null,
+      build: o?.build ?? null, build_sampled_at: o?.build_at ?? null,
+    };
+  }));
+}
 
 export const COOLDOWN_MS = 15_000;
 
@@ -106,6 +166,7 @@ export function isCooling(url, now) {
 }
 export function _resetPoolForTests() {
   cooldowns.clear();
+  observations.clear();
 }
 
 /**
@@ -137,7 +198,9 @@ export const ATTEMPT_TIMEOUT_MS = 9_000;
  */
 const RETRYABLE_RPC_CODES = new Set([-32004, -32603]);
 
-export async function attemptOne(url, rpcReq, timeoutMs, fetchImpl) {
+export async function attemptOne(url, rpcReq, timeoutMs, fetchImpl, now = Date.now) {
+  const start = now();
+  const done = outcome => { record(url, rpcReq, outcome, start, now()); return outcome; };
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
@@ -147,29 +210,29 @@ export async function attemptOne(url, rpcReq, timeoutMs, fetchImpl) {
       body: JSON.stringify(rpcReq),
       signal: ac.signal,
     });
-    if (!res.ok) return { settled: false, outcome: `http ${res.status}` };
+    if (!res.ok) return done({ settled: false, outcome: `http ${res.status}` });
     const text = await res.text();
     let parsed;
     try {
       parsed = JSON.parse(text);
     } catch {
-      return { settled: false, outcome: 'non-json response' };
+      return done({ settled: false, outcome: 'non-json response' });
     }
     if (parsed && parsed.error && typeof parsed.error.code === 'number') {
       if (RETRYABLE_RPC_CODES.has(parsed.error.code)) {
-        return { settled: false, outcome: `rpc ${parsed.error.code}` };
+        return done({ settled: false, outcome: `rpc ${parsed.error.code}` });
       }
-      return { settled: true, value: { error: parsed.error } };
+      return done({ settled: true, value: { error: parsed.error } });
     }
     if (parsed && Object.prototype.hasOwnProperty.call(parsed, 'result')) {
-      return { settled: true, value: { result: parsed.result } };
+      return done({ settled: true, value: { result: parsed.result } });
     }
-    return { settled: false, outcome: 'malformed json-rpc response' };
+    return done({ settled: false, outcome: 'malformed json-rpc response' });
   } catch (e) {
-    return {
+    return done({
       settled: false,
       outcome: e && e.name === 'AbortError' ? 'timeout' : 'network error',
-    };
+    });
   } finally {
     clearTimeout(timer);
   }

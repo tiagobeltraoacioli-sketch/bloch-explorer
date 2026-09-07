@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { readRpc } from "./rpcTransport";
 //
 // Genesis-4 RPC client.
 //
@@ -181,13 +182,7 @@ export async function g4rpc<T>(
   params: unknown[] = [],
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
-  const res = await fetch(G4_RPC, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    signal: opts.signal,
-  });
-  const body = await res.json();
+  const body = await readRpc<T>(method, params, opts);
   if (body.error) {
     throw new G4Error(
       body.error.message ?? "rpc error",
@@ -196,9 +191,9 @@ export async function g4rpc<T>(
       typeof body.error.code === "number" ? body.error.code : null,
     );
   }
-  const corro: G4Corroboration | undefined = body.result?.corroboration;
+  const corro = (body.result as { corroboration?: G4Corroboration } | undefined)?.corroboration;
+  lastCorroboration = corro ?? null;
   if (corro) {
-    lastCorroboration = corro;
     honourSalt(corro.cache_salt);
   }
   return body.result as T;

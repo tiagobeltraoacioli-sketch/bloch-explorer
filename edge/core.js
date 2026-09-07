@@ -84,6 +84,9 @@ import {
   upstreamBudgetError,
   WALK_COST,
   UPSTREAM_WALK_COST,
+  CLIENT_RATE,
+  CLIENT_BURST,
+  ARCHIVAL_RATE,
   NO_QUORUM,
   STALE_UPSTREAM,
 } from './governor.js';
@@ -216,10 +219,10 @@ async function askArchivals(rpcReq, urls, opts) {
   // "they agreed" and "they disagreed" are equally meaningless. `order()` is
   // health-sorted, so this is the best single node we know of.
   if (opts.single) ordered = ordered.slice(0, 1);
-  const t = Math.min(ATTEMPT_TIMEOUT_MS, opts.deadline - now() - 250);
+  const t = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
   if (t < 500) return { answers: [], attempts: [{ outcome: 'skipped: time budget exhausted' }] };
 
-  const results = await Promise.all(ordered.map((u) => attemptOne(u, rpcReq, t, opts.fetchImpl)));
+  const results = await Promise.all(ordered.map((u) => attemptOne(u, rpcReq, t, opts.fetchImpl, opts.now)));
   const answers = [];
   const attempts = [];
   ordered.forEach((u, i) => {
@@ -282,7 +285,7 @@ export function adoptPlane(answers, opts) {
   const heights = chains.map((c) => Number(c.height)).filter(Number.isFinite);
   const agreed =
     chains.length >= 2 &&
-    canonicalKey(headKey(chains[0])) === canonicalKey(headKey(chains[1]));
+    chains.every(c => canonicalKey(headKey(c)) === canonicalKey(headKey(chains[0])));
 
   plane = {
     at: now,
@@ -574,7 +577,7 @@ export function capabilitiesJson(now) {
   return {
     edge: 'bloch-explorer',
     surface: 'genesis-4-read-only',
-    version: '1.0.0',
+    version: '1.1.0',
     methods: EDGE_SURFACE.map((m) => ({
       name: m.name,
       cache_class: m.cacheClass,
@@ -582,6 +585,7 @@ export function capabilitiesJson(now) {
       corroboration: m.corroboration,
       cache_ttl_ms: m.ttlMs,
       alias_of: m.aliasOf ?? null,
+      optional: m.optional === true,
       summary: m.summary,
     })),
     absent: EDGE_ABSENT.map(([name, why]) => ({ name, why })),
@@ -592,14 +596,15 @@ export function capabilitiesJson(now) {
       node_local: 'a property of the node asked, not of the chain',
     },
     limits: {
-      client_sustained_per_second: 8,
-      client_burst: 40,
+      client_sustained_per_second: CLIENT_RATE,
+      client_burst: CLIENT_BURST,
       walk_methods_cost: WALK_COST,
-      upstream_calls_per_second: 6,
+      upstream_calls_per_second: ARCHIVAL_RATE,
       fleet_witness_interval_ms: WITNESS_TTL_MS,
       stale_tolerance_slots: STALE_SLOTS,
       batch_requests: false,
     },
+    rest_resources: ['capabilities', 'status', 'network', 'build', 'tx-status/<txid>', 'blocks', 'block/<id-or-slot>', 'validators', 'validator/<index>', 'address/<address>', 'outpoint/<txid>/<vout>', 'mempool', 'edge'],
     honesty: [
       'This endpoint corroborates; it does not validate. It compares answers ' +
         'from independent nodes. It checks no signature and applies no state ' +
@@ -643,6 +648,10 @@ export async function handleRead(payload, opts) {
   const spec = methodSpec(method);
   if (!spec) {
     return { body: methodNotAllowedError(id, method), cacheState: 'bypass', status: 200 };
+  }
+
+  if (method === 'gettxstatus' && (!Array.isArray(payload.params) || payload.params.length !== 1 || typeof payload.params[0] !== 'string' || !/^[0-9a-f]{64}$/i.test(payload.params[0]))) {
+    return { body: { jsonrpc: '2.0', id, error: { code: -32602, message: 'gettxstatus requires one 64-hex transaction id' } }, cacheState: 'bypass', status: 400 };
   }
 
   // ── 2. client limit ───────────────────────────────────────────────────────
@@ -713,7 +722,7 @@ export async function handleRead(payload, opts) {
   if (key && inFlight.has(key)) {
     counters.coalesced += 1;
     const shared = await inFlight.get(key);
-    return { ...shared, cacheState: 'coalesced' };
+    return { ...shared, body: { ...shared.body, id }, cacheState: 'coalesced' };
   }
 
   const work = (async () => {
@@ -774,7 +783,7 @@ export async function handleRead(payload, opts) {
     const groups = new Map();
     for (const a of answers) {
       const k = canonicalKey(a.value);
-      const g = groups.get(k) || { value: a.value, votes: 0 };
+      const g = groups.get(k) || { value: a.value, votes: 0, url: a.url };
       g.votes += 1;
       groups.set(k, g);
     }
@@ -786,7 +795,10 @@ export async function handleRead(payload, opts) {
       return { body: divergentError(id, method, groups.size), cacheState: 'miss', status: 200 };
     }
 
-    const winner = [...groups.values()][0];
+    const candidates = [...groups.values()];
+    // Optional methods may be absent on an older observer. A successful
+    // response remains explicitly node-local, even in a mixed-version pool.
+    const winner = (spec.optional && candidates.find(g => g.value.result !== undefined)) || candidates[0];
     if (winner.value.error) {
       // An error two nodes agree on is an answer. Do not cache it: the ones
       // that matter here (BLOCK_NOT_FOUND, SLOT_EMPTY) stop being true as the
@@ -828,6 +840,7 @@ export async function handleRead(payload, opts) {
     // ── write-back ──────────────────────────────────────────────────────────
     const meta = {
       answered_by: answers.length,
+      source_node: `archival-${opts.pools.archivals.indexOf(winner.url) + 1}`,
       fetched_at: now(),
       finalised,
       finality_as_answered: result && result.finality,
@@ -892,6 +905,9 @@ function finish(result, meta, o) {
       pinnedTo: (o.answers && o.answers.length === 1 && o.answers[0] && o.answers[0].url) || null,
     },
   );
+  if (o.spec.cacheClass === CacheClass.NodeLocal && meta.source_node) corroboration.source_node = meta.source_node;
+  if (o.spec.name === 'getbuildinfo') corroboration.note = 'Self-reported build identity of one observer. Matching source digests are evidence, not remote attestation.';
+  if (o.spec.name === 'gettxstatus') corroboration.note = 'One observer remembered status, not a transaction index or a consensus proof. Unknown does not prove absence.';
   if (o.degraded) corroboration.degraded = o.degraded;
   if (o.cacheState === 'hit' || o.cacheState === 'stale') {
     corroboration.served_from_cache_age_ms = o.ageMs;
