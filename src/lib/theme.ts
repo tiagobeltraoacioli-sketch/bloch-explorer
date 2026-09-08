@@ -42,7 +42,7 @@ const listeners = new Set<(t: ResolvedTheme) => void>();
 function paint(resolved: ResolvedTheme) {
   document.documentElement.setAttribute("data-theme", resolved);
   const meta = document.getElementById("themeColor");
-  if (meta) meta.setAttribute("content", resolved === "light" ? "#f4f7f6" : "#070d0b");
+  if (meta) meta.setAttribute("content", resolved === "light" ? "#f7faf4" : "#101211");
   listeners.forEach((f) => f(resolved));
 }
 

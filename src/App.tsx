@@ -40,7 +40,7 @@ export const Logo = () => (
   </svg>
 );
 
-/** The lowercase serif wordmark the wallet uses — "bloch·explorer". */
+/** The lowercase sans-serif wordmark shared with the wallet — "bloch·explorer". */
 function Wordmark() {
   return (
     <span className="wordmark">
