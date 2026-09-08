@@ -223,6 +223,29 @@ async function askArchivals(rpcReq, urls, opts) {
   if (t < 500) return { answers: [], attempts: [{ outcome: 'skipped: time budget exhausted' }] };
 
   const results = await Promise.all(ordered.map((u) => attemptOne(u, rpcReq, t, opts.fetchImpl, opts.now)));
+
+  // Retry-once for upstreams that came back UNSETTLED (a timeout, an http
+  // status, a network error — never a settled rpc answer). A single archival
+  // hiccup between two Cloudflare datacentres and the origin is common enough
+  // that giving each failed upstream one more chance — when the time budget
+  // still allows it — turns most of the sporadic empty/single reads back into
+  // a corroborated pair. A settled answer (result OR a real rpc error) is
+  // never retried: that is the node speaking, and asking twice would only
+  // hide a genuine disagreement.
+  const t2 = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
+  if (t2 >= 500) {
+    const retried = await Promise.all(
+      ordered.map((u, i) =>
+        results[i] && results[i].settled
+          ? Promise.resolve(results[i])
+          : attemptOne(u, rpcReq, t2, opts.fetchImpl, opts.now),
+      ),
+    );
+    for (let i = 0; i < ordered.length; i++) {
+      if (retried[i] && retried[i].settled) results[i] = retried[i];
+    }
+  }
+
   const answers = [];
   const attempts = [];
   ordered.forEach((u, i) => {
