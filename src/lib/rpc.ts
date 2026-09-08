@@ -53,15 +53,20 @@ const ENDPOINT_CHAIN: readonly string[] = OVERRIDE
   : DEV
     ? ["/rpc"] // vite dev proxy → local node tunnel (vite.config.ts)
     : [
-        "https://rpc.blochl1.com/", // neutral host — survives the pool decommission
-        // NO LONGER A GENESIS-3 PATH. `/rpc` was rewritten on 2026-09-01 to
-        // serve Genesis-4 only: it answers -32601 to every name below, with
-        // the list of names it does answer in `error.data.allowed`. It is
-        // left in the chain deliberately rather than removed, because that
-        // refusal is the most useful thing a Genesis-3 page can be told —
-        // "this chain is over, here is what the endpoint serves now" beats a
-        // transport failure that reads as an outage. See functions/rpc.js.
+        // SAME-ORIGIN FIRST. `rpc.blochl1.com` is a different origin and sends
+        // no CORS headers (its OPTIONS preflight is 405), so a browser blocks
+        // the call before the body is ever read — from a tab on blochl1.com it
+        // can never answer, and leading with it made every JSON-RPC read fail
+        // over to nothing and surface as "archivals unreachable". `/rpc` is the
+        // same-origin Pages Function (functions/rpc.js): CORS-safe by origin,
+        // and it corroborates the head on the finality claim, not the moving
+        // tip (see edge/core.js quorumKey), so it stops returning -32010 on
+        // getchaininfo. It is the correct primary.
         "/rpc",
+        // Cross-origin neutral host: usable by non-browser callers only (no
+        // CORS). Kept as a last resort behind the same-origin path, not ahead
+        // of it. Survives the pool decommission.
+        "https://rpc.blochl1.com/",
         "https://g2rpc.posternpool.com/", // DEPRECATED bridge — dies with the pool at h 80,000
       ];
 

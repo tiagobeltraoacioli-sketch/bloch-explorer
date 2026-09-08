@@ -512,6 +512,29 @@ export function methodNotAllowedError(id, method) {
   };
 }
 
+/**
+ * The key two archival answers are grouped by for the quorum check.
+ *
+ * `getchaininfo` carries the MOVING head (`slot`, `height`, `block_id`) beside
+ * the finality claim. Two honest archivals routinely differ on the head by a
+ * slot — one answered a moment later — so grouping the whole answer made every
+ * getchaininfo split into two groups and return `-32010 divergent_archivals`,
+ * even though both nodes were on the same chain. Corroboration for the head is
+ * the FINALITY CLAIM (justified/finalized checkpoints), never the tip — the
+ * same rule `functions/g4.js` already applies with its CONSENSUS_FIELDS. Every
+ * other method stays content-addressed: a `getbalance` disagreement IS a real
+ * fork signal and must still trip the quorum error.
+ */
+function quorumKey(method, value) {
+  if (method === 'getchaininfo') {
+    const r = value && value.result;
+    if (r && typeof r === 'object') {
+      return canonicalKey({ justified: r.justified ?? null, finalized: r.finalized ?? null });
+    }
+  }
+  return canonicalKey(value);
+}
+
 function divergentError(id, method, groups) {
   return {
     jsonrpc: '2.0',
@@ -782,7 +805,7 @@ export async function handleRead(payload, opts) {
     // ── 7. corroborate ──────────────────────────────────────────────────────
     const groups = new Map();
     for (const a of answers) {
-      const k = canonicalKey(a.value);
+      const k = quorumKey(method, a.value);
       const g = groups.get(k) || { value: a.value, votes: 0, url: a.url };
       g.votes += 1;
       groups.set(k, g);
