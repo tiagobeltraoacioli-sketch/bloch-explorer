@@ -25,7 +25,7 @@ import { readRpc } from "./rpcTransport";
 // those upstreams include validators, so it is the fallback and never the
 // default. In `vite dev` there is no Pages Function, so `/rpc` 404s and the
 // fallback is what answers; that is intended.
-export const G4_ENDPOINTS = ["/rpc", "https://posternlabs.com/g4rpc"] as const;
+export { G4_ENDPOINTS } from "./rpcTransport";
 
 /**
  * The explorer's own edge, same origin.

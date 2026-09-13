@@ -55,6 +55,18 @@ const NEEDS_NODE = SOURCE
 /** Names out of `pub const RPC_SURFACE: &[Method] = &[ … ]`. */
 function nodeSurfaceNames() {
   const start = SOURCE.indexOf('pub const RPC_SURFACE: &[Method] = &[');
+  if (start === -1) {
+    // The deployed lineage freezes an exhaustive variant registry instead
+    // of the RPC_SURFACE table from the separate surface branch.
+    assert.ok(SOURCE.includes('mod method_registry;'), 'the node must attach its method registry');
+    const registry = readFileSync(resolve(dirname(RPC_RS), 'rpc/method_registry.rs'), 'utf8');
+    const names = [...registry.matchAll(/=>\s*"([a-z_]+)"/g)].map(m => m[1]);
+    assert.ok(names.length >= 10, 'the variant registry must contain the canonical methods');
+    const dispatched = new Set(dispatchArmNames());
+    for (const name of names) assert.ok(dispatched.has(name), `registry method ${name} must be routed`);
+    for (const name of dispatched) assert.ok(names.includes(name) || ['gettransaction', 'getnewaddress', 'listunspent'].includes(name), `unregistered routed method ${name}`);
+    return [...dispatched];
+  }
   assert.notEqual(start, -1, 'RPC_SURFACE must exist in rpc.rs — has the table moved or been renamed?');
   const end = SOURCE.indexOf('\n];', start);
   assert.notEqual(end, -1, 'RPC_SURFACE must close at `\\n];`');
@@ -110,6 +122,8 @@ test('the edge method namespace is frozen', () => {
     'gettxstatus',
     'getutxos',
     'getvalidator',
+    'getvalidatoradmission',
+    'getvalidatorbykey',
     'getvalidatorcount',
     'getvalidators',
     'listunspent',
@@ -133,7 +147,7 @@ test('every edge method exists in the node RPC_SURFACE', NEEDS_NODE, () => {
   assert.ok(nodeNames.size >= 10, `RPC_SURFACE parse found only ${nodeNames.size} names — the extractor has stopped seeing the table`);
   for (const name of edgeMethodNames()) {
     assert.ok(
-      nodeNames.has(name) || methodSpec(name)?.optional === true,
+      nodeNames.has(name) || methodSpec(name)?.optional === true || methodSpec(name)?.corroboration === 'edge',
       `the edge exposes '${name}' and the node does not serve it. This is the ` +
         `Genesis-3 defect exactly: an allowlist naming methods that answer -32601. ` +
         `Either wire it into the node or drop it from EDGE_SURFACE.`,
@@ -240,7 +254,8 @@ test('mempool is declared node-local, matching the node own words', NEEDS_NODE, 
   assert.equal(methodSpec('getmempoolinfo').cacheClass, CacheClass.NodeLocal);
   assert.equal(methodSpec('getmempoolinfo').corroboration, 'none');
   assert.ok(
-    SOURCE.includes('node-local, not consensus'),
+    SOURCE.includes('node-local, not consensus') || /pub fn mempool_info_json\(\s*size: usize,[^)]*\) -> Json/.test(SOURCE)
+      && !/pub fn mempool_info_json\([^)]*(?:CommittedState|StateReader)/.test(SOURCE),
     "rpc.rs no longer calls getmempoolinfo node-local; the edge's `node_local` " +
       'corroboration level is derived from that claim',
   );

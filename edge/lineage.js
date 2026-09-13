@@ -394,7 +394,9 @@ export async function fleetWitness(opts) {
       now,
     );
     const at = now();
-    if (r.settled && r.value.result) {
+    const lag = Number(r.value?.result?.behind_by_slots);
+    const stale = Number.isFinite(lag) && lag > STALE_SLOTS;
+    if (r.settled && r.value.result && !stale) {
       markWell(pick);
       witness = { ok: true, chain: r.value.result, at, url: pick };
       observe(r.value.result, 'witness');
@@ -405,7 +407,7 @@ export async function fleetWitness(opts) {
         chain: witness && witness.chain ? witness.chain : null,
         at,
         url: pick,
-        reason: r.settled ? 'rpc error' : r.outcome,
+        reason: stale ? 'stale_witness' : r.settled ? 'rpc error' : r.outcome,
         // A carried-over chain is explicitly dated so nothing downstream can
         // mistake it for a fresh reading.
         chainAt: witness ? witness.at : null,

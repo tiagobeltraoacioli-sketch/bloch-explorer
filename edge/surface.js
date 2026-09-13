@@ -172,6 +172,24 @@ export const EDGE_SURFACE = [
     summary: 'registered total, active count, and total active stake',
   },
   {
+    name: 'getvalidatoradmission',
+    cacheClass: CacheClass.NodeLocal,
+    cost: Cost.Cheap,
+    corroboration: 'none',
+    optional: true,
+    ttlMs: 3_000,
+    summary: 'the responding binary admission schedule and network-bound staking terms',
+  },
+  {
+    name: 'getvalidatorbykey',
+    cacheClass: CacheClass.NodeLocal,
+    cost: Cost.Cheap,
+    corroboration: 'none',
+    optional: true,
+    ttlMs: 3_000,
+    summary: 'validator lookup by public key hash; node-local during the binary rollout',
+  },
+  {
     name: 'getbalance',
     cacheClass: CacheClass.Mutable,
     cost: Cost.Walk,
@@ -225,6 +243,7 @@ export const EDGE_SURFACE = [
   },
   {
     name: 'getsupply',
+    optional: true, // Absent from the deployed G4 lineage and activation candidate.
     cacheClass: CacheClass.Epoch,
     // O(1), measured at 3.1 us: one field read and two compile-time constants.
     cost: Cost.Cheap,
@@ -238,6 +257,7 @@ export const EDGE_SURFACE = [
   },
   {
     name: 'getstakedistribution',
+    optional: true, // Absent from the deployed G4 lineage and activation candidate.
     cacheClass: CacheClass.Epoch,
     // One roster build O(V + D) plus O(V log V); the response is fixed-size.
     cost: Cost.Cheap,

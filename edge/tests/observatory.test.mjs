@@ -8,9 +8,10 @@ import { methodSpec, EDGE_SURFACE } from '../surface.js';
 import { ARCHIVAL_RATE, CLIENT_RATE } from '../governor.js';
 import { reset, clock, fakeCache, fakeFetch, opts, chainInfo, ARCHIVALS, FLEET } from './harness.mjs';
 import { decimal, count, mempoolMetrics, appendSample, transactionStatus } from '../../src/lib/observatory.ts';
-import { readRpc } from '../../src/lib/rpcTransport.ts';
+import { readRpc, _resetTransportForTests } from '../../src/lib/rpcTransport.ts';
 
 beforeEach(reset);
+beforeEach(_resetTransportForTests);
 const request = (method, params = [], id = 1) => ({ jsonrpc: '2.0', id, method, params });
 const healthy = (extra = {}) => Object.fromEntries([...ARCHIVALS, ...FLEET].map(url => [url, method => {
   if (method === 'getchaininfo') return { result: chainInfo() };
@@ -20,13 +21,23 @@ const healthy = (extra = {}) => Object.fromEntries([...ARCHIVALS, ...FLEET].map(
   return extra[method];
 }]));
 
-test('RPC expansion is limited to two optional read-only methods', () => {
-  assert.deepEqual(EDGE_SURFACE.filter(m => m.optional).map(m => m.name).sort(), ['getbuildinfo', 'gettxstatus']);
-  for (const method of ['getbuildinfo', 'gettxstatus']) {
+test('optional read methods explicitly cover the mixed-version activation rollout', () => {
+  assert.deepEqual(EDGE_SURFACE.filter(m => m.optional).map(m => m.name).sort(), ['getbuildinfo', 'getstakedistribution', 'getsupply', 'gettxstatus', 'getvalidatoradmission', 'getvalidatorbykey']);
+  for (const method of ['getbuildinfo', 'gettxstatus', 'getvalidatoradmission', 'getvalidatorbykey']) {
     assert.equal(methodSpec(method).cacheClass, 'node_local');
     assert.equal(methodSpec(method).corroboration, 'none');
   }
   assert.equal(methodSpec('sendrawtransaction'), null);
+});
+
+test('admission terms are available during a mixed-version archival rollout without a quorum claim', async () => {
+  const responders = healthy({ getvalidatoradmission: { result: { active: false, activation_epoch: 2884 } } });
+  responders[ARCHIVALS[0]] = method => method === 'getchaininfo' ? { result: chainInfo() } : { error: { code: -32601, message: 'old build' } };
+  const out = await handleRead(request('getvalidatoradmission'), opts(fakeFetch(responders), clock(), fakeCache()));
+  assert.equal(out.body.result.activation_epoch, 2884);
+  assert.equal(out.body.result.active, false);
+  assert.equal(out.corroboration.level, 'node_local');
+  assert.equal(out.corroboration.source_node, 'archival-2');
 });
 
 test('optional reads work across mixed versions and retain the actual source in cache', async () => {
@@ -146,4 +157,40 @@ test('RPC transport enforces a deadline', async () => {
     timeoutMs: 5,
     fetchImpl: async (_, init) => new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))),
   }), /timed out/);
+});
+
+test('RPC transport fails over after a transport failure and labels the different trust contract', async () => {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push(url);
+    if (url === '/rpc') throw new TypeError('network failure');
+    return Response.json({ jsonrpc: '2.0', id: JSON.parse(init.body).id,
+      result: { height: 65029, corroboration: { corroborated: true } } });
+  };
+  const out = await readRpc('getchaininfo', [], { fetchImpl });
+  assert.equal(out.result.height, 65029);
+  assert.equal(out.result.corroboration.level, 'uncorroborated');
+  assert.equal(out.result.corroboration.source, 'posternlabs_fallback');
+  await readRpc('getchaininfo', [], { fetchImpl });
+  assert.deepEqual(calls, ['/rpc', 'https://posternlabs.com/g4rpc', 'https://posternlabs.com/g4rpc']);
+});
+
+test('RPC transport does not fail over on divergence, throttling, or caller cancellation', async () => {
+  for (const code of [-32010, -32000, -32601]) {
+    const calls = [];
+    const out = await readRpc('getchaininfo', [], { fetchImpl: async (url, init) => {
+      calls.push(url);
+      return Response.json({ jsonrpc: '2.0', id: JSON.parse(init.body).id, error: { code, message: 'refused' } });
+    } });
+    assert.equal(out.error.code, code);
+    assert.deepEqual(calls, ['/rpc']);
+  }
+  const controller = new AbortController();
+  let calls = 0;
+  await assert.rejects(readRpc('getchaininfo', [], { signal: controller.signal, fetchImpl: async () => {
+    calls++;
+    controller.abort();
+    throw new DOMException('aborted', 'AbortError');
+  } }), { name: 'AbortError' });
+  assert.equal(calls, 1);
 });

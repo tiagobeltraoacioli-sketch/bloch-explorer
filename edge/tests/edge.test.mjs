@@ -51,6 +51,19 @@ function healthy(over = {}) {
 
 const call = (method, params = []) => ({ jsonrpc: '2.0', id: 1, method, params });
 
+test('a stale fleet witness cannot certify fresh archivals or burn their cache lineage', async () => {
+  reset();
+  const map = healthy();
+  for (const url of FLEET) map[url] = () => ({ result: chainInfo({
+    height: 54459, slot: 79686, behind_by_slots: 8699, finEpoch: 2488,
+  }) });
+  const before = salt();
+  const out = await handleRead(call('getchaininfo'), opts(fakeFetch(map), clock(), fakeCache()));
+  assert.equal(out.corroboration.witness.available, false);
+  assert.equal(out.corroboration.witness.reason, 'stale_witness');
+  assert.equal(salt(), before);
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. THE LOAD THE FLEET SEES
 // ═══════════════════════════════════════════════════════════════════════════
