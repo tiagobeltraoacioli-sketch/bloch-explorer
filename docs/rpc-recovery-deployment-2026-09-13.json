@@ -1,0 +1,192 @@
+{
+  "utc": "2026-09-13T19:45:53.648568+00:00",
+  "deployment": "https://fb37c8f4.bloch-explorer.pages.dev",
+  "commit": "99da93a",
+  "asset": "/assets/index-DHH_q4Dh.js",
+  "asset_sha256": "69432fde67f03e357853a8e82d63a1801eb4a1d3a6e8a9e2bfd75b676a3ffb2c",
+  "byte_identical": true,
+  "rpc": {
+    "getchaininfo": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "block_id": "6d7c06616bf4473aeeec05bf8d3815007133104d4df2c5e177029ab6f51356d1",
+        "slot": 89068,
+        "height": 65656,
+        "finalized_height": 65586,
+        "epoch": 2783,
+        "slot_in_epoch": 12,
+        "slots_per_epoch": 32,
+        "state_root": "3fcd1f060fd617194346c48500b1117909acfc2c514de44965db95ff83b70fe1",
+        "justified": {
+          "epoch": 2782,
+          "root": "5e2bd3e8f3facea245240d8e335b98f90bc452cab01118be07a7d9b4417df6a9"
+        },
+        "finalized": {
+          "epoch": 2781,
+          "root": "d05a74ad941fc6e97d49fb7a9c1998c4d00b9c7a74bdd5111b5633965f3e8bb0"
+        },
+        "previous_justified": {
+          "epoch": 2781,
+          "root": "d05a74ad941fc6e97d49fb7a9c1998c4d00b9c7a74bdd5111b5633965f3e8bb0"
+        },
+        "validators": {
+          "total": 64,
+          "active": 64
+        },
+        "total_active_stake_sat": "26240077095429417",
+        "base_fee_millisat_per_gas": "10",
+        "next_base_fee_millisat_per_gas": "10",
+        "mempool": 0,
+        "blocks_known": 65657,
+        "wall_slot": 89068,
+        "behind_by_slots": 0,
+        "transport": {
+          "name": "devnet",
+          "peers": {
+            "devnet": 63,
+            "libp2p": null
+          }
+        },
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 177,
+          "witness": {
+            "available": true,
+            "age_ms": 871,
+            "height": 65656,
+            "slot": 89068,
+            "finalized_epoch": 2781,
+            "finalized_root": "d05a74ad941fc6e97d49fb7a9c1998c4d00b9c7a74bdd5111b5633965f3e8bb0",
+            "finalized_height": 65586,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 65656,
+            "behind_by_slots": 0,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 0
+          },
+          "reorg_events": [
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 177,
+              "at": 1789308368670
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 65033,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789308368670
+            },
+            {
+              "signal": "R2",
+              "kind": "descending_finality",
+              "epoch": 2488,
+              "was": 2760,
+              "plane": "witness",
+              "at": 1789308368670
+            },
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 176,
+              "at": 1789308230151
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 65026,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789308230151
+            },
+            {
+              "signal": "R2",
+              "kind": "descending_finality",
+              "epoch": 2488,
+              "was": 2759,
+              "plane": "witness",
+              "at": 1789308230151
+            },
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 175,
+              "at": 1789174533285
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 60889,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789174533285
+            }
+          ]
+        }
+      }
+    },
+    "getvalidatoradmission": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "active": false,
+        "activation_epoch": 2884,
+        "network_domain": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+        "epoch": 2783,
+        "wire_tag": "0x0b",
+        "signature_suite": "ML-DSA-65 AND Falcon-1024 (0x0001)",
+        "minimum_stake_sat": "2500000000000",
+        "maximum_stake_sat": "262400770954294",
+        "activation_delay_epochs": 8,
+        "activation_requires_finalized_deposit": true,
+        "exit_wire_tag": "0x0c",
+        "withdrawal_wire_tag": "0x0d",
+        "randao_recommit_wire_tag": "0x0a",
+        "exit_delay_epochs": 32,
+        "withdrawal_delay_epochs": 2048,
+        "maximum_exits_per_epoch": 4,
+        "written_off_sat": "0",
+        "maximum_activations_per_epoch": 4,
+        "next_base_fee_millisat_per_gas": "10",
+        "legacy_unfunded_deposit_enabled": false,
+        "corroboration": {
+          "level": "node_local",
+          "archival_witnesses": 2,
+          "of": 2,
+          "note": "a node-local reading. Two nodes disagreeing here is normal and is not a fork: the mempool does not converge on this chain.",
+          "cache_salt": 177,
+          "witness": {
+            "available": true,
+            "age_ms": 1782,
+            "height": 65656,
+            "slot": 89068,
+            "finalized_epoch": 2781,
+            "finalized_root": "d05a74ad941fc6e97d49fb7a9c1998c4d00b9c7a74bdd5111b5633965f3e8bb0",
+            "finalized_height": 65586,
+            "reason": null
+          },
+          "plane": {
+            "certified": false,
+            "age_ms": null,
+            "reason": "not_probed"
+          },
+          "source_node": "archival-1"
+        }
+      }
+    }
+  }
+}

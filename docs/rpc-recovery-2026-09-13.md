@@ -33,3 +33,7 @@ Validation: 89 tests passed, none skipped, with `BLOCH_NODE_RPC_RS` pointing
 to release e7261e6; TypeScript and the production build passed. Deployment of
 this source requires the Cloudflare account login; the server proxy repair
 is already applied independently.
+
+## Production publication verified at 19:45 UTC
+
+Commit `99da93a` was published to the `bloch-explorer` Pages production project as deployment `fb37c8f4`. The JavaScript bundle served by `blochl1.com` is byte-identical to the local build (SHA-256 `69432fde67f03e357853a8e82d63a1801eb4a1d3a6e8a9e2bfd75b676a3ffb2c`). The public RPC returned a head corroborated by both archivals and a fresh fleet witness, with zero slot lag. `getvalidatoradmission` returned activation epoch 2884 through the updated proxy. The credential remains only in the operator’s local access document, outside the repository.
