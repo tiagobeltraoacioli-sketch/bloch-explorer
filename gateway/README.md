@@ -71,3 +71,30 @@ The local credential could read DNS/Pages but returned HTTP 403 for Workers
 scripts/routes on 2026-09-14. Production cutover requires Workers Scripts Edit
 on the account and Workers Routes Edit on the posternlabs.com zone. Never replace
 DNS, the whole Pages project or a tunnel to bypass that missing permission.
+
+## Verified preview — 2026-09-14
+
+Source commit: `e9124dd`. Immutable deployment:
+`https://1983c432.bloch-explorer.pages.dev/g4rpc`. Preview alias:
+`https://rpc-gateway-preview.bloch-explorer.pages.dev/g4rpc`.
+
+109 tests passed, none skipped; frontend build and standalone Worker bundle
+generation passed. Live capabilities advertised gateway 2.0.0 and -32051.
+Chain-info, block-count and a known-absent outpoint returned corroborated
+results. CORS returned 204; an unknown method returned -32601. Submission of
+the deliberately invalid byte 0x00 returned the node's exact -32002 decode
+refusal. No valid transaction was broadcast.
+
+During validation, a divergent outpoint response was correctly withheld with
+-32051; a later request succeeded. This is a point-in-time smoke test, not a
+production settlement or independent-operator qualification.
+
+Runtime correction: Workers rejects redirect mode `error`; use `manual` and
+reject non-success responses. This behavior is explicit in Cloudflare's
+[workerd source](https://github.com/cloudflare/workerd/blob/main/src/workerd/api/http.c++).
+
+See `preview-verification-2026-09-14.json` for retained live results. Production
+`posternlabs.com/g4rpc` has not been replaced: the supplied Tunnel credential
+was saved locally with mode 0600 and could list healthy tunnels, but Workers
+script and route access still returned HTTP 403. No tunnel, DNS record or
+existing production Pages deployment was changed.
