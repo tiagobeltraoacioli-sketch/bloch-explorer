@@ -34,6 +34,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
+import { NO_QUORUM } from '../governor.js';
 import { EDGE_SURFACE, EDGE_ABSENT, edgeMethodNames, methodSpec, CacheClass, Cost } from '../surface.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -259,4 +260,11 @@ test('mempool is declared node-local, matching the node own words', NEEDS_NODE, 
     "rpc.rs no longer calls getmempoolinfo node-local; the edge's `node_local` " +
       'corroboration level is derived from that claim',
   );
+});
+
+ test('proxy quorum code cannot collide with a node RPC error', NEEDS_NODE, () => {
+  const codes = [...SOURCE.matchAll(/pub const (\w+): i64 = (-\d+);/g)];
+  assert.ok(codes.length >= 10, 'must inspect the node error registry');
+  assert.equal(codes.find(m => m[1] === 'TX_REFUSED_SOURCE_CAP')?.[2], '-32010');
+  for (const [, name, code] of codes) assert.notEqual(NO_QUORUM, Number(code), name);
 });

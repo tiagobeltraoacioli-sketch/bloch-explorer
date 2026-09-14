@@ -183,6 +183,7 @@ test('a divergent balance is 503 — a retry, not a failure', async () => {
   for (const u of FLEET) map[u] = () => ({ result: chainInfo() });
   const out = await handleApi('/api/v1/address/' + 'ab'.repeat(32), qs(''), opts(fakeFetch(map), now, fakeCache()));
   assert.equal(out.status, 503, 'nodes disagreeing is "come back", not "something broke"');
+  assert.equal(out.body.error.code, -32051);
   assert.equal(out.body.error.data.reason, 'divergent_archivals');
 });
 

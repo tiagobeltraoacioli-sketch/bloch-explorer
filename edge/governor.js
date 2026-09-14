@@ -227,7 +227,8 @@ export function clientKey(request) {
 export const RATE_LIMITED = -32029;
 export const UPSTREAM_BUDGET = -32030;
 export const STALE_UPSTREAM = -32011;
-export const NO_QUORUM = -32010;
+// Proxy-owned code; -32010 belongs to the node's TX_REFUSED_SOURCE_CAP.
+export const NO_QUORUM = -32051;
 
 export function rateLimitedError(id, method, retryAfterMs, cost) {
   return {

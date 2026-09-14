@@ -518,7 +518,7 @@ export function methodNotAllowedError(id, method) {
  * `getchaininfo` carries the MOVING head (`slot`, `height`, `block_id`) beside
  * the finality claim. Two honest archivals routinely differ on the head by a
  * slot — one answered a moment later — so grouping the whole answer made every
- * getchaininfo split into two groups and return `-32010 divergent_archivals`,
+ * getchaininfo split into two groups and return `-32051 divergent_archivals`,
  * even though both nodes were on the same chain. Corroboration for the head is
  * the FINALITY CLAIM (justified/finalized checkpoints), never the tip — the
  * same rule `functions/g4.js` already applies with its CONSENSUS_FIELDS. Every
@@ -600,7 +600,8 @@ export function capabilitiesJson(now) {
   return {
     edge: 'bloch-explorer',
     surface: 'genesis-4-read-only',
-    version: '1.1.0',
+    version: '1.2.0',
+    error_codes: { no_quorum: NO_QUORUM, stale_upstream: STALE_UPSTREAM },
     methods: EDGE_SURFACE.map((m) => ({
       name: m.name,
       cache_class: m.cacheClass,

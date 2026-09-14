@@ -60,7 +60,7 @@ const ENDPOINT_CHAIN: readonly string[] = OVERRIDE
         // over to nothing and surface as "archivals unreachable". `/rpc` is the
         // same-origin Pages Function (functions/rpc.js): CORS-safe by origin,
         // and it corroborates the head on the finality claim, not the moving
-        // tip (see edge/core.js quorumKey), so it stops returning -32010 on
+        // tip (see edge/core.js quorumKey), so it stops returning -32051 on
         // getchaininfo. It is the correct primary.
         "/rpc",
         // Cross-origin neutral host: usable by non-browser callers only (no

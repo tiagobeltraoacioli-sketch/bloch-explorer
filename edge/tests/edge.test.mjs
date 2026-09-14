@@ -281,7 +281,7 @@ test('two archivals disagreeing on a balance is refused, never resolved by picki
   const f = fakeFetch(map);
   const out = await handleRead(call('getbalance', ['ef'.repeat(32)]), opts(f, now, fakeCache()));
   assert.ok(out.body.error, 'a balance two nodes disagree about must not be served');
-  assert.equal(out.body.error.code, -32010);
+  assert.equal(out.body.error.code, -32051);
   assert.equal(out.body.error.data.reason, 'divergent_archivals');
 });
 

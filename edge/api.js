@@ -44,7 +44,7 @@
 import { handleRead, Level, capabilitiesJson, planeView } from './core.js';
 import { poolSnapshot, MAX_POOL_SIZE } from './pool.js';
 import { witnessView, salt as lineageSalt, events as lineageEvents } from './lineage.js';
-import { counters } from './governor.js';
+import { counters, NO_QUORUM, STALE_UPSTREAM } from './governor.js';
 import { toScriptHash, displayAddress } from './address.js';
 
 /** The most blocks one request may ask for. */
@@ -88,10 +88,10 @@ function statusFor(out) {
   const code = out.body.error.code;
   if (code === -32601) return 404;
   if (code === -32602) return 400;
-  // -32010 divergent and -32011 stale are "we will not answer this right now",
+  // NO_QUORUM divergent and STALE_UPSTREAM stale are "we will not answer this right now",
   // which is 503 and not 500: nothing is broken, and a retry is the correct
   // client behaviour.
-  if (code === -32010 || code === -32011) return 503;
+  if (code === NO_QUORUM || code === STALE_UPSTREAM) return 503;
   return 502;
 }
 

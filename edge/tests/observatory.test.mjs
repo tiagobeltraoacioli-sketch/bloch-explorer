@@ -176,7 +176,7 @@ test('RPC transport fails over after a transport failure and labels the differen
 });
 
 test('RPC transport does not fail over on divergence, throttling, or caller cancellation', async () => {
-  for (const code of [-32010, -32000, -32601]) {
+  for (const code of [-32051, -32010, -32000, -32601]) {
     const calls = [];
     const out = await readRpc('getchaininfo', [], { fetchImpl: async (url, init) => {
       calls.push(url);
