@@ -143,11 +143,14 @@ async function askOne(node, forward) {
       body: JSON.stringify(forward),
       signal: ac.signal,
     });
+    if (!res.ok) throw new Error(`archival HTTP ${res.status}`);
     const body = await res.json();
-    if (body && body.error) {
-      return { id: node.id, ip: node.ip, ok: false, ms: Date.now() - started, error: body.error.message };
+    if (body?.error && Number.isInteger(body.error.code) && typeof body.error.message === "string") {
+      return { id: node.id, ip: node.ip, ok: false, ms: Date.now() - started,
+        error: body.error.message, rpcError: body.error };
     }
-    return { id: node.id, ip: node.ip, ok: true, ms: Date.now() - started, result: body ? body.result : undefined };
+    if (!body || !Object.hasOwn(body, "result")) throw new Error("malformed archival JSON-RPC response");
+    return { id: node.id, ip: node.ip, ok: true, ms: Date.now() - started, result: body.result };
   } catch (e) {
     return {
       id: node.id,
@@ -193,6 +196,11 @@ async function pinned(nodes, index, forward, id) {
     });
   }
   const a = await askOne(node, forward);
+  if (a.rpcError) {
+    return json(200, { jsonrpc: "2.0", id, error: a.rpcError }, {
+      "x-bloch-source": "archival", "x-bloch-node-index": String(index), "Cache-Control": "no-store",
+    });
+  }
   if (!a.ok) {
     return json(
       502,
@@ -266,10 +274,24 @@ export async function onRequestPost(context) {
   const live = answers.filter((a) => a.ok);
 
   if (live.length === 0) {
+    // An RPC refusal is a response. Preserve its code so callers can distinguish
+    // unsupported methods and missing records from a transport outage.
+    const refusals = answers.filter(a => a.rpcError);
+    if (refusals.length && refusals.every(a => JSON.stringify(a.rpcError) === JSON.stringify(refusals[0].rpcError))) {
+      const chosen = refusals[0];
+      return json(200, {
+        jsonrpc: "2.0", id, error: chosen.rpcError,
+        corroboration: { state: refusals.length === ARCHIVALS.length ? "corroborated" : "single", sources: answers },
+      }, {
+        "x-bloch-source": "archival",
+        "x-bloch-node-index": String(ARCHIVALS.findIndex(n => n.id === chosen.id)),
+        "Cache-Control": "no-store",
+      });
+    }
     return json(502, {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: "no archival answered" },
+      error: { code: -32050, message: refusals.length ? "archival RPC errors disagree" : "no archival answered" },
       corroboration: { state: "none", sources: answers },
     });
   }
