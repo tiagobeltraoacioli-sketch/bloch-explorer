@@ -23,6 +23,11 @@
     "bloch-pos-linux-x86_64": {
       "bytes": 8019648,
       "sha256": "b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084"
+    },
+    "LICENSE": {
+      "bytes": 34523,
+      "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
     }
-  }
+  },
+  "minimum_glibc": "2.34"
 }

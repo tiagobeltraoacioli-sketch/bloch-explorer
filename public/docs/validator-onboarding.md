@@ -8,7 +8,7 @@ The full mainnet exit → withdrawal → payout-spend qualification is still pen
 
 ## 1. Download and verify the node
 
-Use Linux x86_64, persistent SSD storage and a synchronized clock. The earlier observer reference used 2+ vCPU, 8 GB RAM and 80 GB SSD; replay speed varies and a validator also needs resources for its duties. Check resource use during synchronization. Use a dedicated data directory and never duplicate an identity between running servers.
+Use Linux x86_64 with glibc 2.34 or newer (for example Ubuntu 22.04 or 24.04), persistent SSD storage and a synchronized clock. This executable is not a native macOS, Windows or Alpine/musl build. The earlier observer reference used 2+ vCPU, 8 GB RAM and 80 GB SSD; replay speed varies and a validator also needs resources for its duties. Check resource use during synchronization. Use a dedicated data directory and never duplicate an identity between running servers.
 
 Prerequisites: `bash`, `curl`, `gzip`, `sha256sum`, `python3`. On Ubuntu, install missing packages through your normal package manager. Check `timedatectl status`.
 

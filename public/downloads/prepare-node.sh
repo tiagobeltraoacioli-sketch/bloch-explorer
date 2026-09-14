@@ -3,6 +3,11 @@
 set -euo pipefail
 [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo 'This release requires Linux x86_64.' >&2; exit 1; }
 for command in curl sha256sum gzip; do command -v "$command" >/dev/null || { echo "Missing command: $command" >&2; exit 1; }; done
+glibc_info=$(getconf GNU_LIBC_VERSION 2>/dev/null) || { echo 'This executable requires glibc 2.34 or newer.' >&2; exit 1; }
+read -r glibc_name glibc_version <<< "$glibc_info"
+IFS=. read -r glibc_major glibc_minor <<< "$glibc_version"
+[[ "$glibc_name" == glibc && "$glibc_major" =~ ^[0-9]+$ && "$glibc_minor" =~ ^[0-9]+$ ]] || exit 1
+(( glibc_major > 2 || (glibc_major == 2 && glibc_minor >= 34) )) || { echo 'glibc 2.34 or newer is required.' >&2; exit 1; }
 work_dir=${1:-"$PWD/bloch-validator-20260914"}
 [[ ! -e "$work_dir" ]] || { echo 'Choose a new directory; existing data will not be overwritten.' >&2; exit 1; }
 umask 077
