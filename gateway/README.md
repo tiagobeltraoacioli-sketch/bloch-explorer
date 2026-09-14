@@ -1,5 +1,9 @@
 # Genesis-4 production gateway replacement
 
+**Live at https://posternlabs.com/g4rpc since 2026-09-14.** Gateway 2.0.0,
+Worker version `b917ff94-c568-477a-bbbf-e4c523e6a974`. See the production record
+below; the earlier permission limitation and preview notes are historical.
+
 The gateway preserves the JSON-RPC read surface and signed transaction submission
 at `/g4rpc`, while refusing settlement-sensitive reads without two agreeing
 archival responses and fresh fleet corroboration. It reuses the explorer's
@@ -98,3 +102,28 @@ See `preview-verification-2026-09-14.json` for retained live results. Production
 was saved locally with mode 0600 and could list healthy tunnels, but Workers
 script and route access still returned HTTP 403. No tunnel, DNS record or
 existing production Pages deployment was changed.
+
+## Production cutover — 2026-09-14
+
+The previously saved Pages credential gained Workers Scripts/Routes access;
+the separate Tunnel credential remained restricted. The standalone Worker was
+verified at its workers.dev origin before the new route was created.
+
+- Route: `posternlabs.com/g4rpc*` → `bloch-g4-rpc-v2`.
+- Route ID: `0191b8c61a824d428cc5089e3be03424`.
+- `request_limit_fail_open: false`, verified through the API.
+- Runtime source: `e9124dd`; deployment checkout: `4883d56`.
+- Worker version: `b917ff94-c568-477a-bbbf-e4c523e6a974`.
+
+Production capabilities, chain-info, block-count, gettxout, unknown-method
+refusal, CORS, query-string and trailing-slash routing passed live checks.
+The invalid byte 0x00 returned the node's -32002; no valid payment was sent.
+Before/after status and body digests matched for `/`, `/apps/postern/`,
+`/dl/stats` and `/g4rpc-other`. `/dl/stats` was already 404 and remains so;
+this check does not certify the downloads service. The original Pages
+deployment `34bb12bf-dcfe-46ba-89bb-a11446988bd1` remains unchanged.
+
+Rollback: remove only the newly created route above. The original Pages
+Function then handles `/g4rpc` again. No DNS, tunnel or legacy Worker was
+changed. Local pre-cutover backups are retained in the operator's Documents
+directory; the sanitized record is `production-verification-2026-09-14.json`.

@@ -1,0 +1,663 @@
+{
+  "utc": "2026-09-14T04:23:55.212400+00:00",
+  "url": "https://posternlabs.com/g4rpc",
+  "commit": "e9124dd",
+  "checks": {
+    "getcapabilities": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "result": {
+        "edge": "bloch-g4-rpc",
+        "surface": "genesis-4-gateway",
+        "version": "2.0.0",
+        "error_codes": {
+          "no_quorum": -32051,
+          "stale_upstream": -32011,
+          "submission_unknown": -32052
+        },
+        "methods": [
+          {
+            "name": "getbuildinfo",
+            "cache_class": "node_local",
+            "cost": "cheap",
+            "corroboration": "none",
+            "cache_ttl_ms": 60000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "the answering observer binary, source digest, compiler and target; newer nodes only"
+          },
+          {
+            "name": "gettxstatus",
+            "cache_class": "node_local",
+            "cost": "cheap",
+            "corroboration": "none",
+            "cache_ttl_ms": 4000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "one observer remembered transaction status; unknown is not proof of absence"
+          },
+          {
+            "name": "getchaininfo",
+            "cache_class": "head",
+            "cost": "cheap",
+            "corroboration": "lineage",
+            "cache_ttl_ms": 3000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "head, both checkpoints, active stake, and this node lag in slots"
+          },
+          {
+            "name": "getblockcount",
+            "cache_class": "head",
+            "cost": "cheap",
+            "corroboration": "lineage",
+            "cache_ttl_ms": 3000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "head height, slot, epoch, and the finalized height beside them"
+          },
+          {
+            "name": "getblockbyid",
+            "cache_class": "content",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 604800000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "one block by its 32-byte id; the id is the immutability"
+          },
+          {
+            "name": "getblockbyslot",
+            "cache_class": "lineage",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 6000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "the canonical block at a slot; which block that is, is fork choice"
+          },
+          {
+            "name": "getvalidator",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 120000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "one registry record by index, with commission and lifecycle"
+          },
+          {
+            "name": "getvalidatorcount",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 60000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "registered total, active count, and total active stake"
+          },
+          {
+            "name": "getvalidatoradmission",
+            "cache_class": "node_local",
+            "cost": "cheap",
+            "corroboration": "none",
+            "cache_ttl_ms": 3000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "the responding binary admission schedule and network-bound staking terms"
+          },
+          {
+            "name": "getvalidatorbykey",
+            "cache_class": "node_local",
+            "cost": "cheap",
+            "corroboration": "none",
+            "cache_ttl_ms": 3000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "validator lookup by public key hash; node-local during the binary rollout"
+          },
+          {
+            "name": "getbalance",
+            "cache_class": "mutable",
+            "cost": "walk",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 5000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "summed value of every unspent output locked to a script hash"
+          },
+          {
+            "name": "getutxos",
+            "cache_class": "mutable",
+            "cost": "walk",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 5000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "the outputs themselves, first page only"
+          },
+          {
+            "name": "listunspent",
+            "cache_class": "mutable",
+            "cost": "walk",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 5000,
+            "alias_of": "getutxos",
+            "optional": false,
+            "summary": "the exchange-facing name for getutxos"
+          },
+          {
+            "name": "gettxout",
+            "cache_class": "mutable",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 5000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "is this one outpoint still unspent, against committed state"
+          },
+          {
+            "name": "getmempoolinfo",
+            "cache_class": "node_local",
+            "cost": "cheap",
+            "corroboration": "none",
+            "cache_ttl_ms": 4000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "the ASKED NODE pending count and price \u2014 not a chain fact"
+          },
+          {
+            "name": "getvalidators",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "pinned",
+            "cache_ttl_ms": 120000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "the registry, one page at a time; same record shape as getvalidator"
+          },
+          {
+            "name": "getsupply",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 30000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "issued against the cap; gross and monotone, and NOT circulating supply"
+          },
+          {
+            "name": "getstakedistribution",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "quorum",
+            "cache_ttl_ms": 120000,
+            "alias_of": null,
+            "optional": true,
+            "summary": "concentration of the active set \u2014 Nakamoto at one third, top 20, quantiles"
+          },
+          {
+            "name": "getcapabilities",
+            "cache_class": "epoch",
+            "cost": "cheap",
+            "corroboration": "edge",
+            "cache_ttl_ms": 60000,
+            "alias_of": null,
+            "optional": false,
+            "summary": "what this EDGE guarantees; answered here, not forwarded"
+          },
+          {
+            "name": "sendrawtransaction",
+            "cache_class": "never",
+            "corroboration": "node_local"
+          }
+        ],
+        "absent": [
+          {
+            "name": "gettransaction",
+            "why": "the node routes this to a permanent NO_TRANSACTION_INDEX refusal, so forwarding it would spend an upstream call to be told so. Note that the node's own refusal text says a transaction \"carries no id\", and that is not true: consensus computes txid = SHA3-256(DS_TXID || spend_signing_root) over the witness-free root (PosTransaction::txid, bloch-pos-committee/src/transition.rs). What is missing is the INDEX from that id back to a block \u2014 getblockbyslot reports tx_count and carries no transactions \u2014 so track transfers by outpoint and by balance via getbalance / listunspent, which are exact."
+          },
+          {
+            "name": "getnewaddress",
+            "why": "the node routes this to a permanent NO_WALLET refusal. Same reasoning."
+          }
+        ],
+        "corroboration_levels": {
+          "final": "at or below the finalised checkpoint, content- or lineage-pinned",
+          "corroborated": "both archivals agreed and the fleet witness certifies the lineage",
+          "uncorroborated": "served, but a witness or a second archival is missing",
+          "node_local": "a property of the node asked, not of the chain"
+        },
+        "limits": {
+          "client_sustained_per_second": 8,
+          "client_burst": 40,
+          "walk_methods_cost": 8,
+          "upstream_calls_per_second": 25,
+          "fleet_witness_interval_ms": 20000,
+          "stale_tolerance_slots": 4,
+          "batch_requests": false,
+          "request_body_bytes": 1048576,
+          "notifications": false,
+          "broadcast_per_second_per_isolate": 2,
+          "broadcast_concurrency_per_isolate": 2
+        },
+        "rest_resources": [
+          "capabilities",
+          "status",
+          "network",
+          "build",
+          "tx-status/<txid>",
+          "blocks",
+          "block/<id-or-slot>",
+          "validators",
+          "validator/<index>",
+          "address/<address>",
+          "outpoint/<txid>/<vout>",
+          "mempool",
+          "edge"
+        ],
+        "honesty": [
+          "This endpoint corroborates; it does not validate. It compares answers from independent nodes. It checks no signature and applies no state transition, so two nodes agreeing on a wrong answer is served as corroborated.",
+          "Reads come only from keyless archival observers, which cannot propose blocks and therefore cannot invent a branch. Their failure mode is being behind or being down, which is detectable, rather than lying, which would not be.",
+          "The fleet is consulted on a schedule, never per request, so public traffic here cannot become load on the validator set.",
+          "Run your own node if the answer has to be yours. The guarantee this endpoint gives is bounded by the nodes it can see."
+        ],
+        "salt": 0,
+        "witness": {
+          "available": true,
+          "age_ms": 119121,
+          "height": 66564,
+          "slot": 90100,
+          "finalized_epoch": 2813,
+          "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+          "finalized_height": 66484,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 66564,
+          "behind_by_slots": 0,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 116396
+        },
+        "reorg_events": [],
+        "strict_read_quorum": true,
+        "independent_operator_verification": false,
+        "broadcast_policy": "single_observer_no_automatic_retry"
+      }
+    },
+    "getchaininfo": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "result": {
+        "block_id": "60dddcbe48a729aa2c4d1d1cbfe7b244cae79c8ad23b00efabb7d395ca8a1dc9",
+        "slot": 90104,
+        "height": 66568,
+        "finalized_height": 66484,
+        "epoch": 2815,
+        "slot_in_epoch": 24,
+        "slots_per_epoch": 32,
+        "state_root": "4cc740c9fd205f8ef9ce419113044ec004520ed44d5bca17bfc43fa86248795a",
+        "justified": {
+          "epoch": 2814,
+          "root": "a7062b165819f6abce19189d1629c25040b1a83b7b3467d2dd67d0654b7cdb3e"
+        },
+        "finalized": {
+          "epoch": 2813,
+          "root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178"
+        },
+        "previous_justified": {
+          "epoch": 2813,
+          "root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178"
+        },
+        "validators": {
+          "total": 64,
+          "active": 64
+        },
+        "total_active_stake_sat": "26591582544361621",
+        "base_fee_millisat_per_gas": "10",
+        "next_base_fee_millisat_per_gas": "10",
+        "mempool": 0,
+        "blocks_known": 66568,
+        "wall_slot": 90104,
+        "behind_by_slots": 0,
+        "transport": {
+          "name": "devnet",
+          "peers": {
+            "devnet": 65,
+            "libp2p": null
+          }
+        },
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 0,
+          "witness": {
+            "available": true,
+            "age_ms": 1751,
+            "height": 66568,
+            "slot": 90104,
+            "finalized_epoch": 2813,
+            "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+            "finalized_height": 66484,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 66568,
+            "behind_by_slots": 0,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 0
+          }
+        }
+      },
+      "corroboration": {
+        "level": "corroborated",
+        "archival_witnesses": 2,
+        "of": 2,
+        "fleet_witness": true,
+        "cache_salt": 0,
+        "witness": {
+          "available": true,
+          "age_ms": 1751,
+          "height": 66568,
+          "slot": 90104,
+          "finalized_epoch": 2813,
+          "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+          "finalized_height": 66484,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 66568,
+          "behind_by_slots": 0,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 0
+        }
+      }
+    },
+    "getblockcount": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "result": {
+        "height": 66568,
+        "slot": 90104,
+        "epoch": 2815,
+        "finalized_height": 66484,
+        "justified_epoch": 2814,
+        "finalized_epoch": 2813,
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 0,
+          "witness": {
+            "available": true,
+            "age_ms": 2704,
+            "height": 66568,
+            "slot": 90104,
+            "finalized_epoch": 2813,
+            "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+            "finalized_height": 66484,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 66568,
+            "behind_by_slots": 1,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 0
+          }
+        }
+      },
+      "corroboration": {
+        "level": "corroborated",
+        "archival_witnesses": 2,
+        "of": 2,
+        "fleet_witness": true,
+        "cache_salt": 0,
+        "witness": {
+          "available": true,
+          "age_ms": 2704,
+          "height": 66568,
+          "slot": 90104,
+          "finalized_epoch": 2813,
+          "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+          "finalized_height": 66484,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 66568,
+          "behind_by_slots": 1,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 0
+        }
+      }
+    },
+    "not_a_method": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "error": {
+        "code": -32601,
+        "message": "Method is not exposed by this gateway; consult getcapabilities.",
+        "data": {
+          "reason": "method_not_allowed"
+        }
+      }
+    },
+    "gettxout": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "result": {
+        "txid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "vout": 0,
+        "unspent": false,
+        "utxo": null,
+        "at_slot": 90104,
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 0,
+          "witness": {
+            "available": true,
+            "age_ms": 3401,
+            "height": 66568,
+            "slot": 90104,
+            "finalized_epoch": 2813,
+            "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+            "finalized_height": 66484,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 66568,
+            "behind_by_slots": 1,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 697
+          }
+        }
+      },
+      "corroboration": {
+        "level": "corroborated",
+        "archival_witnesses": 2,
+        "of": 2,
+        "fleet_witness": true,
+        "cache_salt": 0,
+        "witness": {
+          "available": true,
+          "age_ms": 3401,
+          "height": 66568,
+          "slot": 90104,
+          "finalized_epoch": 2813,
+          "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+          "finalized_height": 66484,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 66568,
+          "behind_by_slots": 1,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 697
+        }
+      }
+    },
+    "invalid_broadcast": {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "error": {
+        "code": -32002,
+        "message": "not a canonical Genesis-4 transaction: unknown transaction tag 0x00"
+      }
+    },
+    "options_status": "204"
+  },
+  "outpoint_attempts": [
+    {
+      "jsonrpc": "2.0",
+      "id": 91,
+      "result": {
+        "txid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "vout": 0,
+        "unspent": false,
+        "utxo": null,
+        "at_slot": 90104,
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 0,
+          "witness": {
+            "available": true,
+            "age_ms": 3401,
+            "height": 66568,
+            "slot": 90104,
+            "finalized_epoch": 2813,
+            "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+            "finalized_height": 66484,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 66568,
+            "behind_by_slots": 1,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 697
+          }
+        }
+      },
+      "corroboration": {
+        "level": "corroborated",
+        "archival_witnesses": 2,
+        "of": 2,
+        "fleet_witness": true,
+        "cache_salt": 0,
+        "witness": {
+          "available": true,
+          "age_ms": 3401,
+          "height": 66568,
+          "slot": 90104,
+          "finalized_epoch": 2813,
+          "finalized_root": "281380271c3e0d8c67dcab7dec9cfa6ee47ca1eecbd9c4bfc7bac870f92d5178",
+          "finalized_height": 66484,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 66568,
+          "behind_by_slots": 1,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 697
+        }
+      }
+    }
+  ],
+  "worker_version": "b917ff94-c568-477a-bbbf-e4c523e6a974",
+  "route": {
+    "id": "0191b8c61a824d428cc5089e3be03424",
+    "pattern": "posternlabs.com/g4rpc*",
+    "script": "bloch-g4-rpc-v2",
+    "request_limit_fail_open": false
+  },
+  "preservation": {
+    "utc": "2026-09-14T04:24:37.050707+00:00",
+    "paths": {
+      "/": {
+        "http_status": 200,
+        "sha256": "f9eeda9caed4d2b08e96d38b03d48507b1710556c5f269806d51f840925797ae",
+        "bytes": 13432
+      },
+      "/apps/postern/": {
+        "http_status": 200,
+        "sha256": "79e2d613b4348092622f4b396bf1bf0574a8532547e2cb969ab8569c29472928",
+        "bytes": 596
+      },
+      "/dl/stats": {
+        "http_status": 404,
+        "sha256": "a9a89de75c4b3331d58df300697526566de6ab3c483d3abba699986fd0183403",
+        "bytes": 3109
+      },
+      "/g4rpc-other": {
+        "http_status": 404,
+        "sha256": "a9a89de75c4b3331d58df300697526566de6ab3c483d3abba699986fd0183403",
+        "bytes": 3109
+      }
+    },
+    "unchanged": true,
+    "pages_deployment_id": "34bb12bf-dcfe-46ba-89bb-a11446988bd1",
+    "trailing_slash_and_query_verified": true
+  },
+  "production_cutover": true
+}
