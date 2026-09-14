@@ -1,17 +1,32 @@
 {
-  "updated_at_utc": "2026-09-14T22:47:13.239327+00:00",
+  "updated_at_utc": "2026-09-14T23:13:28.594876+00:00",
   "admission_verified_at_utc": "2026-09-14T22:36:28.751586+00:00",
   "admission_active_on_both_archivals": true,
   "activation_epoch": 2884,
-  "fleet_verified_at_utc": "2026-09-14T22:12:05.801989+00:00",
+  "fleet_verified_at_utc": "2026-09-14T22:59:46.734203+00:00",
   "fleet_running_release": 64,
   "fleet_qualified": 64,
   "public_installer_test": "passed: Linux download, all artifact hashes, selfcheck and signed-checkpoint verification",
   "source_workspace_test": "14 packages resolve from the published source archive",
-  "fresh_observer_sync_test": "in progress; empty data directory, no validator key, public checkpoint and bootnodes only",
+  "fresh_observer_sync_test": "passed: started from empty data, verified the signed checkpoint, reached the live head with matching block and state, then stopped",
   "mainnet_funded_exit_withdrawal_payout_spend_qualification": "pending",
   "tests": {
     "explorer": 116,
     "submission_guards": 6
+  },
+  "fresh_observer_result": {
+    "verified_at_utc": "2026-09-14T23:11:43.204559+00:00",
+    "keyless": true,
+    "slot": 92360,
+    "height": 68661,
+    "behind_by_slots": 0,
+    "block_id": "fa9650b9e3fe2931d6293103d5fcb116a47f6f8703b17d20414d9511e95c09a4",
+    "state_root": "408591dae435cada586d388e9bd7f29b89a4b04d826e6c15867bfacc5e980727",
+    "finalized": {
+      "epoch": 2884,
+      "root": "caf6511a16ef9e3b11f8528eaccac3f803fa72f0dced0433a470351511d11f18"
+    },
+    "admission_active": true,
+    "temporary_process_stopped": true
   }
 }

@@ -60,7 +60,7 @@ curl --fail --show-error --max-time 30 \
   http://127.0.0.1:16400/
 ```
 
-Wait until the head follows the network, `behind_by_slots` is 0–1, and finalized epochs advance. The observer test does not itself prove that a new funded validator has joined or withdrawn.
+Wait until the head follows the network, `behind_by_slots` is 0–1, and finalized epochs advance. On September 14 at 23:11:43 UTC, a keyless process started with empty data reached slot 92360 with zero lag and matched the fleet’s block and state roots. It used the public checkpoint and both public bootnodes, and confirmed active admission before it was stopped. This run took more than an hour under bounded CPU resources; allow time for full replay. The observer test does not itself prove that a new funded validator has joined or withdrawn.
 
 ## 3. Prepare the identity with the human custodian offline
 
