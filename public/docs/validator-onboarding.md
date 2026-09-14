@@ -4,7 +4,7 @@ Release: September 14, 2026. Linux x86_64. Admission is scheduled for epoch **28
 
 Deposits require at least **25,000 BLCH plus fees** in eligible native UTXOs. Registration must finalize; activation then waits at least **8 epochs (128 minutes)** and is limited to four new validators per epoch. Starting at 20:00 does not mean signing at 20:00.
 
-The full mainnet exit → withdrawal → payout-spend qualification is still pending. Withdrawal has a 2,048-epoch delay (about 22.8 days). Protocol admission does not establish that this end-to-end qualification has completed. See [ADR-041](/docs/validator-exit-and-withdrawal.md).
+The full mainnet exit → withdrawal → payout-spend qualification is still pending. Withdrawal has a 2,048-epoch delay (about 22.8 days), following the 32-epoch exit delay. Protocol admission does not establish that this end-to-end qualification has completed. See [ADR-041](/docs/validator-exit-and-withdrawal.md) and the [remaining qualification procedure](/docs/validator-qualification.md).
 
 ## 1. Download and verify the node
 
@@ -68,7 +68,10 @@ A production private key must never be generated in an AI-agent session, recorde
 
 An optional [interactive preparation helper](/downloads/prepare-identity.sh) is provided for the human custodian. It checks the pinned executable, requires a private interactive terminal, asks for a passphrase without echo, creates a sealed BPOSKEY2 auto-index keystore, and exports public metadata. **It invokes the existing `keygen` utility, which retains its devnet/throwaway label; the helper is not an independently qualified production custody ceremony.** Review that limitation and the code before use. Operators with an existing production identity should use their established ceremony instead and must not regenerate the identity.
 
-Copy the verified Linux executable and reviewed helper to the offline machine. Run there manually, with actual absolute paths:
+Copy the verified Linux executable and reviewed helper to the offline machine.
+The helper requires Bash, `sha256sum`, `stty` and Python 3. It disables shell
+tracing and terminal echo while reading the passphrase and restores terminal
+settings afterwards. Run there manually, with actual absolute paths:
 
 ```sh
 bash prepare-identity.sh /absolute/path/bloch-pos /absolute/path/new-validator-identity

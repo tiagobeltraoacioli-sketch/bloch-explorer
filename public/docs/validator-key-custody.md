@@ -2,6 +2,16 @@
 
 # Bloch — Genesis-4 key and address requirements
 
+Current operator note (September 14, 2026): the document below is the
+historical genesis custody plan. Its draft status and statements about
+future genesis dates or nonexistent production keys describe that planning
+stage, not the current running network. Existing operators must preserve
+their established identities. New operators should follow the
+[current onboarding guide](/docs/validator-onboarding.md) and review the
+[outstanding production key-generation qualification](/docs/validator-qualification.md).
+The requirement to keep production secrets under private human custody
+continues to apply.
+
 ```
 Document:   BLOCH-GENESIS-KEYS
 Status:     DRAFT — requirements and custody plan; NO production key exists yet

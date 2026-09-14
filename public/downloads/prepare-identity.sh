@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Run manually by the key custodian on an offline Linux machine, outside any
 # agent session, recording terminal, shared session or CI environment.
+set +x
+set +v
 set -euo pipefail
 [[ -t 0 && -t 1 ]] || { echo 'Run interactively on the custodian’s offline terminal.' >&2; exit 1; }
 [[ $# == 2 ]] || { echo 'Usage: bash prepare-identity.sh /absolute/path/bloch-pos /absolute/path/new-identity-dir' >&2; exit 1; }
@@ -13,10 +15,19 @@ printf '%s\n' 'This invokes the current keygen utility, which retains its devnet
 read -r -p 'Type OFFLINE to confirm this is your private, offline terminal: ' confirmation
 [[ "$confirmation" == OFFLINE ]] || exit 1
 umask 077
+# Do not inherit an exported variable's export attribute for either password.
+unset identity_pass identity_repeat
+identity_terminal_state=$(stty -g)
+trap 'stty "$identity_terminal_state"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+stty -echo
 read -r -s -p 'Choose a strong keystore passphrase (at least 20 characters): ' identity_pass
 printf '\n'
 read -r -s -p 'Repeat passphrase: ' identity_repeat
 printf '\n'
+stty "$identity_terminal_state"
+trap - EXIT INT TERM
 [[ ${#identity_pass} -ge 20 && "$identity_pass" == "$identity_repeat" ]] || { echo 'Passphrases do not match or are too short.' >&2; exit 1; }
 mkdir -m 700 "$identity_dir"
 printf '%s' "$identity_pass" > "$identity_dir/validator.pass"
@@ -28,8 +39,13 @@ unset BLOCH_KEYSTORE_ALLOW_PLAINTEXT BLOCH_NO_DOPPELGANGER BLOCH_KEYSTORE_PASSPH
 python3 - "$identity_dir" <<'PY'
 import pathlib,sys,hashlib,json
 p=pathlib.Path(sys.argv[1]);fields=(p/'public.tsv').read_text().strip().split('\t')
-assert fields[0]=='4294967295'
-pub=bytes.fromhex(fields[1]);assert pub[:4]==bytes.fromhex('b10c0100')
+if len(fields)<3 or fields[0]!='4294967295':
+    raise SystemExit('Invalid auto-index public metadata.')
+pub=bytes.fromhex(fields[1])
+if len(pub)!=3749 or pub[:4]!=bytes.fromhex('b10c0100'):
+    raise SystemExit('Invalid hybrid public-key length or suite.')
+if len(bytes.fromhex(fields[2]))!=32:
+    raise SystemExit('Invalid RANDAO commitment length.')
 (p/'validator.pub.hex').write_text(fields[1]+'\n')
 (p/'public.json').write_text(json.dumps({'validator_pubkey_sha3_256':hashlib.sha3_256(pub).hexdigest(),'randao_commitment':fields[2],'index':'auto'},indent=2)+'\n')
 print('Public metadata written to public.json and validator.pub.hex.')
