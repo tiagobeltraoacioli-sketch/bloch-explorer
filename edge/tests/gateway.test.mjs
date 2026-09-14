@@ -72,14 +72,14 @@ test('node-local tracking is allowed but never promoted to settlement proof', ()
 test('real read engine rejects disagreeing observers through the gateway', async () => {
   const map = Object.fromEntries(FLEET.map(u => [u, () => ({ result: chainInfo() })]));
   ARCHIVALS.forEach((u, i) => { map[u] = (m, p) => ({ result: m === 'getchaininfo' ? chainInfo() : { script_hash: p[0], balance_sat: String(i) } }); });
-  const r = await call(payload('getbalance', ['ab'.repeat(32)]), { fetchImpl: fakeFetch(map) });
+  const r = await call(payload('getbalance', ['ab'.repeat(32)]), { fetchImpl: alignedFetch(map) });
   assert.equal((await r.json()).error.code, -32051);
 });
 
 test('real read engine refuses degraded single-observer chain info', async () => {
   const map = Object.fromEntries(FLEET.map(u => [u, () => ({ result: chainInfo() })]));
   map[ARCHIVALS[0]] = () => ({ result: chainInfo() }); map[ARCHIVALS[1]] = () => 'http500';
-  const r = await call(payload(), { fetchImpl: fakeFetch(map) });
+  const r = await call(payload(), { fetchImpl: alignedFetch(map) });
   assert.equal((await r.json()).error.code, -32051);
 });
 
@@ -129,7 +129,7 @@ test('broadcast rate limits enforce the documented two-per-second refill', async
 
 test('real read engine serves agreeing observers with fresh fleet evidence', async () => {
   const map = Object.fromEntries([...FLEET, ...ARCHIVALS].map(u => [u, () => ({ result: chainInfo() })]));
-  const r = await call(payload(), { fetchImpl: fakeFetch(map) });
+  const r = await call(payload(), { fetchImpl: alignedFetch(map) });
   const v = await r.json(); assert.equal(v.result.corroboration.level, 'corroborated');
   assert.equal(v.result.corroboration.archival_witnesses, 2);
 });
@@ -151,4 +151,25 @@ test('broadcast allows at most two concurrent upstream attempts', async () => {
   assert.equal((await call(payload('sendrawtransaction', ['aa']), overrides)).status, 429);
   releases.forEach(resolve => resolve());
   assert.equal((await first).status, 200); assert.equal((await second).status, 200);
+});
+
+function alignedFetch(map) {
+  const fake = fakeFetch(map);
+  return async (url, init) => {
+    const r = await fake(url, init);
+    return { ...r, text: async () => {
+      const text = await r.text(); if (!text) return text;
+      const v = JSON.parse(text); v.id = JSON.parse(init.body).id;
+      return JSON.stringify(v);
+    } };
+  };
+}
+
+test('read responses with a wrong id are rejected and redirects are disabled', async () => {
+  let calls = 0;
+  const r = await call(payload(), { fetchImpl: async (_url, init) => {
+    calls++; assert.equal(init.redirect, 'error');
+    return Response.json({ jsonrpc: '2.0', id: 'wrong-id', result: chainInfo() });
+  } });
+  assert.ok(calls > 0); assert.ok((await r.json()).error);
 });

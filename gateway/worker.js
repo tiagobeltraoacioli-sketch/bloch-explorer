@@ -64,6 +64,12 @@ function validRequest(p) {
     (p.params === undefined || p.params !== null && typeof p.params === 'object');
 }
 
+function validReply(value, id) {
+  return value && value.jsonrpc === '2.0' && value.id === id &&
+    Object.hasOwn(value, 'result') !== Object.hasOwn(value, 'error') &&
+    (!Object.hasOwn(value, 'error') || value.error && Number.isInteger(value.error.code) && typeof value.error.message === 'string');
+}
+
 export function enforceReadQuorum(out, payload) {
   const spec = methodSpec(payload.method);
   if (!['quorum', 'lineage'].includes(spec?.corroboration) || out.body?.error) return out;
@@ -100,9 +106,7 @@ async function broadcast(payload, opts, env) {
     });
     if (!response.ok) throw new Error('upstream_http_error');
     const value = JSON.parse(await readBounded(response.body, MAX_REPLY));
-    if (value.jsonrpc !== '2.0' || value.id !== payload.id ||
-        Object.hasOwn(value, 'result') === Object.hasOwn(value, 'error') ||
-        value.error && (!Number.isInteger(value.error.code) || typeof value.error.message !== 'string')) {
+    if (!validReply(value, payload.id)) {
       throw new Error('invalid_upstream_reply');
     }
     return reply(value);
@@ -157,13 +161,13 @@ export async function handleGateway(request, env = {}, context = {}, overrides =
   try {
     const opts = buildOpts(env, request, runtime);
     if (payload.method === 'sendrawtransaction') return await broadcast(payload, opts, env);
-    const readOpts = { ...opts, fetchImpl: async (...args) => {
-      const response = await opts.fetchImpl(...args);
+    const readOpts = { ...opts, fetchImpl: async (input, init) => {
+      const response = await opts.fetchImpl(input, { ...init, redirect: 'error' });
       return { ok: response.ok, status: response.status, text: async () => {
-        if (response.body) return readBounded(response.body, MAX_REPLY);
         // Empty runtime bodies and lightweight injected test transports.
-        const text = await response.text();
+        const text = response.body ? await readBounded(response.body, MAX_REPLY) : await response.text();
         if (new TextEncoder().encode(text).byteLength > MAX_REPLY) throw new Error('body_too_large');
+        if (!validReply(JSON.parse(text), JSON.parse(init.body).id)) throw new Error('invalid_upstream_reply');
         return text;
       } };
     } };
