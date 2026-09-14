@@ -32,11 +32,11 @@
 //   validator key and produce nothing. They are the only nodes this file is
 //   permitted to name.
 //
-// WHY sslip.io HOSTNAMES AND NOT THE IPs
+// WHY DNS HOSTNAMES AND NOT THE IPs
 //   Measured on this project, 2026-08-12: a Pages Function is a Worker, and a
 //   Worker `fetch()` to a bare IP literal is answered by Cloudflare itself
-//   with 403 "error code: 1003" — it never reaches the origin. sslip.io is a
-//   public wildcard-DNS service that resolves `1-2-3-4.sslip.io` to 1.2.3.4.
+//   with 403 "error code: 1003" — it never reaches the origin. nip.io is a
+//   public wildcard-DNS service that resolves `1.2.3.4.nip.io` to 1.2.3.4.
 //   It is a third party in the resolution path, which is a real (small) cost:
 //   an attacker who controlled it could point these names elsewhere and lie to
 //   the explorer. It cannot touch keys or consensus, and the corroboration
@@ -54,9 +54,11 @@
  */
 // Use the same working DNS names as the /rpc archival pool. The former
 // sslip.io names return an HTML 403 response rather than node JSON-RPC.
+import { DEFAULT_ARCHIVALS } from "../edge/pool.js";
+
 const ARCHIVALS = [
-  { id: "archival-a", ip: "139.180.166.5", url: "http://139.180.166.5.nip.io:8080/" },
-  { id: "archival-b", ip: "139.180.173.231", url: "http://139.180.173.231.nip.io:8080/" },
+  { id: "archival-a", ip: "139.180.166.5", url: DEFAULT_ARCHIVALS[0] },
+  { id: "archival-b", ip: "139.180.173.231", url: DEFAULT_ARCHIVALS[1] },
 ];
 
 /**

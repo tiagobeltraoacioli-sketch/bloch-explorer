@@ -30,6 +30,7 @@
 // ---------------------------------------------------------------------------
 
 import { gate, gateResponse } from "../../edge/gate.js";
+import { DEFAULT_ARCHIVALS } from "../../edge/pool.js";
 
 const MAX_LIMIT = 32;
 
@@ -62,8 +63,8 @@ function json(status, body, extraHeaders) {
 
 function upstreams(env) {
   return [
-    env.G4_ARCHIVAL_1 || "http://139-180-166-5.sslip.io:8080/",
-    env.G4_ARCHIVAL_2 || "http://139-180-173-231.sslip.io:8080/",
+    env.G4_ARCHIVAL_1 || DEFAULT_ARCHIVALS[0],
+    env.G4_ARCHIVAL_2 || DEFAULT_ARCHIVALS[1],
   ];
 }
 
@@ -77,6 +78,7 @@ async function rpc(url, method, params) {
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: params || [] }),
       signal: ac.signal,
     });
+    if (!res.ok) throw new Error(`archival HTTP ${res.status}`);
     const body = await res.json();
     if (body && body.error) {
       const err = new Error(body.error.message || "rpc error");

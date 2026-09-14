@@ -24,7 +24,7 @@
 // because it was answering a web page is a missed block. Those are not the
 // same cost, so they do not get the same treatment.
 //
-// The upstreams are given as sslip.io hostnames rather than bare IPs on
+// The upstreams use the shared archival DNS hostnames rather than bare IPs on
 // purpose: a Worker `fetch()` to an IP literal is answered by Cloudflare
 // itself with 403 "error code: 1003" and never reaches the origin. This is
 // the same measured constraint documented at length in wrangler.toml, and the
@@ -42,6 +42,7 @@
 // ---------------------------------------------------------------------------
 
 import { gate, gateResponse } from "../../edge/gate.js";
+import { DEFAULT_ARCHIVALS } from "../../edge/pool.js";
 
 /** Hard ceiling on `limit`, chosen to stay under the subrequest budget. */
 const MAX_LIMIT = 32;
@@ -89,8 +90,8 @@ function json(status, body, extraHeaders) {
 
 function upstreams(env) {
   return [
-    env.G4_ARCHIVAL_1 || "http://139-180-166-5.sslip.io:8080/",
-    env.G4_ARCHIVAL_2 || "http://139-180-173-231.sslip.io:8080/",
+    env.G4_ARCHIVAL_1 || DEFAULT_ARCHIVALS[0],
+    env.G4_ARCHIVAL_2 || DEFAULT_ARCHIVALS[1],
   ];
 }
 
@@ -104,6 +105,7 @@ async function rpc(url, method, params) {
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: params || [] }),
       signal: ac.signal,
     });
+    if (!res.ok) throw new Error(`archival HTTP ${res.status}`);
     const body = await res.json();
     if (body && body.error) throw new Error(body.error.message || "rpc error");
     return body.result;
