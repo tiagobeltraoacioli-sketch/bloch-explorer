@@ -1,10 +1,10 @@
-# Renovar o checkpoint Bloch Genesis-4
+# Renew the Bloch Genesis-4 checkpoint
 
-Use o executável verificado da release, `mainnet.manifest` e o `signer-set.bin` existente (ID 1). Não gere outro conjunto para esta renovação. Execute a preparação em um diretório novo para não sobrescrever a cerimônia anterior.
+Use the verified release executable, `mainnet.manifest` and the existing `signer-set.bin` (ID 1). Do not generate another signer set for this renewal. Prepare the files in a new directory to avoid overwriting the previous ceremony.
 
-## 1. Escolher uma época finalizada e extrair
+## 1. Choose a finalized epoch and extract the checkpoint
 
-Consulte `getchaininfo` nos dois RPCs e escolha uma época recente já finalizada em ambos (`result.finalized.epoch`), preferencialmente no intervalo de publicação de 256 épocas. Não use a época corrente sem confirmar finalização. Os dois RPCs abaixo são referências públicas da mesma operação; cada signatário deve conferir também a sua própria referência de confiança.
+Query `getchaininfo` on both RPCs and choose a recent epoch already finalized on both (`result.finalized.epoch`), preferably on the 256-epoch publication interval. Do not use the current epoch without confirming finalization. Both RPCs below are public references operated by the same organization; each signer should also check their own trusted reference.
 
 ```sh
 for rpc in 139.180.166.5:8080 139.180.173.231:8080; do
@@ -16,49 +16,49 @@ for rpc in 139.180.166.5:8080 139.180.173.231:8080; do
 done
 ```
 
-Substitua `EPOCA_FINALIZADA` pelo número escolhido. O comando recusa divergências entre as referências e épocas ainda não finalizadas.
+Replace `FINALIZED_EPOCH` with the chosen number. The command refuses disagreement between references and epochs that have not been finalized.
 
 ```sh
 ./bloch-pos ws-checkpoint \
   --genesis mainnet.manifest \
   --rpc 139.180.166.5:8080,139.180.173.231:8080 \
-  --epoch EPOCA_FINALIZADA \
+  --epoch FINALIZED_EPOCH \
   --signer-set-id 1 \
   --out checkpoint
 
 ./bloch-pos ws-verify --checkpoint checkpoint.bin
 ```
 
-Saem `checkpoint.bin` e `checkpoint.json`. Anote o digest WS. Distribua esses mesmos bytes aos três signatários. Não gere novamente o checkpoint entre assinaturas: `issued_at` participa do digest.
+This produces `checkpoint.bin` and `checkpoint.json`. Record the WS digest. Distribute these exact bytes to all three signers. Do not regenerate the checkpoint between signatures: `issued_at` is part of the digest.
 
-Para reproduzir independentemente a extração, cada signatário usa sua RPC, a mesma época, `--signer-set-id 1` e **`--issued-at` exatamente igual ao checkpoint.json recebido**. Compare os bytes/digest e os campos de rede, bloco e estado antes de assinar. Um `ws-verify --checkpoint` isolado decodifica o arquivo; não consulta a cadeia.
+To reproduce the extraction independently, each signer uses their own RPC, the same epoch, `--signer-set-id 1`, and **`--issued-at` matching the received checkpoint.json exactly**. Compare the bytes/digest and the network, block and state fields before signing. Running `ws-verify --checkpoint` alone decodes the file; it does not query the chain.
 
-## 2. Cada pessoa assina offline
+## 2. Each person signs offline
 
-Na máquina offline de cada signatário, confira o digest contra outro canal de confiança e execute com sua própria chave. `signer.sk` abaixo é um caminho ilustrativo: use o arquivo privado correto da cerimônia. A chave e a senha nunca saem dessa máquina.
+On each signer’s offline machine, verify the digest through another trusted channel and run the command with that signer’s own key. `signer.sk` below is an illustrative path: use the correct private file from the ceremony. The key and password never leave that machine.
 
-Mapeamento confirmado pelas chaves públicas fornecidas: primeiro diretório = índice 0; segundo = índice 1; terceiro = índice 2. São índices do conjunto de signatários, não dos validadores da rede.
+The supplied public keys confirm this mapping: first directory = index 0; second = index 1; third = index 2. These are signer-set indices, not network validator indices.
 
 ```sh
-# Pessoa A: índice 0, usando sua própria chave
+# Person A: index 0, using their own key
 ./bloch-pos ws-verify --checkpoint checkpoint.bin
 ./bloch-pos ws-sign --key signer.sk --pubkey signer.pk \
   --checkpoint checkpoint.bin --signer-index 0 --out signerA.partial
 
-# Pessoa B: índice 1, em sua própria máquina
+# Person B: index 1, on their own machine
 ./bloch-pos ws-sign --key signer.sk --pubkey signer.pk \
   --checkpoint checkpoint.bin --signer-index 1 --out signerB.partial
 
-# Pessoa C: índice 2, em sua própria máquina
+# Person C: index 2, on their own machine
 ./bloch-pos ws-sign --key signer.sk --pubkey signer.pk \
   --checkpoint checkpoint.bin --signer-index 2 --out signerC.partial
 ```
 
-Cada pessoa devolve somente seu arquivo `.partial`. Todas devem conferir o checkpoint antes de assinar, como mostrado para A. Não reutilize as assinaturas da época 1536: elas não assinam o checkpoint novo.
+Each person returns only their `.partial` file. Everyone must verify the checkpoint before signing, as shown for A. Do not reuse the epoch 1536 signatures: they do not sign the new checkpoint.
 
-## 3. Montar e verificar o envelope
+## 3. Assemble and verify the envelope
 
-No coordenador, com os três arquivos públicos recebidos:
+On the coordinator’s machine, after receiving all three public files:
 
 ```sh
 ./bloch-pos ws-envelope \
@@ -75,17 +75,17 @@ No coordenador, com os três arquivos públicos recebidos:
   --genesis mainnet.manifest --rpc 139.180.173.231:8080
 ```
 
-Exija as três assinaturas `VALID`, o veredito `ACCEPTED` e a idade `FRESH`. O verificador de envelope consulta a época da RPC para calcular a idade; a comparação dos blocos foi feita na extração. Não confunda validade criptográfica com ausência de expiração.
+Require all three signatures to be `VALID`, the verdict to be `ACCEPTED`, and the age to be `FRESH`. The envelope verifier queries the RPC epoch to calculate age; block comparison took place during extraction. Do not confuse cryptographic validity with absence of expiry.
 
-## 4. Publicar os arquivos públicos
+## 4. Publish the public files
 
-Publique em uma pasta nova por época: `ws-envelope.bin`, `signer-set.bin`, `checkpoint.bin`, `checkpoint.json` e hashes. No macOS:
+Publish in a new directory for each epoch: `ws-envelope.bin`, `signer-set.bin`, `checkpoint.bin`, `checkpoint.json` and hashes. On macOS:
 
 ```sh
 shasum -a 256 ws-envelope.bin signer-set.bin checkpoint.bin checkpoint.json > SHA256SUMS.txt
 shasum -a 256 -c SHA256SUMS.txt
 ```
 
-No Linux, use `sha256sum` e `sha256sum --check`. Publique também o digest WS e o fingerprint do conjunto em outro canal independente de confiança. Atualize o manual e a data limite: a sincronização inicial recusa o checkpoint quando `época_atual - época_do_checkpoint >= 2016`. Nunca publique `signer.sk`, chaves de validadores ou uma cópia integral dos diretórios da cerimônia.
+On Linux, use `sha256sum` and `sha256sum --check`. Also publish the WS digest and signer-set fingerprint through another independent trusted channel. Update the guide and deadline: initial synchronization refuses the checkpoint when `current_epoch - checkpoint_epoch >= 2016`. Never publish `signer.sk`, validator keys or a complete copy of the ceremony directories.
 
-O checkpoint atualmente publicado (época 1536) precisa ser substituído antes da época 3552: 22/09/2026 às 05h43min19s de Brasília. A renovação exige novas assinaturas humanas; estes comandos não as automatizam nem publicam por conta própria.
+The currently published checkpoint (epoch 1536) must be replaced before epoch 3552: September 22, 2026 at 08:43:19 UTC (05:43:19 Brasília time). Renewal requires new human signatures; these commands do not automate those signatures or publish files on their own.

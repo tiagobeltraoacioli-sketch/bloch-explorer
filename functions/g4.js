@@ -52,9 +52,11 @@
  * Order is not significance: neither is primary, and the code below must never
  * develop a preference for the first one.
  */
+// Use the same working DNS names as the /rpc archival pool. The former
+// sslip.io names return an HTML 403 response rather than node JSON-RPC.
 const ARCHIVALS = [
-  { id: "archival-a", ip: "139.180.166.5", url: "http://139-180-166-5.sslip.io:8080/" },
-  { id: "archival-b", ip: "139.180.173.231", url: "http://139-180-173-231.sslip.io:8080/" },
+  { id: "archival-a", ip: "139.180.166.5", url: "http://139.180.166.5.nip.io:8080/" },
+  { id: "archival-b", ip: "139.180.173.231", url: "http://139.180.173.231.nip.io:8080/" },
 ];
 
 /**

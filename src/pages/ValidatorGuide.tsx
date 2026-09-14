@@ -7,31 +7,31 @@ import "../validator-guide.css";
 export function ValidatorGuidePage() {
   useEffect(() => {
     const before = document.title;
-    document.title = "Manual do validador · Bloch";
+    document.title = "Validator guide · Bloch";
     return () => { document.title = before; };
   }, []);
-  return <article className="container validator-guide" lang="pt-BR">
+  return <article className="container validator-guide" lang="en">
     <header className="guide-heading">
-      <span className="eyebrow">GENESIS-4 / MANUAL OPERACIONAL</span>
+      <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>{validatorGuide.title}</h1>
-      <p>Instalação, identidade, sincronização e manutenção de um validador com o novo binário.</p>
-      <p className="guide-date">Revisado em {validatorGuide.updated}. Os dados de migração citados são uma observação datada.</p>
-      <div className="guide-actions"><a href="/docs/manual-validador.md" download>Baixar manual (.md)</a><Link to="/validators">Ver validadores →</Link><Link to="/validators/queues">Ver filas →</Link></div>
+      <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
+      <p className="guide-date">Reviewed on {validatorGuide.updated}. The migration figures are a dated observation.</p>
+      <div className="guide-actions"><a href="/docs/manual-validador.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
-    <aside className="guide-notice" aria-label="Condições para novos operadores">
-      <strong>Antes de iniciar uma nova identidade</strong>
-      <p>Este manual não anuncia abertura pública. Um servidor novo precisa de um checkpoint de confiança válido; uma nova identidade precisa de registro, admissão liberada e ativação na cadeia. Confira as condições nas seções 1, 3 e 6.</p>
+    <aside className="guide-notice" aria-label="Requirements for new operators">
+      <strong>Before starting a new identity</strong>
+      <p>This guide does not announce public admission. A new server needs a valid trusted checkpoint; a new identity needs registration, open admission and on-chain activation. Check sections 1, 3 and 6.</p>
     </aside>
-    <nav className="guide-toc" aria-label="Índice do manual"><h2>Neste manual</h2><ol>{validatorGuide.sections.map(s => <li key={s.id}><a href={"#" + s.id}>{s.title.replace(/^\d+\. /, "")}</a></li>)}</ol></nav>
+    <nav className="guide-toc" aria-label="Guide contents"><h2>In this guide</h2><ol>{validatorGuide.sections.map(s => <li key={s.id}><a href={"#" + s.id}>{s.title.replace(/^\d+\. /, "")}</a></li>)}</ol></nav>
     {validatorGuide.sections.map(s => <section className="guide-section" id={s.id} key={s.id}>
       <h2>{s.title}</h2>
-      {s.blocks.map((b, i) => b.kind === "code" ? <pre key={i} tabIndex={0} aria-label={"Exemplo: " + s.title}><code>{b.text}</code></pre> : <p key={i}>{b.text}</p>)}
+      {s.blocks.map((b, i) => b.kind === "code" ? <pre key={i} tabIndex={0} aria-label={"Example: " + s.title}><code>{b.text}</code></pre> : <p key={i}>{b.text}</p>)}
     </section>)}
-    <section className="guide-section" aria-label="Checkpoint assinado"><h2>Checkpoint público — época 1536</h2><p><a href="/docs/renovar-checkpoint.md">Roteiro completo para gerar e assinar o próximo checkpoint (.md)</a></p><p>Três assinaturas válidas. Renovação necessária antes da época 3552, em 22/09/2026 às 05h43min19s de Brasília. Confira a seção 3 antes de usar.</p><ul>{["ws-envelope.bin", "signer-set.bin", "checkpoint.bin", "checkpoint.json", "verification.json", "SHA256SUMS.txt"].map(name => <li key={name}><a href={"/checkpoints/epoch-1536/" + name} download>{name}</a></li>)}</ul></section>
-    <section className="guide-section" aria-label="Documentação técnica"><h2>Documentação técnica da versão</h2><ul>
-      <li><a href="/docs/funded-validator-admission.md">Admissão financiada e assinatura offline (inglês)</a></li>
-      <li><a href="/docs/validator-exit-and-withdrawal.md">ADR-041: saída e saque (inglês)</a></li>
-      <li><a href="/docs/validator-key-custody.md">Preparação e custódia das chaves (inglês)</a></li>
+    <section className="guide-section" aria-label="Signed checkpoint"><h2>Public checkpoint — epoch 1536</h2><p><a href="/docs/renovar-checkpoint.md">Full instructions to generate and sign the next checkpoint (.md)</a></p><p>Three valid signatures. Renew before epoch 3552, on September 22, 2026 at 08:43:19 UTC. Read section 3 before use.</p><ul>{["ws-envelope.bin", "signer-set.bin", "checkpoint.bin", "checkpoint.json", "verification.json", "SHA256SUMS.txt"].map(name => <li key={name}><a href={"/checkpoints/epoch-1536/" + name} download>{name}</a></li>)}</ul></section>
+    <section className="guide-section" aria-label="Technical documentation"><h2>Release technical documentation</h2><ul>
+      <li><a href="/docs/funded-validator-admission.md">Funded admission and offline signing</a></li>
+      <li><a href="/docs/validator-exit-and-withdrawal.md">ADR-041: exit and withdrawal</a></li>
+      <li><a href="/docs/validator-key-custody.md">Key preparation and custody</a></li>
     </ul></section>
   </article>;
 }

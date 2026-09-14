@@ -68,7 +68,7 @@ function Wordmark() {
 type NavRoute = Route & { nav?: string; group?: string; desktop?: boolean; hint?: string };
 
 const ROUTES: NavRoute[] = [
-  { pattern: "/validators/guide", nav: "Validator guide", desktop: false, group: "Network", hint: "manual de operação em português", render: () => <ValidatorGuidePage /> },
+  { pattern: "/validators/guide", nav: "Validator guide", desktop: false, group: "Network", hint: "validator operations guide", render: () => <ValidatorGuidePage /> },
   { pattern: "/", nav: "Chain", group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
   { pattern: "/transactions", nav: "Txs", group: "Chain", hint: "where they landed; each one, when indexed", render: () => <TransactionsPage /> },

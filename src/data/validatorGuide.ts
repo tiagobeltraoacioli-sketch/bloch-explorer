@@ -1,37 +1,37 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 export const validatorGuide = {
-  "title": "Como operar um validador Bloch",
-  "updated": "14 de setembro de 2026",
+  "title": "How to run a Bloch validator",
+  "updated": "September 14, 2026",
   "sections": [
     {
       "id": "escopo",
-      "title": "1. O que este manual permite fazer",
+      "title": "1. What this guide covers",
       "blocks": [
         {
           "kind": "p",
-          "text": "Manual operacional para Bloch Genesis-4, revisado em 14/09/2026. Um observador verifica a cadeia sem assinar. Um validador precisa, além disso, de uma chave própria registrada e elegível na cadeia. Instalar o executável não cria uma vaga nem um depósito."
+          "text": "Operational guide for Bloch Genesis-4, reviewed on September 14, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit."
         },
         {
           "kind": "p",
-          "text": "A verificação da frota às 18h01 de Brasília confirmou 64 processos no mesmo binário, todos a 0–1 slot do relógio da rede e com atestações registradas. Naquele instante, 44 haviam concluído a qualificação e 20 ainda estavam em observação. Esse registro é histórico, não um indicador de disponibilidade em tempo real."
+          "text": "The fleet check at 21:01 UTC on September 14 confirmed 64 processes running the same binary, all within 0–1 slot of the network clock and with attestations logged. At that point, 44 had completed qualification and 20 were still under observation. This is a historical record, not a live availability indicator."
         },
         {
           "kind": "p",
-          "text": "O binário agenda a recuperação na época 2880 (14/09/2026, 18h31min19s de Brasília) e o ciclo de admissão/saída na época 2884 (19h35min19s). Consulte o estado atual do seu nó: um horário agendado não prova que a ativação ocorreu. A abertura ampla a novos participantes ainda depende da qualificação operacional do ciclo completo de saída, saque e gasto do valor recebido. Este manual não anuncia essa abertura."
+          "text": "The binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) and the admission/exit lifecycle at epoch 2884 (22:35:19 UTC). Check your node’s current state: a scheduled time does not prove activation occurred. Broad admission of new participants still requires operational qualification of the complete exit, withdrawal and subsequent spending cycle. This guide does not announce that opening."
         }
       ]
     },
     {
       "id": "requisitos",
-      "title": "2. Prepare o servidor e os arquivos",
+      "title": "2. Prepare the server and files",
       "blocks": [
         {
           "kind": "p",
-          "text": "Use Linux x86_64 para o artefato identificado abaixo, armazenamento SSD persistente, relógio sincronizado e acesso administrativo. A frota de referência utiliza sete servidores de 32 GB para 64 processos; isso não constitui requisito mínimo nem garantia para outra máquina. Dimensione CPU, RAM e disco pela releitura do histórico completo e acompanhe a memória durante a sincronização."
+          "text": "Use Linux x86_64 for the artifact identified below, persistent SSD storage, a synchronized clock and administrative access. The reference fleet uses seven 32 GB servers for 64 processes; this is neither a minimum requirement nor a guarantee for another machine. Size CPU, RAM and disk for replaying the complete history and monitor memory during synchronization."
         },
         {
           "kind": "p",
-          "text": "Obtenha pelo canal de distribuição verificado o executável desta release, mainnet.manifest e carryover.tsv. Este guia publica a identificação do artefato, e oferece o checkpoint na seção 3; o executável e o carryover devem ser obtidos pelo canal de release. Não substitua a release por uma compilação arbitrária de main ou por um tag antigo."
+          "text": "Obtain this release’s executable, mainnet.manifest and carryover.tsv through the verified distribution channel. This guide identifies the artifact and provides the checkpoint in section 3; obtain the executable and carryover through the release channel. Do not substitute an arbitrary build of main or an old tag."
         },
         {
           "kind": "code",
@@ -39,7 +39,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Execute os comandos Linux a seguir no diretório que contém os três arquivos recebidos. Compare os hashes completos. O hash identifica bytes; por si só, ele não é uma auditoria do software."
+          "text": "Run the following Linux commands in the directory containing the three received files. Compare the complete hashes. A hash identifies bytes; it is not, by itself, a software audit."
         },
         {
           "kind": "code",
@@ -49,27 +49,27 @@ export const validatorGuide = {
     },
     {
       "id": "confianca",
-      "title": "3. Escolha a origem do histórico",
+      "title": "3. Choose a trusted source of history",
       "blocks": [
         {
           "kind": "p",
-          "text": "Máquina nova: a janela inicial de confiança no genesis já terminou. Publicamos o envelope original da época 1536 e seu conjunto de signatários em /checkpoints/epoch-1536/. Em 14/09/2026, o binário desta release verificou as três assinaturas híbridas válidas de três chaves distintas. O conjunto exige 2 de 3 e pelo menos um signatário externo; os três estão declarados externos. Essa declaração não comprova, por si só, identidade ou independência pessoal."
+          "text": "New machine: the initial genesis trust window has ended. The original epoch 1536 envelope and its signer set are published at /checkpoints/epoch-1536/. On September 14, 2026, this release’s binary verified three valid hybrid signatures from three distinct keys. The set requires 2 of 3 signatures and at least one external signer; all three are declared external. That declaration alone does not establish personal identity or independence."
         },
         {
           "kind": "p",
-          "text": "Os dois RPCs públicos concordaram com o bloco d5b3a12207af3010a611b737be15877db476ce9629520e08c552b8995bf23d32 e o estado 84cceba212f6443cc5d9fd67ce578a3ae0f34cba5e5877d8082748b282db0780 do checkpoint. As assinaturas e os bytes originais foram preservados. A verificação não substitui um ensaio completo de sincronização de máquina vazia. O campo validator_set_root é o placeholder zero emitido e aceito por esta release."
+          "text": "Both public RPCs agreed on checkpoint block d5b3a12207af3010a611b737be15877db476ce9629520e08c552b8995bf23d32 and state 84cceba212f6443cc5d9fd67ce578a3ae0f34cba5e5877d8082748b282db0780. The original signatures and bytes have been preserved. This verification does not replace a complete synchronization test from an empty machine. The validator_set_root field is the zero placeholder emitted and accepted by this release."
         },
         {
           "kind": "p",
-          "text": "Prazo: na época 2878, o checkpoint tinha idade de 1342 épocas dentro da janela de 2016. Ele é aceito, mas já recebe aviso STALE e precisa de renovação. A partir da época 3552, em 22/09/2026 às 05h43min19s de Brasília (08h43min19s UTC), deixa de autorizar sincronização inicial. Confira a época atual; ACCEPTED no verificador criptográfico não elimina um aviso EXPIRED de idade."
+          "text": "Deadline: at epoch 2878, the checkpoint was 1342 epochs old within the 2016-epoch window. It is accepted but already carries a STALE warning and needs renewal. Starting at epoch 3552, on September 22, 2026 at 08:43:19 UTC (05:43:19 Brasília time), it no longer authorizes initial synchronization. Check the current epoch; ACCEPTED from the cryptographic verifier does not override an EXPIRED age warning."
         },
         {
           "kind": "p",
-          "text": "Baixe os arquivos abaixo e confira o digest WS e os fingerprints do conjunto por outro canal independente de confiança. Hashes baixados do mesmo site apenas detectam alteração dos bytes; não estabelecem a confiança nos signatários. verification.json registra o resultado, os fingerprints e os limites da checagem."
+          "text": "Download the files below and verify the WS digest and signer-set fingerprints through another independent trusted channel. Hashes downloaded from the same site only detect changes to bytes; they do not establish trust in the signers. verification.json records the result, fingerprints and verification limits."
         },
         {
           "kind": "code",
-          "text": "WS digest original assinado:\ne329e6c61ccf91e9338d94a1c1c98e4984e92ad770e995b4ce44596edae2b801"
+          "text": "Original signed WS digest:\ne329e6c61ccf91e9338d94a1c1c98e4984e92ad770e995b4ce44596edae2b801"
         },
         {
           "kind": "code",
@@ -77,47 +77,47 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Apenas copiar um hash de bloco, um ws_latest.bin ou um snapshot de terceiros não equivale a obter um checkpoint assinado. Não crie seu próprio conjunto de signatários para contornar a verificação. O nó ainda reprocessa o histórico completo desde o genesis: o envelope fornece uma âncora de confiança, não um snapshot que elimina o replay."
+          "text": "Copying a block hash, a ws_latest.bin file or a third-party snapshot is not equivalent to obtaining a signed checkpoint. Do not create your own signer set to bypass verification. The node still replays the complete history from genesis: the envelope supplies a trust anchor, not a snapshot that removes the need for replay."
         },
         {
           "kind": "p",
-          "text": "Operador existente: preserve seu diretório de dados, histórico, metadados, chave e slashing_protection.bin. Use o histórico canônico já validado pelo próprio nó. Não substitua uma âncora local mais recente pela época 1536 nem apague o registro de assinaturas para fazer uma reinicialização passar."
+          "text": "Existing operator: preserve your data directory, history, metadata, key and slashing_protection.bin. Use the canonical history already validated by your own node. Do not replace a newer local anchor with epoch 1536 or delete the signing record to make a restart succeed."
         }
       ]
     },
     {
       "id": "chaves",
-      "title": "4. Prepare a identidade do validador",
+      "title": "4. Prepare the validator identity",
       "blocks": [
         {
           "kind": "p",
-          "text": "Para produção, gere e faça backup da identidade e do material RANDAO em uma cerimônia humana offline, usando ferramentas verificadas. O comando keygen do nó é documentado como ferramenta de devnet; não o trate como uma cerimônia de produção. Nunca envie chave privada, semente ou senha a um site, chat, suporte ou RPC."
+          "text": "For production, generate and back up the identity and RANDAO material in an offline human ceremony using verified tools. The node’s keygen command is documented as a devnet tool; do not treat it as a production ceremony. Never send a private key, seed or password to a website, chat, support service or RPC."
         },
         {
           "kind": "p",
-          "text": "Uma identidade nova utiliza o índice automático (sentinela 4294967295, normalmente representada por --index auto na preparação da chave). O índice definitivo vem do registro na cadeia. Não escolha um índice livre por conta própria e não altere bytes de uma chave selada para trocar seu índice. Uma identidade existente deve conservar seu índice e sua chave."
+          "text": "A new identity uses the automatic index (sentinel 4294967295, usually represented by --index auto during key preparation). The final index comes from the on-chain registry. Do not choose an unused index yourself or modify sealed key bytes to change its index. An existing identity must retain its index and key."
         },
         {
           "kind": "p",
-          "text": "A chave de validação deve estar no formato selado BPOSKEY2. O arquivo de senha deve ter permissão 0600 e o diretório que o contém 0700. Mantenha a autoridade de saque e seu backup separados da chave de validação. Nunca execute duas instâncias com a mesma identidade."
+          "text": "The validation key must use the sealed BPOSKEY2 format. The password file must have permissions 0600 and its containing directory 0700. Keep the withdrawal authority and its backup separate from the validation key. Never run two instances with the same identity."
         },
         {
           "kind": "code",
-          "text": "# Nó parado; somente para uma chave legada BPOSKEY1 já existente:\n./bloch-pos keys seal --dir /var/lib/bloch/validator \\\n  --passphrase-file /etc/bloch/validator.pass\n\n# Inspecione a identidade com o nó parado:\n./bloch-pos keys inspect --dir /var/lib/bloch/validator"
+          "text": "# Node stopped; only for an existing legacy BPOSKEY1 key:\n./bloch-pos keys seal --dir /var/lib/bloch/validator \\\n  --passphrase-file /etc/bloch/validator.pass\n\n# Inspect the identity while the node is stopped:\n./bloch-pos keys inspect --dir /var/lib/bloch/validator"
         },
         {
           "kind": "p",
-          "text": "keys seal converte uma chave legada no lugar; não é necessário nem apropriado executá-lo novamente em uma chave já selada. Não habilite BLOCH_NO_DOPPELGANGER nem BLOCH_KEYSTORE_ALLOW_PLAINTEXT no serviço de produção."
+          "text": "keys seal converts a legacy key in place; running it again on an already sealed key is neither necessary nor appropriate. Do not enable BLOCH_NO_DOPPELGANGER or BLOCH_KEYSTORE_ALLOW_PLAINTEXT in the production service."
         }
       ]
     },
     {
       "id": "servico",
-      "title": "5. Instale um serviço Linux",
+      "title": "5. Install a Linux service",
       "blocks": [
         {
           "kind": "p",
-          "text": "O exemplo usa um único validador por diretório e usuário de serviço bloch. Para um operador existente, adapte os caminhos ao diretório preservado; não o sobrescreva. Para uma instalação nova, prossiga somente após resolver o checkpoint e preparar a identidade. A senha deve ser provisionada pelo operador, sem aparecer em argumentos ou histórico do shell."
+          "text": "The example uses one validator per directory and the bloch service user. Existing operators should adapt paths to their preserved directory without overwriting it. For a new installation, proceed only after resolving the checkpoint and preparing the identity. The operator must provision the password without exposing it in arguments or shell history."
         },
         {
           "kind": "code",
@@ -125,11 +125,11 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Não repita useradd se o usuário já existe. Disponibilize validator.key em /var/lib/bloch/validator e a senha em /etc/bloch/validator.pass, ambos pertencentes a bloch e com permissão 0600. Para uma migração de identidade existente, transfira também seu histórico e registro de assinaturas somente depois de parar e desabilitar a instância antiga."
+          "text": "Do not repeat useradd if the user already exists. Place validator.key in /var/lib/bloch/validator and the password in /etc/bloch/validator.pass, both owned by bloch with permissions 0600. When migrating an existing identity, also transfer its history and signing record, only after stopping and disabling the old instance."
         },
         {
           "kind": "p",
-          "text": "Grave a unidade abaixo em /etc/systemd/system/bloch-validator.service. O transporte devnet é o transporte utilizado por esta frota Genesis-4; o nome não seleciona uma rede de teste. O exemplo permite conexões de saída aos dois bootnodes e mantém RPC, métricas e a porta de escuta P2P locais."
+          "text": "Write the unit below to /etc/systemd/system/bloch-validator.service. The devnet transport is the transport used by this Genesis-4 fleet; its name does not select a test network. The example allows outbound connections to both bootnodes and keeps RPC, metrics and the P2P listening port local."
         },
         {
           "kind": "code",
@@ -141,7 +141,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Esse ExecStart pressupõe histórico próprio já confiável. Em um nó novo com os arquivos de confiança válidos, acrescente à mesma linha ExecStart: --ws-checkpoint /var/lib/bloch/checkpoint.envelope.bin --ws-signer-set /var/lib/bloch/signer-set.bin. Ambos são arquivos públicos, legíveis pelo usuário bloch. Nunca use uma linha incompleta com reticências no serviço."
+          "text": "This ExecStart assumes your own history is already trusted. On a new node with valid trust files, append to the same ExecStart line: --ws-checkpoint /var/lib/bloch/checkpoint.envelope.bin --ws-signer-set /var/lib/bloch/signer-set.bin. Both files are public and must be readable by the bloch user. Never use an incomplete command containing ellipses in the service."
         },
         {
           "kind": "code",
@@ -149,17 +149,17 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "A RPC não oferece autenticação própria. Mantenha-a em loopback; para acesso remoto, use túnel SSH ou proxy autenticado na sua infraestrutura. Não abra 16400 ou 17400 para a internet. Se precisar receber conexões P2P externas, planeje explicitamente a interface e o firewall; isso é separado da RPC."
+          "text": "The RPC does not provide authentication itself. Keep it on loopback; for remote access, use an SSH tunnel or an authenticated proxy in your infrastructure. Do not expose ports 16400 or 17400 to the internet. If you need inbound external P2P connections, explicitly plan the interface and firewall separately from the RPC."
         }
       ]
     },
     {
       "id": "admissao",
-      "title": "6. Registre uma identidade nova, quando a admissão estiver liberada",
+      "title": "6. Register a new identity once admission is open",
       "blocks": [
         {
           "kind": "p",
-          "text": "Pule esta seção para uma identidade já registrada. O servidor ligado e sincronizado não é prova de registro. Consulte getvalidatoradmission no seu nó e confirme active: true, o domínio da rede, o mínimo de stake, a taxa e os limites da fila. Confirme também a liberação operacional pública; a ativação do protocolo não substitui a qualificação do ciclo de saque."
+          "text": "Skip this section for an already registered identity. A running, synchronized server does not prove registration. Query getvalidatoradmission on your node and confirm active: true, the network domain, minimum stake, fee and queue limits. Also confirm the public operational opening; protocol activation does not replace qualification of the withdrawal cycle."
         },
         {
           "kind": "code",
@@ -167,11 +167,11 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "A admissão financiada consome UTXOs reais de uma autoridade de financiamento, com chave híbrida suite-1. O mínimo definido nesta versão é 25.000 BLCH (2.500.000.000.000 sat), sujeito à conferência na RPC e às regras de inclusão. Um saldo legado não garante que seus outputs tenham o formato necessário. Consulte listunspent e verifique propriedade, valores e scripts."
+          "text": "Funded admission consumes real UTXOs from a funding authority with a suite-1 hybrid key. This version defines a minimum of 25,000 BLCH (2,500,000,000,000 sat), subject to RPC verification and inclusion rules. A legacy balance does not guarantee that its outputs have the required format. Query listunspent and verify ownership, values and scripts."
         },
         {
           "kind": "p",
-          "text": "Prepare o depósito offline e assine separadamente os papéis de financiamento e validação. Os valores entre <...> abaixo são campos a substituir e conferir; não copie a transação como se fosse pronta. A credencial de saque precisa corresponder a uma chave de gasto que você controla."
+          "text": "Prepare the deposit offline and sign the funding and validation roles separately. Values in <...> below are fields to replace and verify; do not copy the transaction as if it were ready to submit. The withdrawal credential must correspond to a spending key you control."
         },
         {
           "kind": "code",
@@ -179,17 +179,17 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Cada assinatura usa a senha da sua própria chave por BLOCH_KEYSTORE_PASSPHRASE_FILE, sem argumento de senha. Revise rede, UTXOs, credencial de saque, comissão, taxa e expiração em cada máquina. A CLI não transmite. Só depois da liberação e revisão, envie o conteúdo hexadecimal de ready.hex via sendrawtransaction ao seu próprio nó ou endpoint autenticado. O /rpc deste explorer é somente leitura e não transmite depósitos."
+          "text": "Each signature uses its own key’s password through BLOCH_KEYSTORE_PASSPHRASE_FILE, without a password argument. Review the network, UTXOs, withdrawal credential, commission, fee and expiry on each machine. The CLI does not broadcast. Only after admission opens and review is complete, send the hexadecimal contents of ready.hex using sendrawtransaction to your own node or an authenticated endpoint. This explorer’s /rpc is read-only and does not broadcast deposits."
         },
         {
           "kind": "p",
-          "text": "Acompanhe gettxstatus com o ID da transação e getvalidatorbykey com o hash SHA3-256 da chave pública. A ativação exige registro finalizado, pelo menos oito épocas (128 minutos) e respeita o limite de quatro novos validadores por época. A espera pode ser maior; não presuma ativação pelo relógio."
+          "text": "Track gettxstatus using the transaction ID and getvalidatorbykey using the public key’s SHA3-256 hash. Activation requires finalized registration, at least eight epochs (128 minutes), and respects the limit of four new validators per epoch. The wait may be longer; do not infer activation from elapsed time."
         }
       ]
     },
     {
       "id": "validacao",
-      "title": "7. Confirme sincronização e participação",
+      "title": "7. Confirm synchronization and participation",
       "blocks": [
         {
           "kind": "code",
@@ -197,51 +197,51 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Espere a releitura terminar e a RPC responder. behind_by_slots em 0–1 indica acompanhamento do topo naquele instante. Confira também avanço da altura e da época finalizada. Compare o mesmo bloco e o mesmo checkpoint entre referências; alturas próximas sozinhas não provam que a cadeia é a mesma."
+          "text": "Wait for replay to finish and the RPC to respond. behind_by_slots at 0–1 indicates that the node is following the head at that moment. Also check that height and finalized epoch advance. Compare the same block and checkpoint across references; similar heights alone do not prove the chain is the same."
         },
         {
           "kind": "p",
-          "text": "A janela padrão de observação contra instâncias duplicadas é de 64 slots após a releitura: aproximadamente 32 minutos. Uma identidade registrada e elegível começa suas tarefas após essa janela. Procure attested e proposing block nos logs. Nem todo slot é uma tarefa do seu validador; uma proposta pode demorar a ocorrer."
+          "text": "The default observation window for duplicate instances is 64 slots after replay, approximately 32 minutes. A registered, eligible identity starts its duties after this window. Look for attested and proposing block in the logs. Not every slot is a duty for your validator; a proposal may take time to occur."
         },
         {
           "kind": "p",
-          "text": "Na migração da frota, a qualificação exige acompanhamento canônico e avanço de três épocas finalizadas após a primeira atestação. O serviço de exemplo não instala automaticamente o monitor privado da frota: implemente alertas próprios e confirme a inclusão das tarefas na cadeia. Um log de assinatura não prova, sozinho, sua inclusão."
+          "text": "For the fleet migration, qualification requires following the canonical chain and advancing three finalized epochs after the first attestation. The example service does not automatically install the fleet’s private monitor: implement your own alerts and confirm that duties are included on-chain. A signing log alone does not prove inclusion."
         },
         {
           "kind": "p",
-          "text": "Acompanhe memória, espaço livre, peers, atraso, finalização, reinicializações e mensagens de proteção. Consulte também /validators e /validators/queues neste explorer. Falha no proxy do site não prova parada da cadeia; confira sua RPC local."
+          "text": "Monitor memory, free space, peers, lag, finalization, restarts and protection messages. Also consult /validators and /validators/queues in this explorer. A website proxy failure does not prove the chain has stopped; check your local RPC."
         }
       ]
     },
     {
       "id": "atualizacao",
-      "title": "8. Atualize ou migre sem duplicar a identidade",
+      "title": "8. Upgrade or migrate without duplicating the identity",
       "blocks": [
         {
           "kind": "p",
-          "text": "Antes de trocar a release, confirme os hashes, a rede, as épocas de ativação e a compatibilidade com seu histórico. Pare o serviço e confirme que o processo terminou antes de mover dados ou inspecionar a chave. Faça backup consistente do diretório parado, incluindo validator.key, slashing_protection.bin, blocks.log, meta.bin e ws_latest.bin, além da senha guardada separadamente."
+          "text": "Before changing releases, verify the hashes, network, activation epochs and compatibility with your history. Stop the service and confirm the process has ended before moving data or inspecting the key. Make a consistent backup of the stopped directory, including validator.key, slashing_protection.bin, blocks.log, meta.bin and ws_latest.bin, with the password stored separately."
         },
         {
           "kind": "code",
-          "text": "sudo systemctl stop bloch-validator.service\nsudo systemctl show bloch-validator.service -p MainPID -p ActiveState\n# MainPID deve ser 0 antes da troca ou transferência.\n# Verifique a nova release e faça o backup consistente antes de instalar.\nsudo install -m 755 /caminho/da/release-verificada/bloch-pos /usr/local/bin/bloch-pos\nsudo systemctl start bloch-validator.service\nsudo journalctl -u bloch-validator.service -f"
+          "text": "sudo systemctl stop bloch-validator.service\nsudo systemctl show bloch-validator.service -p MainPID -p ActiveState\n# MainPID must be 0 before replacement or transfer.\n# Verify the new release and make a consistent backup before installing.\nsudo install -m 755 /path/to/verified-release/bloch-pos /usr/local/bin/bloch-pos\nsudo systemctl start bloch-validator.service\nsudo journalctl -u bloch-validator.service -f"
         },
         {
           "kind": "p",
-          "text": "Em mudança de servidor, desabilite a instância antiga e mantenha-a impedida de iniciar antes de ativar a nova. Preserve a chave, a semente RANDAO e o registro de assinaturas mais recente como um conjunto. Um backup antigo do journal pode permitir assinaturas conflitantes: não o restaure como atalho. Não rode duas cópias nem por alguns segundos."
+          "text": "When changing servers, disable the old instance and prevent it from starting before activating the new one. Preserve the key, RANDAO seed and most recent signing record together. An old journal backup may permit conflicting signatures: do not restore it as a shortcut. Do not run two copies, even for a few seconds."
         },
         {
           "kind": "p",
-          "text": "Se o nó ficar em outro ramo, parar por proteção ou perder o journal, mantenha a assinatura parada e investigue. Não apague metadados, reduza a janela de observação ou use um binário antigo para forçar retomada. Uma reversão de versão após uma mudança de consenso exige análise específica."
+          "text": "If the node follows another branch, stops due to protection or loses its journal, keep signing stopped and investigate. Do not delete metadata, reduce the observation window or use an old binary to force resumption. Reverting a version after a consensus change requires specific analysis."
         }
       ]
     },
     {
       "id": "saida",
-      "title": "9. Saída e saque",
+      "title": "9. Exit and withdrawal",
       "blocks": [
         {
           "kind": "p",
-          "text": "Depois da ativação do ciclo de vida, uma saída é autenticada pela chave do validador. Consulte a época atual e o registro antes de assinar. A época de inclusão da saída deve coincidir com a época assinada; uma transação expirada precisa ser refeita. As ferramentas a seguir geram arquivos offline e não transmitem."
+          "text": "After lifecycle activation, an exit is authenticated by the validator key. Query the current epoch and registry before signing. The exit’s inclusion epoch must match the signed epoch; an expired transaction must be recreated. The following tools generate files offline and do not broadcast."
         },
         {
           "kind": "code",
@@ -249,21 +249,21 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "A saída não libera os fundos imediatamente. Nesta versão, o atraso de saída é de 32 épocas e o atraso de saque é de 2.048 épocas; consulte a elegibilidade no registro. O saque paga a credencial registrada, não um endereço escolhido na hora. Penalidades e a origem financiada ou não do principal alteram o valor resgatável. Preserve a autoridade de gasto da credencial para utilizar o output recebido."
+          "text": "Exit does not release funds immediately. In this version, the exit delay is 32 epochs and the withdrawal delay is 2,048 epochs; check eligibility in the registry. Withdrawal pays the registered credential, not an address chosen at withdrawal time. Penalties and whether the principal was funded affect the redeemable amount. Preserve the credential’s spending authority to use the received output."
         }
       ]
     },
     {
       "id": "problemas",
-      "title": "10. Diagnóstico rápido e referências",
+      "title": "10. Quick troubleshooting and references",
       "blocks": [
         {
           "kind": "p",
-          "text": "RPC recusada durante replay: acompanhe journalctl e aguarde a inicialização. Chave recusada: verifique formato selado, proprietário e permissões do arquivo de senha. Identidade não elegível: consulte getvalidatorbykey e a fila. Atraso persistente: confira relógio, peers, CPU, disco e o checkpoint. Alerta de duplicidade: pare a assinatura e encontre a outra instância antes de reiniciar."
+          "text": "RPC refused during replay: monitor journalctl and wait for initialization. Key refused: check the sealed format, ownership and password-file permissions. Identity ineligible: query getvalidatorbykey and the queue. Persistent lag: check the clock, peers, CPU, disk and checkpoint. Duplicate-instance alert: stop signing and locate the other instance before restarting."
         },
         {
           "kind": "p",
-          "text": "Este manual é de operação e preparação. Um novo participante ainda precisa dos artefatos de confiança e da admissão efetivamente liberada. Os documentos técnicos anexos são referências da versão revisada, e não garantem entrada imediata. O checkpoint publicado precisa ser renovado antes do prazo indicado na seção 3."
+          "text": "This guide covers operation and preparation. A new participant still needs the trust artifacts and admission to be effectively open. The attached technical documents are references for the reviewed version and do not guarantee immediate entry. Renew the published checkpoint before the deadline in section 3."
         }
       ]
     }
