@@ -17,7 +17,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "The binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) and the admission/exit lifecycle at epoch 2884 (22:35:19 UTC). Check your node’s current state: a scheduled time does not prove activation occurred. Broad admission of new participants still requires operational qualification of the complete exit, withdrawal and subsequent spending cycle. This guide does not announce that opening."
+          "text": "The installed binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) and the admission/exit lifecycle at epoch 2884 (22:35:19 UTC). Technical onboarding instructions and verified downloads are available above. Confirm getvalidatoradmission.active on your own synchronized node before submitting. Full mainnet qualification of the exit, withdrawal and subsequent payout-spending cycle remains pending; an active admission flag does not establish that this qualification has completed."
         }
       ]
     },

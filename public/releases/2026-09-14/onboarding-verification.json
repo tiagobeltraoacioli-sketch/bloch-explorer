@@ -1,0 +1,17 @@
+{
+  "updated_at_utc": "2026-09-14T22:47:13.239327+00:00",
+  "admission_verified_at_utc": "2026-09-14T22:36:28.751586+00:00",
+  "admission_active_on_both_archivals": true,
+  "activation_epoch": 2884,
+  "fleet_verified_at_utc": "2026-09-14T22:12:05.801989+00:00",
+  "fleet_running_release": 64,
+  "fleet_qualified": 64,
+  "public_installer_test": "passed: Linux download, all artifact hashes, selfcheck and signed-checkpoint verification",
+  "source_workspace_test": "14 packages resolve from the published source archive",
+  "fresh_observer_sync_test": "in progress; empty data directory, no validator key, public checkpoint and bootnodes only",
+  "mainnet_funded_exit_withdrawal_payout_spend_qualification": "pending",
+  "tests": {
+    "explorer": 116,
+    "submission_guards": 6
+  }
+}

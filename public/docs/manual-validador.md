@@ -10,7 +10,7 @@ Operational guide for Bloch Genesis-4, reviewed on September 14, 2026. An observ
 
 The fleet check at 21:01 UTC on September 14 confirmed 64 processes running the same binary, all within 0–1 slot of the network clock and with attestations logged. At that point, 44 had completed qualification and 20 were still under observation. This is a historical record, not a live availability indicator.
 
-The binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) and the admission/exit lifecycle at epoch 2884 (22:35:19 UTC). Check your node’s current state: a scheduled time does not prove activation occurred. Broad admission of new participants still requires operational qualification of the complete exit, withdrawal and subsequent spending cycle. This guide does not announce that opening.
+The installed binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) and the admission/exit lifecycle at epoch 2884 (22:35:19 UTC). Technical onboarding instructions and verified downloads are available above. Confirm getvalidatoradmission.active on your own synchronized node before submitting. Full mainnet qualification of the exit, withdrawal and subsequent payout-spending cycle remains pending; an active admission flag does not establish that this qualification has completed.
 
 ## 2. Prepare the server and files
 
