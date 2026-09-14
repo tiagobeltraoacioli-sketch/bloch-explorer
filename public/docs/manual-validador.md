@@ -2,6 +2,8 @@
 
 Reviewed on September 14, 2026.
 
+[Complete onboarding instructions and release downloads](/docs/validator-onboarding.md).
+
 ## 1. What this guide covers
 
 Operational guide for Bloch Genesis-4, reviewed on September 14, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit.
@@ -14,7 +16,7 @@ The binary schedules recovery at epoch 2880 (September 14, 2026, 21:31:19 UTC) a
 
 Use Linux x86_64 for the artifact identified below, persistent SSD storage, a synchronized clock and administrative access. The reference fleet uses seven 32 GB servers for 64 processes; this is neither a minimum requirement nor a guarantee for another machine. Size CPU, RAM and disk for replaying the complete history and monitor memory during synchronization.
 
-Obtain this release’s executable, mainnet.manifest and carryover.tsv through the verified distribution channel. This guide identifies the artifact and provides the checkpoint in section 3; obtain the executable and carryover through the release channel. Do not substitute an arbitrary build of main or an old tag.
+Download this release’s executable, mainnet.manifest and carryover.tsv.gz from /releases/2026-09-14/. The preparation script verifies their hashes and decompresses carryover.tsv. The complete onboarding instructions and download links appear above; section 3 covers the signed checkpoint. Do not substitute an arbitrary build of main or an old tag.
 
 ```text
 Commit: 58da5ce209acb6e293b3b381dfd826dedb8741fd
@@ -147,7 +149,7 @@ The RPC does not provide authentication itself. Keep it on loopback; for remote 
 
 ## 6. Register a new identity once admission is open
 
-Skip this section for an already registered identity. A running, synchronized server does not prove registration. Query getvalidatoradmission on your node and confirm active: true, the network domain, minimum stake, fee and queue limits. Also confirm the public operational opening; protocol activation does not replace qualification of the withdrawal cycle.
+Skip this section for an already registered identity. A running, synchronized server does not prove registration. Query getvalidatoradmission on your node and confirm active: true, the network domain, minimum stake, fee and queue limits. Review the pending withdrawal-cycle qualification before committing funds; protocol activation does not establish that qualification.
 
 ```text
 curl --fail-with-body -sS http://127.0.0.1:16400/ \
@@ -178,7 +180,7 @@ bloch-pos validator-deposit sign --genesis mainnet.manifest \
 bloch-pos validator-deposit inspect --tx ready.hex
 ```
 
-Each signature uses its own key’s password through BLOCH_KEYSTORE_PASSPHRASE_FILE, without a password argument. Review the network, UTXOs, withdrawal credential, commission, fee and expiry on each machine. The CLI does not broadcast. Only after admission opens and review is complete, send the hexadecimal contents of ready.hex using sendrawtransaction to your own node or an authenticated endpoint. This explorer’s /rpc is read-only and does not broadcast deposits.
+Each signature uses its own key’s password through BLOCH_KEYSTORE_PASSPHRASE_FILE, without a password argument. Review the network, UTXOs, withdrawal credential, commission, fee and expiry on each machine. The CLI does not broadcast. Only after protocol admission is active and your review is complete, send the hexadecimal contents of ready.hex using sendrawtransaction to your own node or an authenticated endpoint. This explorer’s /rpc is read-only and does not broadcast deposits.
 
 Track gettxstatus using the transaction ID and getvalidatorbykey using the public key’s SHA3-256 hash. Activation requires finalized registration, at least eight epochs (128 minutes), and respects the limit of four new validators per epoch. The wait may be longer; do not infer activation from elapsed time.
 

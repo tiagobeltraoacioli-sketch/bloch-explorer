@@ -1,0 +1,28 @@
+{
+  "release": "2026-09-14",
+  "commit": "58da5ce209acb6e293b3b381dfd826dedb8741fd",
+  "platform": "Linux x86_64",
+  "rustc": "1.94.1",
+  "source_digest_sha3_256": "3317c232bfb3427efe87b9d9520bbcead63b90077ffd4b931a096eab97425bf5",
+  "activation_epoch": 2884,
+  "activation_utc": "2026-09-14T22:35:19Z",
+  "carryover_uncompressed_sha256": "84ddbbac2afdd5c78618096a7d4f66cf5b04a3e5757a03fe90550e50096183f6",
+  "files": {
+    "mainnet.manifest": {
+      "bytes": 247514,
+      "sha256": "7eef82a70ef9b0e1dd86f86d33cba11fc10cdfc7395c2e5f6669613fa1beb2dd"
+    },
+    "carryover.tsv.gz": {
+      "bytes": 17416339,
+      "sha256": "4d1e2738baec39ec25e2e33968f72a47abb261f271de62fb48a33be55bfc83be"
+    },
+    "bloch-pos-source.tar.gz": {
+      "bytes": 3222663,
+      "sha256": "29784c856c89a341376f51276d067b5c35cf01bb2a008a7654185c5d5db993dd"
+    },
+    "bloch-pos-linux-x86_64": {
+      "bytes": 8019648,
+      "sha256": "b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084"
+    }
+  }
+}

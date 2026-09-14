@@ -31,7 +31,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Obtain this release’s executable, mainnet.manifest and carryover.tsv through the verified distribution channel. This guide identifies the artifact and provides the checkpoint in section 3; obtain the executable and carryover through the release channel. Do not substitute an arbitrary build of main or an old tag."
+          "text": "Download this release’s executable, mainnet.manifest and carryover.tsv.gz from /releases/2026-09-14/. The preparation script verifies their hashes and decompresses carryover.tsv. The complete onboarding instructions and download links appear above; section 3 covers the signed checkpoint. Do not substitute an arbitrary build of main or an old tag."
         },
         {
           "kind": "code",
@@ -159,7 +159,7 @@ export const validatorGuide = {
       "blocks": [
         {
           "kind": "p",
-          "text": "Skip this section for an already registered identity. A running, synchronized server does not prove registration. Query getvalidatoradmission on your node and confirm active: true, the network domain, minimum stake, fee and queue limits. Also confirm the public operational opening; protocol activation does not replace qualification of the withdrawal cycle."
+          "text": "Skip this section for an already registered identity. A running, synchronized server does not prove registration. Query getvalidatoradmission on your node and confirm active: true, the network domain, minimum stake, fee and queue limits. Review the pending withdrawal-cycle qualification before committing funds; protocol activation does not establish that qualification."
         },
         {
           "kind": "code",
@@ -179,7 +179,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Each signature uses its own key’s password through BLOCH_KEYSTORE_PASSPHRASE_FILE, without a password argument. Review the network, UTXOs, withdrawal credential, commission, fee and expiry on each machine. The CLI does not broadcast. Only after admission opens and review is complete, send the hexadecimal contents of ready.hex using sendrawtransaction to your own node or an authenticated endpoint. This explorer’s /rpc is read-only and does not broadcast deposits."
+          "text": "Each signature uses its own key’s password through BLOCH_KEYSTORE_PASSPHRASE_FILE, without a password argument. Review the network, UTXOs, withdrawal credential, commission, fee and expiry on each machine. The CLI does not broadcast. Only after protocol admission is active and your review is complete, send the hexadecimal contents of ready.hex using sendrawtransaction to your own node or an authenticated endpoint. This explorer’s /rpc is read-only and does not broadcast deposits."
         },
         {
           "kind": "p",

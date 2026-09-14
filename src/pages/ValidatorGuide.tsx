@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { validatorGuide } from "../data/validatorGuide";
 import { Link } from "../lib/router";
 import "../validator-guide.css";
+import { ValidatorAdmissionStatus } from "../components/ValidatorAdmissionStatus";
 
 export function ValidatorGuidePage() {
   useEffect(() => {
@@ -18,10 +19,18 @@ export function ValidatorGuidePage() {
       <p className="guide-date">Reviewed on {validatorGuide.updated}. The migration figures are a dated observation.</p>
       <div className="guide-actions"><a href="/docs/manual-validador.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
-    <aside className="guide-notice" aria-label="Requirements for new operators">
-      <strong>Before starting a new identity</strong>
-      <p>This guide does not announce public admission. A new server needs a valid trusted checkpoint; a new identity needs registration, open admission and on-chain activation. Check sections 1, 3 and 6.</p>
-    </aside>
+    <ValidatorAdmissionStatus />
+    <section className="guide-section" aria-label="Start a new validator">
+      <h2>Start a new validator</h2>
+      <p>Download the verified Linux release, synchronize an observer, prepare your identity offline, then submit a reviewed deposit through your own node. You need at least 25,000 BLCH plus fees in eligible native outputs.</p>
+      <div className="guide-actions"><a href="/docs/validator-onboarding.md">Complete onboarding instructions →</a><a href="/downloads/prepare-node.sh" download>Download node preparation script</a></div>
+      <ul>
+        <li><a href="/releases/2026-09-14/bloch-pos-linux-x86_64" download>Linux x86_64 executable</a> · <a href="/releases/2026-09-14/mainnet.manifest" download>Genesis</a> · <a href="/releases/2026-09-14/carryover.tsv.gz" download>Carryover</a></li>
+        <li><a href="/releases/2026-09-14/bloch-pos-source.tar.gz" download>Build source</a> · <a href="/releases/2026-09-14/SHA256SUMS.txt">SHA-256 checksums</a> · <a href="/releases/2026-09-14/release.json">Release metadata</a></li>
+        <li><a href="/downloads/prepare-identity.sh" download>Manual offline identity helper</a> · <a href="/downloads/deposit-submit.py" download>Local deposit preflight and submission helper</a></li>
+      </ul>
+      <p>The identity helper invokes the existing utility with its devnet/throwaway label; review its custody limitations in the onboarding instructions. Production keys must be handled by their human custodians outside agent sessions. Full mainnet withdrawal-and-spend qualification is still pending.</p>
+    </section>
     <nav className="guide-toc" aria-label="Guide contents"><h2>In this guide</h2><ol>{validatorGuide.sections.map(s => <li key={s.id}><a href={"#" + s.id}>{s.title.replace(/^\d+\. /, "")}</a></li>)}</ol></nav>
     {validatorGuide.sections.map(s => <section className="guide-section" id={s.id} key={s.id}>
       <h2>{s.title}</h2>
