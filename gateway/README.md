@@ -1,0 +1,73 @@
+# Genesis-4 production gateway replacement
+
+The gateway preserves the JSON-RPC read surface and signed transaction submission
+at `/g4rpc`, while refusing settlement-sensitive reads without two agreeing
+archival responses and fresh fleet corroboration. It reuses the explorer's
+lineage tracking, weighted request budgets, cache invalidation and upstream
+admission limits rather than implementing another consensus-view algorithm.
+
+This is upstream corroboration, not proof of independent operators. Exchange
+crediting still requires authenticated bootstrap, independent operation and the
+published uninterrupted-finality margin. Node-local tracking and pinned registry
+pagination remain explicitly labelled and are not settlement signals.
+
+## Wire contract
+
+- POST JSON-RPC 2.0 with an explicit string, safe integer or null id. Array and
+  object params pass through; batches and notifications receive `-32600`.
+- CORS preflight is answered locally. Origin, cookies, caller authorization and
+  Host are never forwarded to node RPCs. RPC responses are not browser-cacheable.
+- Request body: at most 1 MiB, checked while streaming; body deadline: 10 seconds.
+  Upstream responses are bounded to 2 MiB, including bodies without a length.
+- Read-quorum failure: `-32051`. Critical reads never fall back to one observer
+  or stale cache. Read cache behavior/TTLs are disclosed by getcapabilities.
+- Broadcast: one configured keyless observer, no cache, no automatic retry and
+  no fan-out. Success and node errors, including `-32010`, `-32008` and `-32009`,
+  are returned without reinterpretation. This deliberately replaces the old
+  all-node fan-out with a single authoritative admission response.
+- A broadcast timeout, invalid response, redirect or transport error returns
+  `-32052`, `admission_unknown: true`. Reconcile status/outpoints before retrying
+  the same bytes; never infer rejection or build a second payment from this error.
+- Broadcast limits per isolate: burst 4, sustained 2/s, at most 2 concurrent
+  submissions. Other limits reuse the read edge. These are not global account
+  limits; configure Cloudflare rate limiting for an account-wide traffic policy.
+
+## Source and checks
+
+`worker.js` is the standalone Worker entry point. `../functions/g4rpc.js` is a
+Pages preview adapter. Tests run in the explorer suite, including real read-engine
+fixtures for agreement, divergence and single-observer degradation. Injected
+broadcast tests cover node error preservation and unknown delivery outcomes.
+
+```
+BLOCH_NODE_RPC_RS=/path/to/bloch-sis-pow/crates/bloch-pos-node/src/rpc.rs npm test
+npm run build
+npx wrangler deploy --config gateway/wrangler.toml --dry-run --outdir /tmp/g4-gateway-build
+```
+
+## Production routing and rollback
+
+The inspected apex DNS record points to `posternlabs.pages.dev`. The published
+site combines informational pages, wallet assets and downloads. Replacing that
+Pages project with this gateway would remove unrelated resources and is not the
+cutover strategy. Tunnel configuration does not need to change for a path-scoped
+Worker route.
+
+1. With Workers Scripts and Workers Routes access, read and retain all current
+   zone routes, the old matching Worker version (if any), and the current Pages
+   deployment id. Inspect overlapping route patterns before selecting a route.
+2. Deploy `bloch-g4-rpc-v2` without production routes. Test its `/g4rpc` preview:
+   capabilities, normal reads, invalid method, CORS and malformed requests.
+   Do not send a real payment for a routing smoke test.
+3. Attach only the reviewed `posternlabs.com/g4rpc*` route to the new Worker.
+   The handler passes unmatched sibling paths through. If an existing broader
+   Worker owns such siblings, resolve that overlap before attaching this route.
+4. Verify the custom-domain gateway version, quorum error contract and healthy
+   reads; verify that homepage, wallet and download paths retain their behavior.
+5. Roll back by restoring the prior route target, or deleting only the newly
+   created route if none existed. The prior Pages deployment remains available.
+
+The local credential could read DNS/Pages but returned HTTP 403 for Workers
+scripts/routes on 2026-09-14. Production cutover requires Workers Scripts Edit
+on the account and Workers Routes Edit on the posternlabs.com zone. Never replace
+DNS, the whole Pages project or a tunnel to bypass that missing permission.

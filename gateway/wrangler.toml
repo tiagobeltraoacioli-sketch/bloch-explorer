@@ -1,0 +1,10 @@
+name = "bloch-g4-rpc-v2"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+# Production route is attached only after a reviewed route backup and live tests.
+# Pattern: posternlabs.com/g4rpc*; unmatched paths pass through to Pages.
+[vars]
+EXPLORER_ARCHIVALS = "http://139.180.166.5.nip.io:8080/ http://139.180.173.231.nip.io:8080/"
+EXPLORER_FLEET = "http://139.84.201.52.nip.io:8080/ http://139.84.202.139.nip.io:8080/ http://139.84.204.46.nip.io:8080/ http://139.84.205.54.nip.io:8080/ http://149.28.180.128.nip.io:8080/ http://67.219.108.230.nip.io:8080/ http://67.219.108.96.nip.io:8080/"
+BROADCAST_UPSTREAM = "http://139.180.166.5.nip.io:8080/"
