@@ -84,6 +84,7 @@ export function ValidatorsPage() {
     return (
       <div className="container">
         <h1 className="page-title">Validators</h1>
+        <p><Link to="/validators/guide">Como operar um validador →</Link></p>
         <div className="errbox">
           The validator set could not be read ({err}). This reports the explorer's own aggregator,
           not the network — the chain may well be finalising normally.
@@ -144,6 +145,7 @@ export function ValidatorsPage() {
   return (
     <div className="container">
       <h1 className="page-title">Validators</h1>
+        <p><Link to="/validators/guide">Como operar um validador →</Link></p>
       <p className="page-lede">
         Genesis-4 is secured by {fmtInt(set.counts.total)} validators committed at genesis, each
         bonded and each slashable. Blocks arrive on a {PARAMS.slotSecs.value}-second slot;{" "}

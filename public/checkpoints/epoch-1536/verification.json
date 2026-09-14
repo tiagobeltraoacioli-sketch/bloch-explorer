@@ -1,0 +1,46 @@
+{
+  "verified_at_utc": "2026-09-14T21:13:13.855447+00:00",
+  "checkpoint": {
+    "format": "bloch-ws-checkpoint",
+    "version": 1,
+    "network_id": 1228832244,
+    "genesis_root": "9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415",
+    "epoch": 1536,
+    "boundary_slot": 49151,
+    "block_root": "d5b3a12207af3010a611b737be15877db476ce9629520e08c552b8995bf23d32",
+    "state_root": "84cceba212f6443cc5d9fd67ce578a3ae0f34cba5e5877d8082748b282db0780",
+    "validator_set_root": "0000000000000000000000000000000000000000000000000000000000000000",
+    "issued_at": 1788562123,
+    "signer_set_id": 1,
+    "ws_digest": "e329e6c61ccf91e9338d94a1c1c98e4984e92ad770e995b4ce44596edae2b801"
+  },
+  "runtime_commit": "58da5ce209acb6e293b3b381dfd826dedb8741fd",
+  "runtime_sha256": "b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084",
+  "signatures_valid": 3,
+  "distinct_public_keys": 3,
+  "quorum": 2,
+  "signer_count": 3,
+  "declared_external_signers": 3,
+  "minimum_external_signers": 1,
+  "signer_public_key_sha256": [
+    "5efc54eb57f3226be416a04f7d64fb4a49a0dc21cca445added49b293699957a",
+    "afa529461b5fbb89a4d33e34538980cb32dc001277c46be1fd7d38efc7b7b9dc",
+    "ad59580111aceedba4c12958132cc5cdf30f209c73abdb765d4d3eb0de89e3ac"
+  ],
+  "epoch_at_verification": 2878,
+  "window_epochs": 2016,
+  "refused_at_epoch": 3552,
+  "refused_at_utc": "2026-09-22T08:43:19Z",
+  "freshness": "STALE: accepted within window; renewal due",
+  "canonical_block_and_state_corroborated_by": [
+    "139.180.166.5:8080",
+    "139.180.173.231:8080"
+  ],
+  "limitations": [
+    "External roles are declarations in the signer set, not independent identity attestations.",
+    "Cross-check the digest and signer-set fingerprints through an independent trusted publication channel.",
+    "This verifies signatures, chain identity, age and canonical roots; it is not a full fresh-node replay test.",
+    "validator_set_root is the all-zero placeholder emitted and accepted by this release."
+  ],
+  "signer_set_fingerprint_sha3_256": "bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627"
+}
