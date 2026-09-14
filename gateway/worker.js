@@ -102,7 +102,7 @@ async function broadcast(payload, opts, env) {
   try {
     const response = await opts.fetchImpl(upstream, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload), signal: controller.signal, redirect: 'error',
+      body: JSON.stringify(payload), signal: controller.signal, redirect: 'manual',
     });
     if (!response.ok) throw new Error('upstream_http_error');
     const value = JSON.parse(await readBounded(response.body, MAX_REPLY));
@@ -162,7 +162,7 @@ export async function handleGateway(request, env = {}, context = {}, overrides =
     const opts = buildOpts(env, request, runtime);
     if (payload.method === 'sendrawtransaction') return await broadcast(payload, opts, env);
     const readOpts = { ...opts, fetchImpl: async (input, init) => {
-      const response = await opts.fetchImpl(input, { ...init, redirect: 'error' });
+      const response = await opts.fetchImpl(input, { ...init, redirect: 'manual' });
       return { ok: response.ok, status: response.status, text: async () => {
         // Empty runtime bodies and lightweight injected test transports.
         const text = response.body ? await readBounded(response.body, MAX_REPLY) : await response.text();

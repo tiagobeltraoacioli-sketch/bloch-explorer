@@ -90,7 +90,7 @@ test('broadcast preserves node capacity/terminal errors verbatim and never fans 
     const r = await call(payload('sendrawtransaction', { hex: 'aabb' }), { fetchImpl: async (url, init) => {
       calls++; assert.equal(url, ARCHIVALS[0]);
       assert.deepEqual(init.headers, { 'content-type': 'application/json' });
-      assert.equal(init.redirect, 'error');
+      assert.equal(init.redirect, 'manual');
       assert.deepEqual(JSON.parse(init.body).params, { hex: 'aabb' });
       return Response.json({ jsonrpc: '2.0', id: 7, error });
     } }, { Origin: 'https://wallet.example', Authorization: 'Bearer caller-only' });
@@ -168,7 +168,7 @@ function alignedFetch(map) {
 test('read responses with a wrong id are rejected and redirects are disabled', async () => {
   let calls = 0;
   const r = await call(payload(), { fetchImpl: async (_url, init) => {
-    calls++; assert.equal(init.redirect, 'error');
+    calls++; assert.equal(init.redirect, 'manual');
     return Response.json({ jsonrpc: '2.0', id: 'wrong-id', result: chainInfo() });
   } });
   assert.ok(calls > 0); assert.ok((await r.json()).error);
