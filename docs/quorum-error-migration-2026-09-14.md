@@ -24,3 +24,11 @@ must be verified separately; deploying this project does not change it.
 Validation: 90 tests passed, none skipped, including the cross-repository
 node error-code collision check, divergent RPC/REST reads, and refusal to
 fail over on both legacy and new errors. Production build passed.
+
+Production verification, 2026-09-14 03:45 UTC: deployment
+`d49b9703.bloch-explorer.pages.dev`, source commit `3d596a6`. The custom-domain
+RPC returned version 1.2.0 and `error_codes.no_quorum: -32051`. A normal
+chain-info query remained corroborated. No deliberate production divergence
+was induced; divergent responses were verified with injected test upstreams.
+The separate Postern proxy still rejects getcapabilities and was not changed.
+See `quorum-error-deployment-2026-09-14.json` for retained responses.

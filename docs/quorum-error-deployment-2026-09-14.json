@@ -1,0 +1,145 @@
+{
+  "observed_utc": "2026-09-14T03:45:56.758618+00:00",
+  "endpoints": {
+    "https://blochl1.com/rpc": {
+      "getcapabilities": {
+        "error": null,
+        "edge": "bloch-explorer",
+        "version": "1.2.0",
+        "error_codes": {
+          "no_quorum": -32051,
+          "stale_upstream": -32011
+        }
+      },
+      "getchaininfo": {
+        "error": null,
+        "height": 66496,
+        "finalized": {
+          "epoch": 2811,
+          "root": "98b12bc5d2aa0efc3bdb0122dfc117e7446ca5dac1ffb83aa7507bf5216161a6"
+        },
+        "corroboration": {
+          "level": "corroborated",
+          "archival_witnesses": 2,
+          "of": 2,
+          "fleet_witness": true,
+          "cache_salt": 177,
+          "witness": {
+            "available": true,
+            "age_ms": 2395,
+            "height": 66496,
+            "slot": 90028,
+            "finalized_epoch": 2811,
+            "finalized_root": "98b12bc5d2aa0efc3bdb0122dfc117e7446ca5dac1ffb83aa7507bf5216161a6",
+            "finalized_height": 66426,
+            "reason": null
+          },
+          "plane": {
+            "certified": true,
+            "responding": 2,
+            "of": 2,
+            "agree_on_head": true,
+            "height": 66496,
+            "behind_by_slots": 1,
+            "witness_certified": true,
+            "reason": null,
+            "detail": null,
+            "age_ms": 0
+          },
+          "reorg_events": [
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 177,
+              "at": 1789308368670
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 65033,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789308368670
+            },
+            {
+              "signal": "R2",
+              "kind": "descending_finality",
+              "epoch": 2488,
+              "was": 2760,
+              "plane": "witness",
+              "at": 1789308368670
+            },
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 176,
+              "at": 1789308230151
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 65026,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789308230151
+            },
+            {
+              "signal": "R2",
+              "kind": "descending_finality",
+              "epoch": 2488,
+              "was": 2759,
+              "plane": "witness",
+              "at": 1789308230151
+            },
+            {
+              "signal": "BURN",
+              "kind": "cache_salt_burned",
+              "salt": 175,
+              "at": 1789174533285
+            },
+            {
+              "signal": "R4",
+              "kind": "receding_head",
+              "was": 60889,
+              "now": 54459,
+              "plane": "witness",
+              "at": 1789174533285
+            }
+          ]
+        }
+      }
+    },
+    "https://posternlabs.com/g4rpc": {
+      "getcapabilities": {
+        "error": {
+          "code": -32601,
+          "message": "method 'getcapabilities' is not exposed by this proxy. Genesis-4 refuses gettransaction and getnewaddress at the node itself \u2014 there is no transaction id at this layer and the node holds no wallet.",
+          "data": {
+            "reason": "method_not_allowed",
+            "method": "getcapabilities"
+          }
+        },
+        "edge": null,
+        "version": null,
+        "error_codes": null
+      },
+      "getchaininfo": {
+        "error": null,
+        "height": 66496,
+        "finalized": {
+          "epoch": 2811,
+          "root": "98b12bc5d2aa0efc3bdb0122dfc117e7446ca5dac1ffb83aa7507bf5216161a6"
+        },
+        "corroboration": {
+          "witnesses": 9,
+          "fleet_witnesses": 7,
+          "nodes_asked": 9,
+          "corroborated": true,
+          "distinct_views": 1
+        }
+      }
+    }
+  },
+  "source_commit": "3d596a6",
+  "deployment_url": "https://d49b9703.bloch-explorer.pages.dev"
+}
