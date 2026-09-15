@@ -239,7 +239,7 @@ export function G4Dashboard() {
   return (
     <div className="container">
       <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} />
-      <p><Link to="/validators/guide">Run a validator →</Link> · Verified downloads, setup instructions and live admission status.</p>
+      <p><Link to="/validators/guide">Run a validator →</Link> · Download the Bloch CLI, follow every setup step and check live admission status.</p>
       {/* ── the hero: head, finality, the clock ─────────────────────────── */}
       <section className="hero-card dash-hero">
         <div className="dash-hero-main">
