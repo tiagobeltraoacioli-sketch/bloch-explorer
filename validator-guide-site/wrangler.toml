@@ -1,0 +1,22 @@
+name = "bloch-validator-guide"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+routes = [
+ { pattern = "posternlabs.com/", zone_name = "posternlabs.com" },
+ { pattern = "posternlabs.com/index.html", zone_name = "posternlabs.com" },
+ { pattern = "blochprotocol.io/", zone_name = "blochprotocol.io" },
+ { pattern = "blochprotocol.io/index.html", zone_name = "blochprotocol.io" },
+ { pattern = "posternlabs.com/validators", zone_name = "posternlabs.com" },
+ { pattern = "posternlabs.com/validators/*", zone_name = "posternlabs.com" },
+ { pattern = "posternlabs.com/build", zone_name = "posternlabs.com" },
+ { pattern = "posternlabs.com/build.html", zone_name = "posternlabs.com" },
+ { pattern = "blochprotocol.io/validators", zone_name = "blochprotocol.io" },
+ { pattern = "blochprotocol.io/validators/*", zone_name = "blochprotocol.io" },
+ { pattern = "blochprotocol.io/build", zone_name = "blochprotocol.io" },
+ { pattern = "blochprotocol.io/build.html", zone_name = "blochprotocol.io" }
+]
+[[rules]]
+type = "Text"
+globs = ["**/*.html", "**/*.css"]
+fallthrough = true
