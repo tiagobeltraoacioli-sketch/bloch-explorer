@@ -1,6 +1,6 @@
 # Remaining validator qualification
 
-Updated September 14, 2026. Technical admission is active at epoch 2884.
+Updated September 15, 2026 (UTC). Technical admission is active at epoch 2884.
 The deployed fleet audit recorded 64 upgraded, qualified validators. A new
 keyless observer synchronized from empty data using the published checkpoint
 and public bootnodes, then matched the fleet's block and state roots.
@@ -57,7 +57,8 @@ existing fleet validator to substitute for a funded-registration test.
    if still needed. Submission goes through the operator's own node.
    Verify the settled payout's outpoint, value and committed withdrawal
    credential. A duplicate withdrawal must not pay again.
-7. The withdrawal custodian signs a TransferV2 spending that payout. Record
+7. The withdrawal custodian uses the [separate offline payout tool](/docs/validator-payout-offline.md)
+   to prepare, inspect and sign a TransferV2 spending that payout. Record
    the transaction, inclusion block and finality evidence; confirm the old
    payout is spent and the intended new output exists on two nodes. Only
    then mark the full mainnet lifecycle complete. Qualify the chosen wallet
