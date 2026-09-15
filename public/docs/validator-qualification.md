@@ -61,7 +61,9 @@ existing fleet validator to substitute for a funded-registration test.
    to prepare, inspect and sign a TransferV2 spending that payout. Record
    the transaction, inclusion block and finality evidence; confirm the old
    payout is spent and the intended new output exists on two nodes. Only
-   then mark the full mainnet lifecycle complete. Qualify the chosen wallet
+   then mark the full mainnet lifecycle complete. The [read-only observation
+   helper](/docs/validator-payout-offline.md#read-only-settlement-observation-helper)
+   checks both RPCs against the approved destination and amount. Qualify the chosen wallet
    or offline encoder before this step: it must emit TransferV2 (tag `0x06`).
    The release's `bloch-pos submit-tx` command constructs the older Transfer
    format and is not a substitute for this specific TransferV2 check.
