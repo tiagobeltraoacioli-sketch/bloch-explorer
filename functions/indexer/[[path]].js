@@ -30,7 +30,7 @@ export async function onRequest(context) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 7000);
   try {
-    const upstream = await fetch(origin + path + url.search, { signal: controller.signal, redirect: 'error', headers: { accept: 'application/json' } });
+    const upstream = await fetch(origin + path + url.search, { signal: controller.signal, redirect: 'manual', headers: { accept: 'application/json' } });
     if (![200, 400, 404, 409, 503].includes(upstream.status) || !upstream.headers.get('content-type')?.includes('application/json')) {
       return answer(503, { error: 'Historical index unavailable.' });
     }
@@ -55,6 +55,6 @@ export async function onRequest(context) {
       data.ok = data.ok && data.lag_slots <= 64;
     }
     return answer(upstream.status, data);
-  } catch { return answer(503, { error: 'Historical index unavailable; retry shortly.' }); }
+  } catch (error) { console.error('Historical index request failed:', error?.name, error?.message); return answer(503, { error: 'Historical index unavailable; retry shortly.' }); }
   finally { clearTimeout(timer); }
 }
