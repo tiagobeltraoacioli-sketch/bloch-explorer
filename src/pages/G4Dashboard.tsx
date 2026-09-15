@@ -396,11 +396,11 @@ export function G4Dashboard() {
           sub={leakPct !== null ? "of the bond, permanently — see validators" : "needs both stake totals"}
         />
         <Kpi
-          k="Mempool"
+          k="Mempool entries"
           v={mp ? fmtInt(mp.size) : head.mempool !== undefined ? fmtInt(head.mempool) : "—"}
           sub={mp ? `${fmtBytes(mp.bytes)} held · capacity ${fmtInt(mp.max)}` : "one node's view"}
           tag={<span className="pill quiet pill-sm">node-local</span>}
-          title="A property of the node asked, not of the chain. The mempool does not converge here; two nodes disagreeing is normal."
+          title="Local pool entries may include residual copies of transactions already included. Check the transaction ID for inclusion status."
         />
         <Kpi
           k="Base fee"

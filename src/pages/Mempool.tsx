@@ -29,20 +29,22 @@ export function MempoolPage() {
     ["Fee evictions", pool?.evicted_low_fee, "Lower-fee entries replaced when the pool was full"],
   ] as const;
   return <div className="container telemetry-page">
-    <div className="overview-heading"><div><span className="eyebrow">TRANSACTIONS / MEMPOOL</span><h1>Waiting to be included.</h1></div><ReadToolbar {...live} onRefresh={live.refresh} onPause={() => live.setPaused(!live.paused)} /></div>
+    <div className="overview-heading"><div><span className="eyebrow">TRANSACTIONS / MEMPOOL</span><h1>The observer’s transaction pool.</h1></div><ReadToolbar {...live} onRefresh={live.refresh} onPause={() => live.setPaused(!live.paused)} /></div>
     <div className="source-line"><span className="pill warn">Node-local</span><span>{source ?? "Observer not identified"}</span><span>{live.paused ? "Live updates paused" : "Refreshes every 15 seconds"}</span><Link to="/network">RPC health ↗</Link></div>
     {live.error && <div className="errbox" role="alert">{live.error}</div>}
     {stale && pool && <p className="data-warning" role="status">These are previous readings. They do not describe the current mempool.</p>}
     {!pool && !live.error && <p className="data-warning">{live.loading ? "Reading the observer’s mempool…" : "The observer did not provide mempool data."}</p>}
+    <p className="data-warning" role="status">This counter is the node’s local pool size, not a count of transactions still awaiting inclusion. A node may retain or receive a copy after a transaction is included. Check the transaction ID below to see its reported chain status.</p>
+    <TxStatusLookup />
     <div className="mempool-layout">
       <section className="card pool-capacity">
-        <span className="eyebrow">PENDING TRANSACTIONS</span>
+        <span className="eyebrow">ENTRIES REPORTED BY THIS NODE</span>
         <div className="pool-number">{metrics.size === null ? "—" : fmtInt(metrics.size)}</div>
         <div className="capacity-grid" role="img" aria-label={metrics.occupancy === null ? "Capacity unavailable" : `${fmtNum(metrics.occupancy, 2)} percent of transaction-count capacity used`}>
           {Array.from({ length: 80 }, (_, i) => <i key={i} className={metrics.occupancy !== null && i < Math.ceil(Math.min(100, metrics.occupancy) / 100 * 80) ? "filled" : ""} />)}
         </div>
         <div className="capacity-label"><b>{metrics.occupancy === null ? "—" : `${fmtNum(metrics.occupancy, 2)}%`} used</b><span>{metrics.max === null ? "Capacity not reported" : `${fmtInt(metrics.max)} transaction capacity`}</span></div>
-        <p className="lookup-hint">Each cell represents 1.25% of capacity by transaction count. Nodes can hold different pending transactions.</p>
+        <p className="lookup-hint">Each cell represents 1.25% of capacity by transaction count. Nodes can hold different entries, including residual copies of transactions already included.</p>
       </section>
       <div className="pool-readouts">
         <section className="card metric-panel"><span className="eyebrow">PAYLOAD IN MEMPOOL</span><strong>{metrics.bytes === null ? "—" : fmtBytes(metrics.bytes)}</strong><span>{metrics.averageBytes === null ? "Average size unavailable for an empty or unread pool" : `${fmtBytes(metrics.averageBytes)} average per transaction`}</span></section>
@@ -52,14 +54,13 @@ export function MempoolPage() {
     <section className="card">
       <div className="section-heading"><div><h2>Mempool over time</h2><p>Observed in this session · up to 120 readings</p></div><span className="pill quiet">{history.length} samples</span></div>
       {history.length < 2 ? <div className="telemetry-empty">{metrics.size === 0 ? "This observer’s mempool is empty. " : ""}The chart starts after two fresh readings from the same observer.</div> : <>
-        <div className="pool-history" role="img" aria-label={`Pending transactions range from ${Math.min(...history.map(p => p.size))} to ${Math.max(...history.map(p => p.size))} across ${history.length} session readings.`}>{history.map(p => <div key={p.at} title={`${new Date(p.at).toLocaleTimeString()}: ${p.size} pending`}><i style={{ height: `${p.size / max * 100}%` }} /></div>)}</div>
+        <div className="pool-history" role="img" aria-label={`Reported entries range from ${Math.min(...history.map(p => p.size))} to ${Math.max(...history.map(p => p.size))} across ${history.length} session readings.`}>{history.map(p => <div key={p.at} title={`${new Date(p.at).toLocaleTimeString()}: ${p.size} entries`}><i style={{ height: `${p.size / max * 100}%` }} /></div>)}</div>
         <div className="chart-axis"><span>{new Date(history[0].at).toLocaleTimeString()}</span><span>Peak {fmtInt(max === 1 && history.every(p => p.size === 0) ? 0 : max)} txs</span><span>{new Date(history[history.length - 1].at).toLocaleTimeString()}</span></div>
-        <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Observed at</th><th>Pending</th><th>Bytes</th><th>Observer</th></tr></thead><tbody>{[...history].reverse().map(p => <tr key={p.at}><td>{new Date(p.at).toLocaleTimeString()}</td><td>{fmtInt(p.size)}</td><td>{p.bytes === null ? "—" : fmtInt(p.bytes)}</td><td>{p.source}</td></tr>)}</tbody></table></div></details>
+        <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Observed at</th><th>Entries</th><th>Bytes</th><th>Observer</th></tr></thead><tbody>{[...history].reverse().map(p => <tr key={p.at}><td>{new Date(p.at).toLocaleTimeString()}</td><td>{fmtInt(p.size)}</td><td>{p.bytes === null ? "—" : fmtInt(p.bytes)}</td><td>{p.source}</td></tr>)}</tbody></table></div></details>
       </>}
       <p className="lookup-hint">A new observer, a reorg or a gap over one minute starts a new series. A falling count can reflect inclusion, expiration or eviction.</p>
     </section>
     <div className="telemetry-metrics">{counters.map(([label, value, note]) => <section key={label} className="card metric-panel"><span className="eyebrow">{label}</span><strong>{decimal(value) ?? "—"}</strong><span>{decimal(value) === null ? "Not reported by this node version" : note}</span></section>)}</div>
-    <TxStatusLookup />
-    <section className="card coverage-note"><h2>What this view can tell you</h2><p>Pending count, bytes, next base fee and any rejection counters the observer provides. Per-transaction fees, queue ordering and inclusion estimates require additional node data; the current RPC does not expose them.</p><Link to="/transactions">Explore indexed transactions ↗</Link><RawData data={reading} label="Inspect mempool response and provenance" /></section>
+    <section className="card coverage-note"><h2>What this view can tell you</h2><p>Local entry count, bytes, next base fee and any rejection counters the observer provides. Per-transaction fees, queue ordering and inclusion estimates require additional node data; the current RPC does not expose them.</p><Link to="/transactions">Explore indexed transactions ↗</Link><RawData data={reading} label="Inspect mempool response and provenance" /></section>
   </div>;
 }

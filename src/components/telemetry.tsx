@@ -50,6 +50,7 @@ export function TxStatusLookup({ initialHash = "" }: { initialHash?: string }) {
     </form>
     {error && <p role="alert" className="txt-warn">{error}</p>}
     {result && <div className="tx-status-result" role="status"><span className={"pill " + (result.status === "unknown" ? "quiet" : "info")}>{result.status}</span><span>{result.source ?? "Observer"} · {new Date(result.at).toLocaleTimeString()}</span><Link to={`/tx/${hash.trim().replace(/^0x/i, "").toLowerCase()}`}>Transaction details ↗</Link></div>}
+    {result && ["included", "justified", "finalized"].includes(result.status) && <p className="lookup-hint">This observer reports the transaction in its chain. A nonzero mempool counter does not make it pending again. Inclusion alone is not finalization.</p>}
     <p className="lookup-hint">“Unknown” does not prove that a transaction is absent. Included, justified and finalized are the observer’s current classifications; this lookup is not a complete transaction index or a proof of finality.</p>
   </section>;
 }

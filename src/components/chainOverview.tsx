@@ -21,10 +21,10 @@ export function ChainOverview({ head, cells, mempool, stale }: {
     </div>
     <div className="block-ribbon" tabIndex={0} role="region" aria-label="Recent slots, newest first; scroll for earlier slots">
       <Link to="/mempool" className="ribbon-pending">
-        <span className="eyebrow">PENDING AT ONE NODE</span>
-        <strong>{mempool ? fmtInt(mempool.size) : "—"}<small> transactions</small></strong>
+        <span className="eyebrow">MEMPOOL AT ONE NODE</span>
+        <strong>{mempool ? fmtInt(mempool.size) : "—"}<small> local entries</small></strong>
         <span>{mempool ? fmtBytes(mempool.bytes) : "Mempool not reported"}</span>
-        <span className="ribbon-bottom">Explore mempool ↗</span>
+        <span className="ribbon-bottom">Check inclusion status ↗</span>
       </Link>
       <div className="ribbon-divider" aria-hidden="true" />
       {recent.length === 0 ? <div className="ribbon-empty">Loading the latest slots…</div> : recent.map(c => {
