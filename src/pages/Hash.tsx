@@ -57,7 +57,7 @@ import {
   siblingOf,
   outpointLink,
 } from "../lib/scriptHash";
-import { indexerHealth, indexedUtxos, IndexedUtxo, IndexerHealth } from "../lib/indexer";
+import { indexerHealth, indexedUtxos, indexedHistory, IndexedHistoryPage, IndexedUtxoPage, IndexedUtxo, IndexerHealth } from "../lib/indexer";
 import { verdictFor, isReadableBalance } from "../lib/resolve64";
 import { Hex64Indeterminate } from "../components/hex64";
 import { fmtBloch, fmtCompactBloch, fmtInt, short, toSats } from "../lib/format";
@@ -78,6 +78,7 @@ interface Loaded {
   sibling: G4Balance | null;
   head: G4Head;
   page: G4UtxoPage;
+  indexedPage?: IndexedUtxoPage;
   endpoint: string;
 }
 
@@ -132,6 +133,7 @@ export function HashPage({ q }: { q: string }) {
     setUnknown(null);
     setRows(null);
     setMore(null);
+    setIdx(undefined);
 
     const sib = siblingOf(scriptHash);
     (async (): Promise<Verdict> => {
@@ -149,16 +151,18 @@ export function HashPage({ q }: { q: string }) {
         // parse and the page prints a confident zero in 24-point type.
         return { kind: "unreadable" };
       }
+      const health = await indexerHealth();
+      if (!stop) setIdx(health);
       if (verdictFor(scriptHash, balance) === "indeterminate") {
-        // A successful lookup that proved nothing. Showing the zero here is
-        // the defect: it would be a real, formatted, confident number that
-        // means nothing at all.
-        return { kind: "indeterminate" };
+        const history = health ? await indexedHistory(scriptHash, null, 1).catch(() => null) : null;
+        if (!history?.events.length) return { kind: "indeterminate" };
       }
 
       const sibling = sib ? await g4rpc<G4Balance>("getbalance", [sib]) : null;
       const page = await g4rpc<G4UtxoPage>("getutxos", [scriptHash, FIRST_PAGE]);
-      return { kind: "ok", loaded: { head, balance, sibling, page, endpoint: G4_RPC } };
+      const indexedPage = health ? await indexedUtxos(scriptHash, null, FIRST_PAGE).catch(() => undefined) : undefined;
+      if (health && !indexedPage && !stop) setIdx(null);
+      return { kind: "ok", loaded: { head, balance, sibling, page, indexedPage, endpoint: G4_RPC } };
     })()
       .then((r) => {
         if (stop) return;
@@ -175,11 +179,12 @@ export function HashPage({ q }: { q: string }) {
           return;
         }
         setD(r.loaded);
-        setRows(r.loaded.page.utxos.map(toRow));
+        setRows(r.loaded.indexedPage ? r.loaded.indexedPage.utxos.map(toIndexedRow) : r.loaded.page.utxos.map(toRow));
+        setMore(r.loaded.indexedPage?.next_cursor ?? null);
+        if (r.loaded.indexedPage) setIdx(old => old ? { ...old, indexed_to_slot: r.loaded.indexedPage!.as_of_slot } : old);
       })
       .catch((e) => !stop && setErr(String(e?.message ?? e)));
 
-    indexerHealth().then((h) => !stop && setIdx(h));
     return () => {
       stop = true;
     };
@@ -340,7 +345,7 @@ export function HashPage({ q }: { q: string }) {
         </section>
       )}
 
-      <History scriptHash={scriptHash} idx={idx} />
+      <History key={scriptHash} scriptHash={scriptHash} idx={idx} />
     </div>
   );
 }
@@ -549,54 +554,53 @@ function Sibling({ scriptHash, d }: { scriptHash: string; d: Loaded }) {
  * indexer adds the slots; it does not invent transaction ids, because there
  * are none to invent.
  */
-function History({
-  scriptHash,
-  idx,
-}: {
-  scriptHash: string;
-  idx: IndexerHealth | null | undefined;
-}) {
-  return (
-    <section className="card">
-      <h2 className="snap-h2">History</h2>
-      <p className="lookup-hint">
-        There is no transaction history for this entry, and there is no honest way to build
-        one the way a Bitcoin explorer does. <code>gettransaction</code> is refused by the
-        node <em>by design</em> — though not for the reason the node's own error text gives.
-        A Genesis-4 transaction does have an id, <code>SHA3-256(DS_TXID ‖ spend_signing_root)</code>;
-        what the block store keeps is no <em>index</em> from that id back to a block, and that is
-        what makes the lookup impossible rather than merely absent. The <code>tx_hash</code> that{" "}
-        <code>sendrawtransaction</code> hands back is node-local — other nodes do not agree
-        on it, and feeding it to <code>gettxout</code> returns a well-formed{" "}
-        <code>unspent: false</code> that is indistinguishable from a lost withdrawal.
-      </p>
-      <p className="lookup-hint">
-        What exists instead are <strong>outpoints</strong>: a 32-byte reference and an
-        index, the slot that created it, and the slot that spent it. That is the honest
-        unit of history here, and it is what the rows above link to.
-      </p>
-      {idx === undefined ? (
-        <p className="lookup-hint faint">Checking whether an indexer is reachable…</p>
-      ) : idx ? (
-        <p className="lookup-hint">
-          The indexer is up (slot {fmtInt(idx.indexed_to_slot)}, {fmtInt(idx.lag_slots)}{" "}
-          behind). Created-and-spent slots for{" "}
-          <code>{short(scriptHash, 10, 6)}</code> are available on the outpoint pages.
-        </p>
-      ) : (
-        <div className="warn-box">
-          <span className="warn-ico">!</span>
-          <div>
-            No indexer is reachable, so even the outpoint view is partial: the node's{" "}
-            <code>getutxos</code> carries no slot for the outputs it returns, and{" "}
-            <code>gettxout</code>'s <code>at_slot</code> is the head the node answered from
-            — not the slot the output landed in. Until the indexer is deployed, the slot an
-            output was created in exists nowhere on this RPC.
-          </div>
-        </div>
-      )}
-    </section>
-  );
+function History({ scriptHash, idx }: { scriptHash: string; idx: IndexerHealth | null | undefined }) {
+  const [page, setPage] = useState<IndexedHistoryPage | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let stop = false;
+    setPage(null); setError("");
+    if (idx) {
+      setBusy(true);
+      indexedHistory(scriptHash).then(p => { if (!stop) setPage(p); })
+        .catch(e => { if (!stop) setError(String(e.message ?? e)); })
+        .finally(() => { if (!stop) setBusy(false); });
+    }
+    return () => { stop = true; };
+  }, [scriptHash, idx, revision]);
+  async function more() {
+    if (!page?.next_cursor || busy) return;
+    setBusy(true); setError("");
+    try {
+      const next = await indexedHistory(scriptHash, page.next_cursor);
+      setPage({ ...next, events: [...page.events, ...next.events] });
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
+  }
+  return <section className="card">
+    <h2 className="snap-h2">History</h2>
+    <p className="lookup-hint">Outputs created and spent on the indexed canonical chain, including the Genesis-4 opening ledger. Amounts describe individual outputs, not inferred payments.</p>
+    {idx === undefined ? <p>Checking historical index…</p> : !idx ? <p>Historical index unavailable. Retry this page shortly.</p> : <>
+      {page && <p className="lookup-hint">{fmtInt(page.events.length)} events loaded · snapshot at slot {fmtInt(page.as_of_slot)}</p>}
+      {error && <p role="alert">{error} <button className="btn" onClick={() => setRevision(v => v + 1)}>Restart history</button></p>}
+      {page && <div className="table-wrap"><table className="tbl">
+        <thead><tr><th>Event</th><th>Outpoint</th><th>Transaction</th><th>Slot</th><th className="num">BLOCH</th></tr></thead>
+        <tbody>{page.events.map((e, i) => <tr key={`${e.txid}:${e.vout}:${e.kind}:${e.height}:${i}`}>
+          <td>{e.height === 0 ? "Genesis allocation" : e.kind}</td>
+          <td><Link to={`/outpoint/${e.txid}:${e.vout}`} className="mono-link">{short(e.txid, 8, 6)}:{e.vout}</Link></td>
+          <td>{e.height === 0 ? "—" : <Link to={`/tx/${e.transaction_id ?? e.txid}`} className="mono-link">{short(e.transaction_id ?? e.txid, 8, 6)}</Link>}</td>
+          <td>{e.height === 0 ? "Genesis" : <Link to={`/slot/${e.slot}`}>{fmtInt(e.slot)}</Link>}</td>
+          <td className="num">{fmtBloch(e.value_sat, 8)}</td>
+        </tr>)}</tbody>
+      </table></div>}
+      {page?.events.length === 0 && <p>No events for this script hash in the indexed chain.</p>}
+      {busy && <p>Loading history…</p>}
+      {page?.next_cursor && <button className="btn" disabled={busy} onClick={more}>Load more history</button>}
+      {page && !page.next_cursor && <p className="lookup-hint">Complete history for this snapshot.</p>}
+    </>}
+  </section>;
 }
 
 /** Where an arriving Genesis-3 identifier is explained rather than hidden. */

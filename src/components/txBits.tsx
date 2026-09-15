@@ -63,14 +63,14 @@ export function TxRows({
             {txs.map((t) => {
               const out = sumSide(t.outputs);
               return (
-                <tr key={t.txid}>
+                <tr key={`${t.block_id}:${t.index}`}>
                   <td><TxidLink txid={t.txid} /></td>
                   {showBlock && <td className="num"><Link to={`/slot/${t.slot}`}>{fmtInt(t.slot)}</Link></td>}
                   {showBlock && <td className="num">{fmtInt(t.height)}</td>}
                   <td><span className="pill quiet pill-sm">{t.kind}</span></td>
                   <td className="num">{fmtInt(t.inputs.length)} → {fmtInt(t.outputs.length)}</td>
                   <td className="num">{out === null ? <span className="faint">unreadable</span> : `${fmtBloch(out, 4)} BLOCH`}</td>
-                  <td className="num">{/^[0-9]+$/.test(t.fee_sat) ? `${fmtInt(t.fee_sat)} sat` : <span className="faint">—</span>}</td>
+                  <td className="num">{typeof t.fee_sat === "string" && /^[0-9]+$/.test(t.fee_sat) ? `${fmtInt(t.fee_sat)} sat` : <span className="faint">—</span>}</td>
                   <td className="num">{fmtInt(t.size_bytes)} B</td>
                   {showBlock && <td className="faint">{timeAgo(slotStartMs(t.slot) / 1000)}</td>}
                 </tr>

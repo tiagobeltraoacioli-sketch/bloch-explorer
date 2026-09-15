@@ -1,36 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// One outpoint — the honest replacement for a transaction page.
-//
-// A Bitcoin explorer is organised around transaction ids. Genesis-4 has ids —
-// consensus computes `SHA3-256(DS_TXID ‖ spend_signing_root)` in
-// `PosTransaction::txid` — but nothing you can look one up in: the block store
-// keeps no txid index, so `gettransaction` is refused by the node in so many
-// words ("at Genesis-4's current layer a transaction carries no id … This is a
-// permanent answer for this build, not a transient failure — do not retry").
-// Read that quote as the node's, not as ours: the "carries no id" half of it is
-// false, and only the missing index is load-bearing.
-//
-// What the chain does have is outpoints: a 32-byte reference plus an output
-// index, which `getutxos` returns and `gettxout` answers questions about. So
-// the permalink is `/outpoint/<32-byte-ref>/<index>` and the page is titled
-// for an outpoint, because calling it `/tx/<id>` would be a promise the chain
-// cannot keep — and would invite exactly the mistake below.
-//
-// ── The trap this page exists to spell out ──────────────────────────────────
-//
-// `sendrawtransaction` returns a node-local `tx_hash`. Other nodes do not
-// agree on it. Feeding one to `gettxout` returns a well-formed
-// `{unspent: false, utxo: null}` — which is byte-identical to the answer for
-// an outpoint that was created and then spent. A withdrawal that landed
-// perfectly and a withdrawal that vanished look the same. This page therefore
-// never renders `unspent: false` as "spent"; it renders it as "this node has
-// no such unspent output", and lists the reasons, because they are not the
-// same statement.
+// Live unspent status plus historical creation and spend receipts.
 import { useEffect, useState } from "react";
 import { g4rpc, G4Head, G4TxOut, G4_RPC } from "../lib/g4";
 import { indexerHealth, indexedOutpoint, IndexedOutpoint, IndexerHealth } from "../lib/indexer";
-import { fmtBloch, fmtInt, toSats } from "../lib/format";
+import { fmtBloch, fmtInt } from "../lib/format";
 import { Link } from "../lib/router";
 import { Loading } from "../components/ui";
 
@@ -89,9 +62,8 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
           {txid}:{vout}
         </code>
         <br />
-        Not a transaction page — Genesis-4 computes a transaction id but indexes nothing by
-        it, so there is nothing to put on one. This is the output itself: a value, an owner,
-        and whether it is still unspent.
+        One recorded output: its exact value, owner, creation and spend history.
+        View the <Link to={`/tx/${txid}`}>creating transaction</Link>.
       </p>
 
       {err && <div className="err-box">{err}</div>}
@@ -103,7 +75,7 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
             <div className="g4-stat">
               <span className="g4-k">Value</span>
               <span className="g4-v">
-                {d.out.utxo ? `${fmtBloch(toSats(d.out.utxo.value_sat), 8)} BLOCH` : "—"}
+                {d.out.utxo || indexed ? `${fmtBloch(d.out.utxo?.value_sat ?? indexed!.value_sat, 8)} BLOCH` : "—"}
               </span>
             </div>
             <div className="g4-stat">
@@ -120,19 +92,19 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
             </div>
           </div>
 
-          {d.out.utxo && (
+          {(d.out.utxo || indexed) && (
             <section className="card">
               <h2 className="snap-h2">Owner</h2>
               <div className="bal-meta">
                 <span className="g4-k">Script hash</span>
                 <code className="bal-hash">
-                  <Link className="mono-link" to={`/hash/${d.out.utxo.script_hash}`}>
-                    {d.out.utxo.script_hash}
+                  <Link className="mono-link" to={`/hash/${(d.out.utxo?.script_hash ?? indexed!.script_hash)}`}>
+                    {(d.out.utxo?.script_hash ?? indexed!.script_hash)}
                   </Link>
                 </code>
               </div>
               <p className="lookup-hint">
-                {fmtInt(d.out.utxo.value_sat)} sat. Whoever can open this hash can spend
+                {fmtInt(d.out.utxo?.value_sat ?? indexed!.value_sat)} sat. Whoever can open this hash can spend
                 this output — see the entry page for the second hash the same key may also
                 open.
               </p>
@@ -188,7 +160,7 @@ function AtSlot({
           {indexed
             ? indexed.spent_slot != null
               ? <Link to={`/slot/${indexed.spent_slot}`}>{fmtInt(indexed.spent_slot)}</Link>
-              : "still unspent"
+              : "unspent at the indexed snapshot"
             : "not available"}
         </div>
       </div>
@@ -225,7 +197,7 @@ function NotUnspent({
           The indexer has it: created in slot {fmtInt(indexed.created_slot)}
           {indexed.spent_slot != null
             ? `, spent in slot ${fmtInt(indexed.spent_slot)}.`
-            : ", and it has no spend recorded — which disagrees with the node and is worth reporting."}
+            : ", and no spend is recorded at the indexed snapshot. The node and index may have answered at different slots."}
         </p>
       </section>
     );
@@ -237,17 +209,9 @@ function NotUnspent({
         <span className="warn-ico">!</span>
         <div>
           The node said <code>unspent: false</code>, and on its own that sentence is
-          ambiguous. It is the identical answer for all three of:
-          <ul>
-            <li>an output that existed and has since been spent;</li>
-            <li>an output that never existed — a reference this chain has never seen;</li>
-            <li>
-              a lookup made with a node-local <code>tx_hash</code> from{" "}
-              <code>sendrawtransaction</code>, which other nodes do not agree on. That is the
-              dangerous one: a withdrawal that settled perfectly and one that vanished both
-              land here.
-            </li>
-          </ul>
+          ambiguous. The output may have been spent, may not exist on this chain,
+          or the lookup may use an incorrect reference. The historical receipt
+          distinguishes a known spend from an absent record.
           {idx === null
             ? "Distinguishing them needs a spend index, and no indexer is reachable. Do not read this page as 'spent'."
             : "Distinguishing them needs the indexer's spend record; it did not answer for this outpoint."}
@@ -265,48 +229,11 @@ function NotUnspent({
  * `{txid, vout, unspent, utxo, at_slot}`, five fields, and none of them is
  * finality. Finality is a property of the chain, read from `getchaininfo`.
  */
-function Settlement({
-  head,
-  out,
-  indexed,
-}: {
-  head: G4Head;
-  out: G4TxOut;
-  indexed: IndexedOutpoint | null;
-}) {
-  const final =
-    indexed != null && indexed.created_height <= head.finalized_height && out.unspent;
-  return (
-    <section className="card">
-      <h2 className="snap-h2">Is it settled?</h2>
-      <div className="warn-box">
-        <span className="warn-ico">!</span>
-        <div>
-          <code>gettxout</code> has <strong>no <code>finalized</code> field</strong>. It
-          returns exactly <code>txid</code>, <code>vout</code>, <code>unspent</code>,{" "}
-          <code>utxo</code> and <code>at_slot</code>. Integration notes that told partners
-          to read a <code>finalized</code> flag off this call were describing a field that
-          has never existed, and a client keying settlement on{" "}
-          <code>result.finalized</code> reads <code>undefined</code> — falsy — and settles
-          nothing, or worse, coerces it and settles everything.
-        </div>
-      </div>
-      <p className="lookup-hint">
-        The judgement is made against the chain, not against the output: an output is
-        settled when the block that created it is at or below the finalized height, and it
-        is still unspent. Right now the chain is finalized to height{" "}
-        {fmtInt(head.finalized_height)} (epoch {fmtInt(head.finalized.epoch)}), at head
-        height {fmtInt(head.height)}.{" "}
-        {indexed
-          ? final
-            ? `This output was created at height ${fmtInt(indexed.created_height)}, which is final, and it is unspent. Settled.`
-            : `This output was created at height ${fmtInt(indexed.created_height)}; ${
-                indexed.created_height > head.finalized_height
-                  ? "that is above the finalized height, so it is not settled yet."
-                  : "it is no longer unspent, so there is nothing to settle."
-              }`
-          : "The creating height is what the node cannot tell you, so this page cannot complete the judgement for you — that is the second thing the indexer is for."}
-      </p>
-    </section>
-  );
+function Settlement({ head, out, indexed }: { head: G4Head; out: G4TxOut; indexed: IndexedOutpoint | null }) {
+  return <section className="card">
+    <h2 className="snap-h2">Finality observations</h2>
+    <p className="lookup-hint">The node answered at slot {fmtInt(out.at_slot)} and reported this outpoint as {out.unspent ? "unspent" : "absent from its unspent set"}. The observed finalized height is {fmtInt(head.finalized_height)}.</p>
+    {indexed && <p className="lookup-hint">The historical index records creation at height {fmtInt(indexed.created_height)}, as of slot {fmtInt(indexed.as_of_slot)}. Creation and unspent status are separate observations.</p>}
+    <p className="lookup-hint">This page does not authorize deposit crediting. Confirm canonical block membership, continued finality and independent observers under the <Link to="/finality">finality policy</Link>.</p>
+  </section>;
 }
