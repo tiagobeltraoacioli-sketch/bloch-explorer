@@ -6,6 +6,8 @@ Updated September 15, 2026. This note updates the earlier status statements abou
 
 **The operator confirms that the signing ceremony took place on September 4, 2026.** This is the operator-reported ceremony date. The published artifact verification occurred on September 14; it is not the ceremony date.
 
+The operator identifies **Alexandre Capua Martginago** and **Bruno Miranda Filetti** as signatories to the September 4 ceremony. These names are operator-provided; their individual public-key fingerprints and institutional roles have not yet been linked in the published evidence. The third signatory has not been identified in this update. No external-auditor role is inferred from either name.
+
 The [epoch-1536 verification record](https://blochl1.com/checkpoints/epoch-1536/verification.json) reports three valid signatures from distinct keys under signer set 1, with a 2-of-3 quorum. Public downloads:
 
 - [Signed envelope](https://blochl1.com/checkpoints/epoch-1536/ws-envelope.bin)
