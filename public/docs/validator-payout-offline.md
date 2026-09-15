@@ -206,7 +206,7 @@ is required; this script has no third-party dependencies.
 
 ```sh
 curl --fail --show-error --location --remote-name https://blochl1.com/downloads/verify-validator-payout.py
-printf '%s  %s\n' '6a035de73bf61e771531e4d07717b83712e902830644237e156976867d8eef3a' verify-validator-payout.py | sha256sum --check -
+printf '%s  %s\n' '7db7527c40bea13b32b3bc42a72b1b6a63eea31081779a0d3ca8fc9d4ea23089' verify-validator-payout.py | sha256sum --check -
 python3 verify-validator-payout.py --help
 ```
 
@@ -283,3 +283,21 @@ offline CLI with disposable sealed keys. It accepted a signed payout and
 refused an unsigned draft, substituted ID/destination/value and malformed
 bytes. Eleven synthetic regression tests passed. These tests used no RPC
 and do not establish mainnet settlement.
+
+
+## Retain settlement evidence
+
+Add `--out payout-evidence.json` to save a successful observation to a new
+file. The helper writes complete JSON before publishing the file and refuses
+existing paths, including symlinks. The parent directory must already exist
+and its filesystem must support hard links. The file uses owner-only access
+(mode 0600). JSON is also printed to standard output after successful saving.
+A failed verification never creates a report; a save failure exits nonzero.
+
+The report includes `schema_version: 1`, the explicitly approved transaction
+IDs, destination and output value, both node observations, and the optional
+signed transaction inspection. Amounts are decimal strings. Retain the signed
+public transaction and its signing observations alongside this report. Keep
+node/operator provenance in your own records; different tunnel URLs do not
+establish independent operators. The report is an observation record, not a
+certificate of cryptographic inclusion or complete mainnet qualification.
