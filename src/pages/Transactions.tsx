@@ -156,7 +156,7 @@ export function TransactionsPage() {
       <h1 className="page-title">
         Transactions{" "}
         {idx === undefined ? null : idx ? (
-          <span className="pill brass" title={`An indexer is attached, indexed to slot ${fmtInt(idx.indexed_to_slot)} (${fmtInt(idx.lag_slots)} behind the head).`}>
+          <span className="pill brass" title={`An indexer is attached, indexed to slot ${fmtInt(idx.indexed_to_slot)} (${idx.lag_slots === null ? "live freshness unavailable" : `${fmtInt(idx.lag_slots)} slots behind the observed head`}).`}>
             indexed to slot {fmtInt(idx.indexed_to_slot)}
           </span>
         ) : (
@@ -181,7 +181,8 @@ export function TransactionsPage() {
           <div className="card-head">
             <h2 className="snap-h2" style={{ margin: 0 }}>Latest transactions</h2>
             <span className="pill brass pill-sm">indexer</span>
-            {idx.lag_slots > 2 && <span className="pill warn pill-sm">{fmtInt(idx.lag_slots)} slots behind the head</span>}
+            {idx.lag_slots === null && <span className="pill quiet pill-sm">live freshness unavailable</span>}
+            {idx.lag_slots !== null && idx.lag_slots > 2 && <span className="pill warn pill-sm">{fmtInt(idx.lag_slots)} slots behind the head</span>}
             <span className="spacer" />
             <span className="faint" style={{ fontSize: 12 }}>{fmtInt(txs.length)} shown</span>
           </div>

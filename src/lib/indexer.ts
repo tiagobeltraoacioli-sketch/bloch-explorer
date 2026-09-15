@@ -12,7 +12,8 @@ export interface IndexerHealth {
   indexed_to_height: number;
   finalized_height: number;
   source: string;
-  lag_slots: number;
+  lag_slots: number | null;
+  live_head_available?: boolean;
 }
 
 export interface IndexedUtxo {

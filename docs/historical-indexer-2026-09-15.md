@@ -25,7 +25,7 @@ alone no longer produces an automatic “Settled” verdict on outpoint pages.
 
 ## Verification
 
-- 123 edge tests pass, with no skipped tests, against the current node RPC source.
+- 124 edge tests pass, with no skipped tests, against the current node RPC source.
 - The Rust indexer integration tests cover reorgs, intra-block spends, spent
   values, malformed input, exact large integers, >1,000 outputs and cursor
   conflicts. Consensus regression tests and the read-only receipt observer
@@ -49,3 +49,8 @@ The index is rebuildable in memory: restarting replays the log before serving.
 The initial measured rebuild took approximately eight minutes. A deep fork or
 unrecoverable read/replay failure also triggers rebuilding with historical routes
 unavailable meanwhile. The live transaction-status route remains separate.
+
+Historical storage availability is separate from live network corroboration. If
+the live head comparison fails, the API reports `lag_slots: null`; verified
+historical receipts remain readable with their snapshot slot and source. This
+does not grant any finality or deposit-crediting assurance.

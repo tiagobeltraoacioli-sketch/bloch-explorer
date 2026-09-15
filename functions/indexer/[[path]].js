@@ -46,13 +46,18 @@ export async function onRequest(context) {
     if (path === 'health' && upstream.ok) {
       const observed = await handleRead({ jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] }, { ...buildOpts(env, request, runtimeFor(context)), budgetMs: 4000 });
       const head = observed.body?.result;
-      if (!head || !Number.isSafeInteger(head.slot)) return answer(503, { error: 'Unable to corroborate index freshness.' });
-      data.lag_slots = Math.max(0, head.slot - data.indexed_to_slot);
-      data.lag_basis = 'explorer corroborated archival head';
-      data.observed_head_slot = head.slot;
-      // Historical receipts remain accessible as timestamped snapshots, but
-      // the UI must not label a badly lagging index as its current source.
-      data.ok = data.ok && data.lag_slots <= 64;
+      if (!head || !Number.isSafeInteger(head.slot)) {
+        // A network-read failure must not erase verified historical receipts.
+        // Preserve storage health and state explicitly that live lag is unknown.
+        data.lag_slots = null;
+        data.lag_basis = 'live network comparison unavailable';
+        data.live_head_available = false;
+      } else {
+        data.lag_slots = Math.max(0, head.slot - data.indexed_to_slot);
+        data.lag_basis = 'explorer corroborated archival head';
+        data.observed_head_slot = head.slot;
+        data.live_head_available = true;
+      }
     }
     return answer(upstream.status, data);
   } catch (error) { console.error('Historical index request failed:', error?.name, error?.message); return answer(503, { error: 'Historical index unavailable; retry shortly.' }); }

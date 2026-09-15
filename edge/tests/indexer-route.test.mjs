@@ -35,3 +35,18 @@ test('indexer route fails closed on HTML and preserves a reorg conflict', async 
     assert.equal((await onRequest(ctx('transactions'))).status, 409);
   } finally { globalThis.fetch = old; }
 });
+test('historical availability survives unavailable live corroboration without inventing zero lag', async () => {
+  const old = globalThis.fetch;
+  globalThis.fetch = async url => {
+    if (String(url).includes('/indexer/health')) return Response.json({ ok: true, indexed_to_slot: 100, indexed_to_height: 90, lag_slots: 0, source: 'archival-1' });
+    throw new Error('controlled live RPC outage');
+  };
+  try {
+    const response = await onRequest(ctx('health'));
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.lag_slots, null);
+    assert.equal(body.live_head_available, false);
+  } finally { globalThis.fetch = old; }
+});

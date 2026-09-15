@@ -460,7 +460,7 @@ function Coverage({
     return (
       <p className="lookup-hint">
         Showing {fmtInt(have)} of {fmtInt(total)}, paged through the indexer (indexed to slot{" "}
-        {fmtInt(idx.indexed_to_slot)}, {fmtInt(idx.lag_slots)} behind the head).
+        {fmtInt(idx.indexed_to_slot)}, {idx.lag_slots === null ? "live freshness unavailable" : `${fmtInt(idx.lag_slots)} slots behind the observed head`}).
       </p>
     );
   }
