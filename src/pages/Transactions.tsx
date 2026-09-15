@@ -62,6 +62,13 @@ export function TransactionsPage() {
     let stop = false;
     ac.current = new AbortController();
     (async () => {
+      const health = await indexerHealth();
+      if (stop) return;
+      setIdx(health);
+      if (health) {
+        await loadIndexed(null);
+        return;
+      }
       try {
         const h = await g4rpc<G4Head>("getchaininfo", [], { signal: ac.current!.signal });
         if (stop) return;
@@ -71,11 +78,6 @@ export function TransactionsPage() {
         if (!stop && e?.name !== "AbortError") setErr(String(e?.message ?? e));
       }
     })();
-    indexerHealth().then((h) => {
-      if (stop) return;
-      setIdx(h);
-      if (h) void loadIndexed(null);
-    });
     return () => {
       stop = true;
       ac.current?.abort();
@@ -135,7 +137,7 @@ export function TransactionsPage() {
     return { blocks, withTx, txsTotal, unread, last };
   }, [cells]);
 
-  if (err && !head) {
+  if (err && !head && !idx) {
     return (
       <div className="container">
         <h1 className="page-title">Transactions</h1>
@@ -144,11 +146,12 @@ export function TransactionsPage() {
       </div>
     );
   }
-  if (!head) return <Loading label="Reading the head…" />;
+  if (idx === undefined) return <Loading label="Checking historical index…" />;
+  if (!head && !idx) return <Loading label="Reading the head…" />;
 
   const oldest = rows.length ? rows[rows.length - 1].epoch : null;
-  const lowSlot = oldest === null ? head.slot : epochSlots(oldest)[0];
-  const slotsScanned = head.slot - lowSlot + 1;
+  const lowSlot = oldest === null ? (head?.slot ?? idx?.indexed_to_slot ?? 0) : epochSlots(oldest)[0];
+  const slotsScanned = (head?.slot ?? lowSlot) - lowSlot + 1;
   const canLoad = oldest !== null && oldest > 0 && rows.length < MAX_EPOCHS && !busy;
 
   return (
@@ -167,12 +170,9 @@ export function TransactionsPage() {
       </h1>
       <TxStatusLookup />
       <p className="page-lede">
-        Genesis-4 keeps no transaction index: a block header says how <em>many</em> transactions it
-        carried and nothing about which. So the chain can tell you where transactions landed and,
-        for an outpoint you already hold, whether it is unspent right now.{" "}
         {idx
-          ? "An indexer is attached, so the transactions themselves are listed below — labelled with the slot it had folded up to, because it is a second system reading the same chain."
-          : "The transactions themselves appear here the day an indexer is attached; until then this page does not invent them."}
+          ? "Each receipt lists its recorded inputs, outputs and fee. Pages share the displayed historical snapshot, so new blocks do not shift older results."
+          : "The historical index is unavailable. The block-header view below shows where transaction-bearing blocks were observed."}
       </p>
 
       {/* ── the indexed feed, when there is one ──────────────────────────── */}
@@ -204,8 +204,8 @@ export function TransactionsPage() {
         </section>
       )}
 
-      {/* ── where they landed — what the chain itself says ───────────────── */}
-      <section className="card">
+      {/* Header scanning is a fallback, never parallel load on the indexed view. */}
+      {!idx && head && <section className="card">
         <div className="card-head">
           <h2 className="snap-h2" style={{ margin: 0 }}>Where transactions landed — the last {fmtInt(slotsScanned)} slots</h2>
           <span className="pill quiet pill-sm">from block headers</span>
@@ -245,7 +245,7 @@ export function TransactionsPage() {
             30,907 and 30,909 — an observation with a date on it; the window above is the live one.
           </span>
         </div>
-      </section>
+      </section>}
 
       <div className="grid two-col" style={{ marginBottom: 14 }}>
         <section className="card">

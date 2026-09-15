@@ -135,6 +135,8 @@ export function HashPage({ q }: { q: string }) {
     setMore(null);
     setIdx(undefined);
 
+    // Historical events remain available even if the live balance read fails.
+    indexerHealth().then(h => { if (!stop) setIdx(h); });
     const sib = siblingOf(scriptHash);
     (async (): Promise<Verdict> => {
       // Head first, so "as of" is never later than the balance it labels.

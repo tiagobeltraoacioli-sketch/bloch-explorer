@@ -54,3 +54,7 @@ Historical storage availability is separate from live network corroboration. If
 the live head comparison fails, the API reports `lag_slots: null`; verified
 historical receipts remain readable with their snapshot slot and source. This
 does not grant any finality or deposit-crediting assurance.
+
+The indexed transaction feed does not scan epochs through RPC in parallel.
+Header scanning runs only when the historical service is unavailable. Address
+history probes independently of the live balance request.
