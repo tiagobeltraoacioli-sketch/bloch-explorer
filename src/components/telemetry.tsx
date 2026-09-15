@@ -20,7 +20,7 @@ export function RawData({ data, label = "Inspect response" }: { data: unknown; l
 
 export function TxStatusLookup({ initialHash = "" }: { initialHash?: string }) {
   const [hash, setHash] = useState(initialHash);
-  const [result, setResult] = useState<{ status: TxStatus; at: number; source: string | null } | null>(null);
+  const [result, setResult] = useState<{ txid: string; status: TxStatus; at: number; source: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const active = useRef<AbortController | null>(null);
@@ -36,7 +36,7 @@ export function TxStatusLookup({ initialHash = "" }: { initialHash?: string }) {
       const answer = await g4rpc<{ status: string; corroboration?: { source_node?: string } }>("gettxstatus", [txid], { signal: ac.signal });
       const status = transactionStatus(answer);
       if (!status) throw new Error("The node returned an unrecognized transaction status.");
-      if (!ac.signal.aborted) setResult({ status, at: Date.now(), source: answer.corroboration?.source_node ?? null });
+      if (!ac.signal.aborted) setResult({ txid, status, at: Date.now(), source: answer.corroboration?.source_node ?? null });
     } catch (e) {
       if (!ac.signal.aborted) setError(e instanceof G4Error && e.code === -32601 ? "Transaction status is unavailable on the responding node version." : e instanceof Error ? e.message : "Unable to read transaction status.");
     } finally { if (!ac.signal.aborted) setBusy(false); }
@@ -45,11 +45,11 @@ export function TxStatusLookup({ initialHash = "" }: { initialHash?: string }) {
     <div className="section-heading"><h2>Transaction status</h2><span className="pill quiet">Node observation</span></div>
     <p>Look up the status remembered by an observer. Availability depends on the node version.</p>
     <form onSubmit={submit} className="tx-status-form">
-      <label className="tx-status-input">Transaction ID<input value={hash} onChange={e => { setHash(e.target.value); setResult(null); }} placeholder="64-character transaction hash" maxLength={66} spellCheck={false} autoComplete="off" /></label>
+      <label className="tx-status-input">Transaction ID<input value={hash} onChange={e => { active.current?.abort(); setBusy(false); setError(null); setHash(e.target.value); setResult(null); }} placeholder="64-character transaction hash" maxLength={66} spellCheck={false} autoComplete="off" /></label>
       <button type="submit" className="btn" disabled={busy}>{busy ? "Checking…" : "Check status"}</button>
     </form>
     {error && <p role="alert" className="txt-warn">{error}</p>}
-    {result && <div className="tx-status-result" role="status"><span className={"pill " + (result.status === "unknown" ? "quiet" : "info")}>{result.status}</span><span>{result.source ?? "Observer"} · {new Date(result.at).toLocaleTimeString()}</span><Link to={`/tx/${hash.trim().replace(/^0x/i, "").toLowerCase()}`}>Transaction details ↗</Link></div>}
+    {result && <div className="tx-status-result" role="status"><span className={"pill " + (result.status === "unknown" ? "quiet" : "info")}>{result.status}</span><span>{result.source ?? "Observer"} · {new Date(result.at).toLocaleTimeString()}</span><Link to={`/tx/${result.txid}`}>Transaction details ↗</Link></div>}
     {result && ["included", "justified", "finalized"].includes(result.status) && <p className="lookup-hint">This observer reports the transaction in its chain. A nonzero mempool counter does not make it pending again. Inclusion alone is not finalization.</p>}
     <p className="lookup-hint">“Unknown” does not prove that a transaction is absent. Included, justified and finalized are the observer’s current classifications; this lookup is not a complete transaction index or a proof of finality.</p>
   </section>;

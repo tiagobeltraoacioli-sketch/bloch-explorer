@@ -156,3 +156,16 @@ body { font-size: 1rem; background: var(--bg0); }
 .ribbon-block, .ribbon-pending { border-radius: 6px; }
 nav.mainnav a { border-radius: 6px; font-size: .875rem; }
 .table-wrap { border-radius: 8px; }
+
+/* Keep the transaction search usable on narrow screens: its 200px desktop
+   minimum cannot share one row with the brand and navigation controls. */
+@media (max-width: 520px) {
+  .topbar-inner { flex-wrap: wrap; }
+  .topbar-inner > .search-wrap {
+    order: 4;
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0 0 10px;
+  }
+}

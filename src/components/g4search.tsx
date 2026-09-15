@@ -2,10 +2,9 @@
 //
 // The front door.
 //
-// Search here is a real design problem rather than a formality, because the
-// handle every visitor arrives holding — a transaction id — does not exist on
-// this chain. See `lib/query.ts` for the grammar and the reasoning; this file
-// is the part that talks to the chain and decides where to send someone.
+// A 32-byte query may name a block, transaction or script hash. Resolve
+// positive evidence first, then open the transaction observer-status page.
+// See `lib/query.ts` for the input grammar.
 //
 // Three behaviours are deliberate and all three are departures from what the
 // box used to do:
@@ -17,7 +16,7 @@
 //      completely different block that looks perfectly correct. So the box
 //      asks, and resolves a height properly when that is what was meant.
 //
-//   2. **A 32-byte value that resolves to nothing routes to an explanation,
+//   2. **A 32-byte value that resolves to nothing routes to transaction status,
 //      not to a 404.** It is almost always a `tx_hash`. See `pages/TxAnswer`.
 //
 //   3. **A bad address checksum is refused, not stripped.** The zero-padded
@@ -109,7 +108,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
         return;
       }
     } catch {
-      /* fall through — the explanation below is still the best answer */
+      /* The transaction page can still ask for observer status. */
     }
     if (signal.aborted) return;
 
@@ -225,7 +224,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
         <input
           id={hero ? undefined : SEARCH_INPUT_ID}
           className="search-input"
-          placeholder={hero ? "Slot, height, epoch, block id, address, script hash, outpoint, v‹n›" : "Search…"}
+          placeholder={hero ? "Slot, height, epoch, block id, transaction id, address, script hash, outpoint, v‹n›" : "Search…"}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);

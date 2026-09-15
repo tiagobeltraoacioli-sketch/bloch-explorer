@@ -29,6 +29,7 @@ import {
   IndexerHealth,
   IndexedTx,
 } from "../lib/indexer";
+import { TxStatusLookup } from "../components/telemetry";
 import { Kpi } from "../components/kit";
 import { TxRows, TxLandings, OutpointCheck } from "../components/txBits";
 import { Loading } from "../components/ui";
@@ -138,6 +139,7 @@ export function TransactionsPage() {
     return (
       <div className="container">
         <h1 className="page-title">Transactions</h1>
+        <TxStatusLookup />
         <div className="errbox">The Genesis-4 endpoint did not answer ({err}). That reports the proxy, not the network.</div>
       </div>
     );
@@ -163,6 +165,7 @@ export function TransactionsPage() {
           </span>
         )}
       </h1>
+      <TxStatusLookup />
       <p className="page-lede">
         Genesis-4 keeps no transaction index: a block header says how <em>many</em> transactions it
         carried and nothing about which. So the chain can tell you where transactions landed and,
@@ -247,32 +250,25 @@ export function TransactionsPage() {
         <section className="card">
           <h2 className="snap-h2">Check an outpoint</h2>
           <p className="lookup-hint" style={{ marginTop: 0 }}>
-            The one exact question the chain answers about a transaction without an index: is this
-            output still unspent? Paste the id and the output index.
+            Check whether a known output is still unspent. Paste its transaction ID and output index.
           </p>
           <OutpointCheck />
         </section>
         <section className="card">
-          <h2 className="snap-h2">Why there is no list without an indexer</h2>
+          <h2 className="snap-h2">Status and transaction history</h2>
           <p className="snap-body">
-            <code>getblockbyslot</code> and <code>getblockbyid</code> return a header: roots, the
-            proposer, <code>tx_count</code>, <code>attestation_count</code>. No body. And{" "}
-            <code>gettransaction</code> is refused by the node <em>by design</em>, with its own error
-            code, because the block store keeps no index from a transaction id back to a block. A
-            transaction does have an id — <code>SHA3-256(DS_TXID ‖ spend_signing_root)</code> — but
-            nothing on the RPC is keyed by it.
+            Use a transaction ID to read its current observer-reported status above, or open its
+            transaction page. This lookup works independently of the historical index.
           </p>
           <p className="snap-body">
-            What exists instead is the eUTXO set, which is exact: a transfer is visible as its inputs
-            disappearing and its outputs appearing under a <Link to="/hash">script hash</Link>, and
-            any single outpoint can be checked with <code>gettxout</code>. The{" "}
-            <Link to="/tx">transaction page</Link> explains what the hash a wallet hands you actually
-            is — it is not the consensus id.
+            The list of transaction IDs, inputs, outputs and fees requires an indexer of block
+            bodies. The block RPC currently provides a header and transaction count; it does not
+            provide that complete list. An unavailable index does not mean a transaction failed.
           </p>
           <p className="snap-body" style={{ marginBottom: 0 }}>
-            An indexer that folds block bodies fills this page in: latest transactions, each block's
-            list, and a page per id. The contract it must serve is written in{" "}
-            <code>src/lib/indexer.ts</code>, and the page reads it the moment it answers.
+            For a known recipient, <Link to="/hash">check the balance</Link>. For a known output,
+            use the outpoint check. An output that is not currently unspent does not by itself
+            establish whether a transaction existed or was finalized.
           </p>
         </section>
       </div>
