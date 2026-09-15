@@ -206,7 +206,7 @@ is required; this script has no third-party dependencies.
 
 ```sh
 curl --fail --show-error --location --remote-name https://blochl1.com/downloads/verify-validator-payout.py
-printf '%s  %s\n' 'c97fdf39e4e78dd51efbda69a727acbff216c9ad6acd7b592f9ea50725b525c1' verify-validator-payout.py | sha256sum --check -
+printf '%s  %s\n' '9437fa55c9031e15e644ec7d29ce16dbda4a1b7c30c76007f7250a3c526855f6' verify-validator-payout.py | sha256sum --check -
 python3 verify-validator-payout.py --help
 ```
 
@@ -227,8 +227,12 @@ not a submission's local `tx_hash`. The helper requires both transactions
 to be reported finalized, the old output absent, and the new output present
 with the exact destination and value. It checks the mainnet network domain
 and requires both nodes to remain on the same block/state/finalized checkpoint
-throughout observation. A moving head or differing observation exits nonzero;
-retry rather than treating that as proof of network failure. An already spent
+throughout each observation. Moving or different heads trigger up to three
+attempts by default, one second apart. Set `--attempts 1` for a single
+observation or choose up to five attempts. Exhaustion exits nonzero; this
+is not proof of network failure. Incorrect network, unfinalized transactions,
+malformed responses and output mismatches stop immediately. The successful
+JSON records `attempts_used`; observations from failed attempts are discarded. An already spent
 destination output cannot pass this intentionally narrow check.
 
 The helper prints JSON only on success and never submits transactions or
