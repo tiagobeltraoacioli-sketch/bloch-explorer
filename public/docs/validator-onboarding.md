@@ -1,10 +1,12 @@
 # Start a Bloch validator — Genesis-4
 
-Release: September 14, 2026. Linux x86_64. Admission is scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. The operator’s requested onboarding time is **23:00 UTC / 20:00 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
+Release: September 14, 2026. Linux x86_64. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. The operator’s requested onboarding time is **23:00 UTC / 20:00 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
 
 Deposits require at least **25,000 BLCH plus fees** in eligible native UTXOs. Registration must finalize; activation then waits at least **8 epochs (128 minutes)** and is limited to four new validators per epoch. Starting at 20:00 does not mean signing at 20:00.
 
 The full mainnet exit → withdrawal → payout-spend qualification is still pending. Withdrawal has a 2,048-epoch delay (about 22.8 days), following the 32-epoch exit delay. Protocol admission does not establish that this end-to-end qualification has completed. See [ADR-041](/docs/validator-exit-and-withdrawal.md) and the [remaining qualification procedure](/docs/validator-qualification.md).
+
+**Exchange observers:** follow only sections 1–2; no validator key or bond is required. The operator confirms the checkpoint ceremony occurred on September 4, 2026. The published record verifies signatures but does not independently attest the Phase-A signer identities or custody. See the [dated observer and admission status](/docs/observer-and-admission-status-2026-09-15.md) before relying on the checkpoint for deposit crediting.
 
 ## 1. Download and verify the node
 

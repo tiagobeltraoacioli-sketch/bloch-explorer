@@ -1,5 +1,8 @@
 # ADR-041 — Validator exit and withdrawal lifecycle
 
+> Historical design document (September 8, 2026). Its descriptions of unarmed constants refer to that revision. The September 14 release sets activation epoch 2884; complete mainnet withdrawal-and-spend qualification remains pending. See the [dated release and observer status](/docs/observer-and-admission-status-2026-09-15.md) and [qualification procedure](/docs/validator-qualification.md) for current evidence.
+
+
 Status: **ACCEPTED — founder decisions recorded 2026-09-08.**
 (1) epoch **L**: best technical choice, targeted THIS WEEK — the concrete epoch is
 fixed at release cut, not in this document; (2) the genesis principal write-off
