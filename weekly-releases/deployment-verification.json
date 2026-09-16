@@ -1,0 +1,57 @@
+{
+  "schedule": {
+    "schedules": [
+      {
+        "cron": "0 21 * * WED",
+        "created_on": "2026-09-16T20:16:00.829154Z",
+        "modified_on": "2026-09-16T20:16:00.829154Z"
+      }
+    ]
+  },
+  "routes": {
+    "posternlabs.com": [
+      {
+        "id": "e18babc4b48d446185412758e5517070",
+        "pattern": "posternlabs.com/releases",
+        "script": "postern-weekly-releases",
+        "request_limit_fail_open": false
+      },
+      {
+        "id": "a43d16ffa1b5441299fc68b583be896f",
+        "pattern": "posternlabs.com/releases/*",
+        "script": "postern-weekly-releases",
+        "request_limit_fail_open": false
+      }
+    ],
+    "blochprotocol.io": [
+      {
+        "id": "574f9ccad92d4ae48aca98c316aaa0e1",
+        "pattern": "blochprotocol.io/releases",
+        "script": "postern-weekly-releases",
+        "request_limit_fail_open": false
+      },
+      {
+        "id": "1ebcd70d6fff4c31aaf7ffc08cd1da27",
+        "pattern": "blochprotocol.io/releases/*",
+        "script": "postern-weekly-releases",
+        "request_limit_fail_open": false
+      }
+    ]
+  },
+  "source_sha256": {
+    "release-1.json": "523dc49f7913e76dde83b5777eb570ac2da79fd249501360dfda2e873e53612f",
+    "worker.mjs": "ffba635239540c99364b7bd9903e2590456ce945c7c782b9c016204e9efdf4e1",
+    "test.mjs": "a80a6265f5f3e8c646d3e57656eb729f26d73b3e3e34f677f2cfdca65d57bfc3",
+    "roadmap.json": "03a9155e9792d87b0e6508628129b4dada14e7179f824c590a1640957d6d206e",
+    "render.mjs": "a25fb0f5e7c0ce2de3a1d1b4dcc5a145fc7e515303ba09e730457766b359bece",
+    "wrangler.jsonc": "7189e63277259aad2cbae51b3d8eb48c963b9afe155d3346af22d665f92059ff",
+    "collect-first.mjs": "3511d080734988e38a2abc37e5d3de89145f0b649d8761f526f51fccd7b7c091",
+    "preview.mjs": "4bb0e748923d04b6c0331eacee2ac68166bd915548579e09658356d65339e637",
+    "style.css": "41ff32159f9fb4131f3bd41c97da0b3f578038f7545172ac5e2e93fbeab10d81",
+    "model.mjs": "22d173ad80fb07c2f69d4fbc0495b831d3868d663cc82dc709c302f04a32b09f"
+  },
+  "worker_version": "805fa667-12d7-462d-b4a6-2b553f62dc49",
+  "navigation_worker_version": "f7973592-48b4-44b4-9f2a-f377c1f5512a",
+  "publication_date": "2026-09-16",
+  "next_edition_date": "2026-09-23"
+}

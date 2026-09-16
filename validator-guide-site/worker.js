@@ -21,6 +21,9 @@ export default {
       const response = await fetch(upstream, { method: request.method, redirect: 'follow' });
       if (!response.ok || request.method === 'HEAD' || !(response.headers.get('content-type') || '').includes('text/html')) return response;
       const rewriter = new HTMLRewriter();
+      rewriter.on('.desktop-nav, .mobile-menu nav, .footer-links', {
+        element(element) { element.append('<a href="/releases">Weekly releases</a>', { html: true }); }
+      });
       if (home) rewriter.on('.hero-actions', {
         element(element) { element.append('<a class="button button-outline" href="/validators">Run a validator <span aria-hidden="true">→</span></a>', { html: true }); }
       });

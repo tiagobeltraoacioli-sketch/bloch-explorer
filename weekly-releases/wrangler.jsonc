@@ -1,0 +1,48 @@
+{
+  "name": "postern-weekly-releases",
+  "account_id": "4e44d592d0229f8faa3fdb2f139c611c",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "posternlabs.com/releases",
+      "zone_name": "posternlabs.com"
+    },
+    {
+      "pattern": "posternlabs.com/releases/*",
+      "zone_name": "posternlabs.com"
+    },
+    {
+      "pattern": "blochprotocol.io/releases",
+      "zone_name": "blochprotocol.io"
+    },
+    {
+      "pattern": "blochprotocol.io/releases/*",
+      "zone_name": "blochprotocol.io"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 21 * * WED"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.css"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RELEASES",
+      "id": "3dfe8e0214194e4f8c5a48e3bb31f62d"
+    }
+  ]
+}

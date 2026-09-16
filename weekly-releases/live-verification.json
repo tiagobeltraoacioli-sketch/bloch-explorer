@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-09-16T20:20:03.207Z",
+  "results": [
+    {
+      "host": "posternlabs.com",
+      "release": 1,
+      "date": "2026-09-16",
+      "status": 200,
+      "archivedJSONMatches": true,
+      "menuLinks": 3,
+      "mobileOverflow": false,
+      "desktopOverflow": false,
+      "errors": []
+    },
+    {
+      "host": "blochprotocol.io",
+      "release": 1,
+      "date": "2026-09-16",
+      "status": 200,
+      "archivedJSONMatches": true,
+      "menuLinks": 3,
+      "mobileOverflow": false,
+      "desktopOverflow": false,
+      "errors": []
+    }
+  ]
+}
