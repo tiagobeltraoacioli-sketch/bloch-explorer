@@ -3,6 +3,8 @@ import { handleRead, buildOpts, runtimeFor, capabilitiesJson } from '../edge/cor
 import { methodSpec } from '../edge/surface.js';
 import { Bucket, clientBucket, clientKey, NO_QUORUM, RATE_LIMITED } from '../edge/governor.js';
 
+import { nativeMethod, nativeActivation, forwardNative, resetNativeGatewayForTests } from './native-wallet.js';
+
 export const VERSION = '2.0.0';
 export const SUBMISSION_UNKNOWN = -32052;
 export const MAX_BODY = 1024 * 1024;
@@ -18,7 +20,7 @@ const CORS = {
 };
 let broadcastBudget;
 let broadcastsInFlight = 0;
-export function resetGatewayForTests() { broadcastBudget = undefined; broadcastsInFlight = 0; }
+export function resetGatewayForTests() { broadcastBudget = undefined; broadcastsInFlight = 0; resetNativeGatewayForTests(); }
 
 function fault(id, code, message, reason, extra = {}) {
   return { jsonrpc: '2.0', id, error: { code, message, data: { reason, ...extra } } };
@@ -144,7 +146,7 @@ export async function handleGateway(request, env = {}, context = {}, overrides =
     return reply(fault(null, -32700, 'Invalid or unreadable JSON request.', status === 413 ? 'body_too_large' : 'parse_error'), status);
   }
   if (!validRequest(payload)) return reply(fault(null, -32600, 'Expected one JSON-RPC 2.0 call with an id; batches and notifications are not supported.', 'invalid_request'), 400);
-  if (!methodSpec(payload.method) && payload.method !== 'sendrawtransaction') return reply(fault(payload.id, -32601, 'Method is not exposed by this gateway; consult getcapabilities.', 'method_not_allowed'));
+  if (!methodSpec(payload.method) && !nativeMethod(payload.method) && payload.method !== 'sendrawtransaction') return reply(fault(payload.id, -32601, 'Method is not exposed by this gateway; consult getcapabilities.', 'method_not_allowed'));
   if (payload.method === 'getcapabilities') {
     const caps = capabilitiesJson(runtime.now());
     return reply({ jsonrpc: '2.0', id: payload.id, result: {
@@ -152,6 +154,8 @@ export async function handleGateway(request, env = {}, context = {}, overrides =
       methods: [...caps.methods, { name: 'sendrawtransaction', cache_class: 'never', corroboration: 'node_local' }],
       absent: caps.absent.filter(({ name }) => name !== 'sendrawtransaction'),
       error_codes: { ...caps.error_codes, submission_unknown: SUBMISSION_UNKNOWN },
+      native_wallet_reads_configured: !!nativeActivation(env, runtime.now()),
+      native_wallet_finality_verified: false,
       strict_read_quorum: true, independent_operator_verification: false,
       broadcast_policy: 'single_observer_no_automatic_retry',
       limits: { ...caps.limits, request_body_bytes: MAX_BODY, notifications: false,
@@ -160,6 +164,7 @@ export async function handleGateway(request, env = {}, context = {}, overrides =
   }
   try {
     const opts = buildOpts(env, request, runtime);
+    if (nativeMethod(payload.method)) return reply(await forwardNative(payload, opts, env, readBounded));
     if (payload.method === 'sendrawtransaction') return await broadcast(payload, opts, env);
     const readOpts = { ...opts, fetchImpl: async (input, init) => {
       const response = await opts.fetchImpl(input, { ...init, redirect: 'manual' });

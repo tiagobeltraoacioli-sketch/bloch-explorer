@@ -288,8 +288,8 @@ export const EDGE_ABSENT = [
     'sendrawtransaction',
     'this edge is READ-ONLY. An explorer has no reason to broadcast, and a ' +
       'write path behind a cache is a way to lose a transaction silently. ' +
-      'Broadcasting lives at posternlabs.com/g4rpc, which fans a signed ' +
-      'transaction out to every node on purpose.',
+      'Broadcasting lives at posternlabs.com/g4rpc, which submits a signed ' +
+      'transaction to one configured observer without automatic retry.',
   ],
   [
     'gettransaction',
@@ -344,3 +344,9 @@ export function isPinned(name) {
   const m = BY_NAME.get(name);
   return !!m && m.corroboration === 'pinned';
 }
+
+// Gateway-only opt-in methods; deliberately absent from the cached explorer surface.
+export const NATIVE_GATEWAY_METHODS = Object.freeze([
+  'getnativewalletview', 'getnativepool', 'getnativebridgestate',
+  'getnativepoolquote', 'getnativewithdrawalquote',
+]);
