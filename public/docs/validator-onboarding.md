@@ -1,6 +1,6 @@
 # Start a Bloch validator — Genesis-4
 
-Guide updated September 15, 2026. Release: September 14, 2026. Linux x86_64. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. The operator’s requested onboarding time is **23:00 UTC / 20:00 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
+Guide updated September 17, 2026. Release: September 14, 2026. Linux x86_64. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
 
 Deposits require at least **25,000 BLCH plus fees** in eligible native UTXOs. Registration must finalize; activation then waits at least **8 epochs (128 minutes)** and is limited to four new validators per epoch. Starting at 20:00 does not mean signing at 20:00.
 
@@ -8,13 +8,45 @@ The full mainnet exit → withdrawal → payout-spend qualification is still pen
 
 **Exchange observers:** follow only sections 1–2; no validator key or bond is required. The operator confirms the checkpoint ceremony occurred on September 4, 2026. The published record verifies signatures but does not independently attest the Phase-A signer identities or custody. See the [dated observer and admission status](/docs/observer-and-admission-status-2026-09-15.md) before relying on the checkpoint for deposit crediting.
 
+**Checkpoint deadline:** the epoch-1536 checkpoint bundled with this release expires for initial synchronization at epoch 3552, **September 22, 2026 at 08:43:19 UTC**. After that instant, stop: obtain and independently verify the published renewal. Cryptographic signature acceptance does not override checkpoint age.
+
+## Platform command map
+
+**Ubuntu/Linux x86_64:** this is the only supported node platform for the published executable. Unless a block is explicitly labelled otherwise, every installation, identity, signing, systemd and monitoring command below runs in a Bash shell on Ubuntu Linux. The offline custody machine used with the public helper must also be Linux x86_64 and must use the verified release executable.
+
+**macOS:** use Terminal only to connect to a supported Linux server or to stage public files before moving them to the offline Linux custodian. The published Linux executable does not run natively on macOS. Do not use commands from a private operator's Mac build as public release instructions.
+
+```sh
+# macOS Terminal — remote administration only
+ssh -i "$HOME/.ssh/YOUR_SSH_KEY" ubuntu@YOUR_VALIDATOR_SERVER
+scp -i "$HOME/.ssh/YOUR_SSH_KEY" PUBLIC_FILE \
+  ubuntu@YOUR_VALIDATOR_SERVER:/home/ubuntu/
+
+# macOS checksum command for a public staging file
+shasum -a 256 PUBLIC_FILE
+```
+
+**Windows:** use Windows Terminal or PowerShell only as an SSH client to the supported Linux server. No native Windows validator executable is published for this release. WSL is not the documented production deployment target.
+
+```powershell
+# Windows PowerShell — remote administration only
+ssh -i "$HOME\.ssh\YOUR_SSH_KEY" ubuntu@YOUR_VALIDATOR_SERVER
+scp -i "$HOME\.ssh\YOUR_SSH_KEY" PUBLIC_FILE `
+  ubuntu@YOUR_VALIDATOR_SERVER:/home/ubuntu/
+
+# Windows checksum command for a public staging file
+Get-FileHash -Algorithm SHA256 PUBLIC_FILE
+```
+
+SSH and SCP examples above are for public installation material or normal administration. Transfer validator keys and password files only through the operator's approved custody procedure; do not treat a generic copy command as the custody ceremony.
+
 ## 1. Download and verify the node
 
 Use Linux x86_64 with glibc 2.34 or newer (for example Ubuntu 22.04 or 24.04), persistent SSD storage and a synchronized clock. This executable is not a native macOS, Windows or Alpine/musl build. The earlier observer reference used 2+ vCPU, 8 GB RAM and 80 GB SSD; replay speed varies and a validator also needs resources for its duties. Check resource use during synchronization. Use a dedicated data directory and never duplicate an identity between running servers.
 
 Prerequisites: `bash`, `curl`, `gzip`, `sha256sum`, `python3`. On Ubuntu, install missing packages through your normal package manager. Check `timedatectl status`.
 
-On a fresh Ubuntu server, install these prerequisites and check the clock:
+On a fresh **Ubuntu Linux validator server**, install these prerequisites and check the clock:
 
 ```sh
 sudo apt-get update
@@ -22,6 +54,8 @@ sudo apt-get install -y ca-certificates curl gzip python3
 uname -m
 getconf GNU_LIBC_VERSION
 timedatectl status
+free -h
+df -h
 ```
 
 Expect `x86_64`, glibc 2.34 or newer, and a synchronized system clock before starting the node.
@@ -31,6 +65,9 @@ Download the script, read it, then execute it. It downloads only public files an
 ```sh
 curl --fail --show-error --location \
   --output prepare-node.sh https://blochl1.com/downloads/prepare-node.sh
+printf '%s  %s\n' \
+  8fb3088e52d267dc922a8a01469663ee2e5eee393385a3401e87aee96104a95b \
+  prepare-node.sh | sha256sum --check
 less prepare-node.sh
 bash prepare-node.sh "$HOME/bloch-validator-20260914"
 cd "$HOME/bloch-validator-20260914"
@@ -72,7 +109,7 @@ export PATH="$HOME/.local/bin:$PATH"
 command -v bloch-pos
 bloch-pos --version
 bloch-pos selfcheck
-bloch-pos validator-deposit --help
+bloch-pos validator-deposit
 ```
 
 Add `export PATH="$HOME/.local/bin:$PATH"` once to your shell configuration if you want this command available in future terminals. The installer-generated `run-node.sh` deliberately uses its own pinned local executable; replacing a PATH command does not upgrade a running service.
@@ -102,7 +139,18 @@ A production private key must never be generated in an AI-agent session, recorde
 
 An optional [interactive preparation helper](/downloads/prepare-identity.sh) is provided for the human custodian. It checks the pinned executable, requires a private interactive terminal, asks for a passphrase without echo, creates a sealed BPOSKEY2 auto-index keystore, and exports public metadata. **It invokes the existing `keygen` utility, which retains its devnet/throwaway label; the helper is not an independently qualified production custody ceremony.** Review that limitation and the code before use. Operators with an existing production identity should use their established ceremony instead and must not regenerate the identity.
 
-Copy the verified Linux executable and reviewed helper to the offline machine.
+Download and review the helper on a connected staging machine, then transfer the verified helper and release binary to the offline machine using clean media:
+
+```sh
+curl --fail --show-error --location \
+  --output prepare-identity.sh https://blochl1.com/downloads/prepare-identity.sh
+printf '%s  %s\n' \
+  1d2128fd02ac2aa12074d7d20c9f54f97015449fee56ecf7e4cae4c333188390 \
+  prepare-identity.sh | sha256sum --check
+less prepare-identity.sh
+```
+
+Copy the verified Linux executable and reviewed helper to the **offline Linux x86_64 custody machine**.
 The helper requires Bash, `sha256sum`, `stty` and Python 3. It disables shell
 tracing and terminal echo while reading the passphrase and restores terminal
 settings afterwards. Run there manually, with actual absolute paths:
@@ -142,6 +190,9 @@ Download the submission helper on the server. Without `--submit`, it is read-onl
 ```sh
 curl --fail --show-error --location --output deposit-submit.py \
   https://blochl1.com/downloads/deposit-submit.py
+printf '%s  %s\n' \
+  f1e7e0d4407103ae4a510075142f797981e0b34e20a7dd675033e301f88f6abb \
+  deposit-submit.py | sha256sum --check
 python3 deposit-submit.py
 ```
 
@@ -161,6 +212,18 @@ curl --fail --show-error --max-time 30 \
 ```
 
 Verify each chosen outpoint with `gettxout` and its originating transaction with `gettxstatus`. Do not copy the founder’s outpoints, key hashes or transaction IDs from another operator’s example. If the response reaches its requested limit, do not assume it lists the wallet’s entire balance.
+
+```sh
+curl --fail --show-error --max-time 30 \
+  -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"gettxout","params":["YOUR_TXID",YOUR_VOUT]}' \
+  http://127.0.0.1:16400/
+
+curl --fail --show-error --max-time 30 \
+  -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"gettxstatus","params":["YOUR_TXID"]}' \
+  http://127.0.0.1:16400/
+```
 
 ## 6. Prepare, inspect and sign the deposit offline
 
@@ -182,13 +245,17 @@ Follow the [funded-admission specification](/docs/funded-validator-admission.md)
 Each role signs on its custodian’s machine with the password supplied through `BLOCH_KEYSTORE_PASSPHRASE_FILE`. Switch that variable to the correct password file for each role. Check the genesis, funding inputs, stake, withdrawal credential, commission, expiry and fees before signing. Private keys remain with their owners.
 
 ```sh
+export BLOCH_KEYSTORE_PASSPHRASE_FILE=/secure/path/funding.pass
 ./bloch-pos validator-deposit sign --genesis mainnet.manifest \
   --tx draft.hex --role funding --dir funding-keystore --out funded.hex
 ./bloch-pos validator-deposit inspect --tx funded.hex
+unset BLOCH_KEYSTORE_PASSPHRASE_FILE
 
+export BLOCH_KEYSTORE_PASSPHRASE_FILE=/secure/path/validator.pass
 ./bloch-pos validator-deposit sign --genesis mainnet.manifest \
   --tx funded.hex --role validator --dir validator-keystore --out ready.hex
 ./bloch-pos validator-deposit inspect --tx ready.hex
+unset BLOCH_KEYSTORE_PASSPHRASE_FILE
 ```
 
 The CLI refuses existing output files. Changing any intent field requires both signatures again. Return only the signed transaction to the online server.
@@ -246,6 +313,7 @@ WantedBy=multi-user.target
 Then start and inspect it:
 
 ```sh
+sudo systemd-analyze verify /etc/systemd/system/bloch-validator.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now bloch-validator.service
 systemctl status bloch-validator.service --no-pager
@@ -284,6 +352,8 @@ For ongoing checks:
 curl --fail --show-error --max-time 10 http://127.0.0.1:17400/health
 curl --fail --show-error --max-time 10 http://127.0.0.1:17400/metrics
 sudo journalctl -u bloch-validator.service --since '20 minutes ago' --no-pager
+systemctl show bloch-validator.service \
+  -p MainPID -p ActiveState -p NRestarts -p MemoryCurrent
 ```
 
 A healthy process or `is_syncing: false` is not sufficient: inspect head slot, `behind_by_slots`, peer count and advancing finality. During fresh historical replay the head can be far behind despite a healthy process.
@@ -317,3 +387,21 @@ A 32 GB machine does not have a guaranteed validator capacity. Measure available
 Before upgrading, read the coordinated release and activation epoch, verify the new artifact, preserve history and signing records, and stop the old process before starting the replacement. Never copy another validator’s key, RANDAO secret or slashing journal to create a new identity.
 
 For an ordinary voluntary exit included at epoch E, this release uses `exit_epoch = E + 32` and `withdrawable_epoch = E + 32 + 2048`: 23 days, 2 hours and 40 minutes from the start of E, excluding the preceding activation period and subsequent inclusion/finality time. Slashing can extend the lock. Read the actual registry values and [withdrawal qualification procedure](/docs/validator-qualification.md). The complete mainnet withdrawal-and-spend qualification remains pending; this guide does not promise an immediate or independently qualified redemption path.
+
+## 12. Dated operational evidence
+
+The operator's September 15 expansion record documents a separate batch of 30 distinct identities. Thirty signed deposits were accepted and later observed included; registry records assigned indices 66 through 95 and reported them queued at the recorded observation. Each identity had a separate directory, service and port set. This is dated operator evidence, not a live status claim and not proof that another operator will obtain the same capacity or activation time.
+
+The batch used purpose-built, pinned conversion and signing scripts tied to that operator's wallet and reviewed intents. Those private scripts are not a generic onboarding path and must not be copied by another validator. The transferable public procedure is the single-validator flow in sections 1–9 above.
+
+## 13. Final handoff checklist
+
+- The node follows the canonical head with 0–1 slot lag and advancing finality.
+- The signed checkpoint and signer-set fingerprint were checked independently.
+- The identity, RANDAO material and slashing journal have consistent backups; the password is stored separately.
+- Funding inputs are native, unspent, finalized and controlled by the funding signer.
+- Withdrawal and change credentials are controlled and independently recorded.
+- Both roles inspected and signed the same deposit intent.
+- The consensus transaction ID, deposit receipt and validator public-key hash are recorded.
+- The registry is tracked through finalized registration, queued status and active status.
+- RPC and metrics remain on loopback; alerts cover lag, finality, peers, disk, memory, restarts and duplicate-instance protection.

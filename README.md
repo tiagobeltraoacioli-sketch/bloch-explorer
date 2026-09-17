@@ -32,6 +32,11 @@ bundle served in production byte for byte.
 
 ## Develop
 
+The complete English validator procedure is maintained in
+[Start a Bloch validator — Genesis-4](public/docs/validator-onboarding.md).
+The build renders that same Markdown source into the public **Run a validator**
+page, so the repository document and the deployed instructions cannot drift.
+
 The data expansion adds dedicated **mempool** (`/mempool`) and **network/RPC**
 (`/network`) views, a latest-slot ribbon and optional `getbuildinfo` /
 `gettxstatus` reads. See [data sources, RPC configuration and limits](docs/observatory-expansion.md)
