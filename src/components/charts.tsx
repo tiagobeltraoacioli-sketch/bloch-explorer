@@ -91,6 +91,7 @@ export function LineChart({
   const [hover, setHover] = useState<number | null>(null);
   const [tip, setTip] = useState<{ left: number; top: number } | null>(null);
 
+  points = points.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
   if (!points.length) return <EmptyPlot note={emptyNote} />;
 
   const sorted = [...points].sort((a, b) => a.x - b.x);
@@ -189,6 +190,7 @@ export function LineChart({
           filter={`url(#${glow})`}
         />
 
+        {sorted.length === 1 && <circle cx={px(sorted[0].x)} cy={py(sorted[0].y)} r={4} fill={color} />}
         {hp && (
           <g>
             <line x1={px(hp.x)} y1={PAD.t} x2={px(hp.x)} y2={baseY} stroke={color} strokeWidth={1} strokeOpacity={0.5} strokeDasharray="3 3" />
@@ -221,6 +223,7 @@ export function BarChart({
   yFormat?: (v: number) => string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  bars = bars.filter(b => Number.isFinite(b.value) && b.value >= 0);
   if (!bars.length) return <EmptyPlot note="No samples in this window yet." />;
   const yMax = Math.max(...bars.map((b) => b.value), 1);
   const yTicks = niceTicks(0, yMax, 4);
@@ -245,7 +248,8 @@ export function BarChart({
           const h = Math.max(baseY - y, 0);
           const c = b.color || color;
           return (
-            <g key={i} onMouseEnter={() => setHover(i)}>
+            <g key={i} tabIndex={0} role="img" aria-label={`${b.label}: ${yFormat(b.value)}`} onFocus={() => setHover(i)} onBlur={() => setHover(null)} onMouseEnter={() => setHover(i)}>
+              <title>{b.label}: {yFormat(b.value)}</title>
               <rect
                 className="rise-bar"
                 x={x} y={y} width={w} height={h} rx={4}
@@ -290,7 +294,7 @@ export function ProportionBars({
             <div
               className="bar-fill"
               style={{
-                width: `${Math.max((r.pct / max) * 100, 0.8)}%`,
+                width: `${Math.max((r.pct / max) * 100, 0)}%`,
                 background: `linear-gradient(90deg, ${r.color}, color-mix(in srgb, ${r.color} 62%, transparent))`,
                 animationDelay: `${i * 60}ms`,
               }}

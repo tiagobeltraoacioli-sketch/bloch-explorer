@@ -1,0 +1,9 @@
+{
+  "deployment": "https://3934cff6.bloch-explorer.pages.dev",
+  "production": "https://blochl1.com",
+  "asset": "/assets/index-Wp-LSuG3.js",
+  "sha256": "9ec10cf873c22fd5be393d8b65dec53c36f31c00544042cb4ba9b22ec5fbdb32",
+  "production_matches_build": true,
+  "tests_passed": 127,
+  "tests_skipped": 0
+}

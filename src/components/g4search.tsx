@@ -71,6 +71,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
       // `getblockbyid` serves non-canonical blocks too, so this also finds an
       // orphan — which `getblockbyslot` structurally cannot.
       const b = await read<G4Block>("getblockbyid", [hex], { signal });
+      if (signal.aborted) return;
       go(b.finality === "not_canonical" ? `/block/${hex}` : `/slot/${b.slot}`);
       return;
     } catch (e) {
@@ -103,6 +104,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
       // `verdictFor` also keeps the one case a bare non-zero test got wrong: a
       // raw 64-hex in the CARRIED shape holding nothing is a real, reportable
       // empty carried entry, not an unknown, and belongs on the entry page.
+      if (signal.aborted) return;
       if (isReadableBalance(bal) && verdictFor(hex, bal) !== "indeterminate") {
         go(`/hash/${hex}`);
         return;
@@ -123,6 +125,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
     try {
       head = await read<G4Head>("getchaininfo", [], { signal });
     } catch (e) {
+      if (signal.aborted) return;
       setPhase({ kind: "error", message: `Could not read the head: ${(e as Error).message}` });
       return;
     }
@@ -172,6 +175,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    reset();
     const parsed = parseQuery(q);
     if (parsed.candidates.length === 0) {
       setPhase({
@@ -248,8 +252,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
         <div className="search-choose">
           <div className="choose-lede">
             <strong>{fmtInt(phase.n)}</strong> could be a slot or a height, and on this chain
-            those are far apart — about 38% of slots carry no block, so the two numbers differ by
-            tens of thousands. Which did you mean?
+            they differ whenever a slot produces no block. Which did you mean?
           </div>
           <div className="choose-opts">
             <button className="pill-tab go" onClick={() => take({ kind: "slot", slot: phase.n })}>

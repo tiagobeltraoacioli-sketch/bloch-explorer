@@ -48,6 +48,8 @@ const MAX_EPOCHS = 24;
 export function AnalyticsPage() {
   const [head, setHead] = useState<G4Head | null>(null);
   const [supply, setSupply] = useState<G4Supply | null | "absent">(null);
+  const [supplyError, setSupplyError] = useState<string | null>(null);
+  const [observedAt, setObservedAt] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [epochs, setEpochs] = useState<Map<number, EpochSummary>>(() => new Map());
   const [busy, setBusy] = useState(false);
@@ -62,11 +64,15 @@ export function AnalyticsPage() {
         const h = await g4rpc<G4Head>("getchaininfo", [], { signal: ac.current!.signal });
         if (stop) return;
         setHead(h);
+        setObservedAt(Date.now());
         try {
           const s = await g4rpc<G4Supply>("getsupply", [], { signal: ac.current!.signal });
           if (!stop) setSupply(s);
         } catch (e) {
-          if (!stop) setSupply(e instanceof G4Error && e.code === -32601 ? "absent" : null);
+          if (!stop) {
+            setSupply(e instanceof G4Error && e.code === -32601 ? "absent" : null);
+            setSupplyError(e instanceof Error ? e.message : "Supply counter unavailable");
+          }
         }
         await loadBatch(h, h.epoch, BATCH);
       } catch (e: any) {
@@ -83,6 +89,7 @@ export function AnalyticsPage() {
   /** Load `n` epochs downward from `from`, one at a time, painting as they fill. */
   async function loadBatch(h: G4Head, from: number, n: number) {
     setBusy(true);
+    setErr(null);
     try {
       for (let e = from; e > from - n && e >= 0; e--) {
         if (ac.current?.signal.aborted) return;
@@ -96,6 +103,8 @@ export function AnalyticsPage() {
         put(s);
         lowest.current = lowest.current === null ? e : Math.min(lowest.current, e);
       }
+    } catch (e) {
+      if (!ac.current?.signal.aborted) setErr(e instanceof Error ? e.message : "Epoch history unavailable");
     } finally {
       setBusy(false);
     }
@@ -174,6 +183,8 @@ export function AnalyticsPage() {
         </div>
       </div>
 
+      <p className="lookup-hint">Snapshot read {observedAt ? fmtTime(observedAt / 1000) : "—"} · head slot {fmtInt(head.slot)}. Reload this page for a new snapshot.</p>
+      {err && <p className="errbox" role="alert">Some epoch history could not be loaded: {err}</p>}
       {/* ── lifetime ─────────────────────────────────────────────────────── */}
       <section className="kpi-grid" style={{ marginBottom: 14 }}>
         <Kpi k="Chain age" v={fmtNum(ageSecs / 86_400, 1)} unit="days" sub={`since ${G4.genesisTimeUtc}`} />
@@ -194,7 +205,7 @@ export function AnalyticsPage() {
               allocation of {fmtBloch(VALIDATOR_EMISSION_SAT, 0)} BLCH is paid out over{" "}
               {Number(EMISSION_YEARS)} years, ten percent less each year than the last. The figures
               below are that arithmetic at the current slot — the same integer truncation the crate
-              performs — {served ? "checked against the node's own counter." : "because the deployed node does not serve its counter."}
+              performs — {served ? "checked against the node's own counter." : "as an estimated ceiling while the supply counter is unavailable."}
             </p>
             <div className="meter" title={`${fmtNum(issuedPct, 2)}% of the hard cap has been issued`}>
               <div className="meter-fill" style={{ width: `${issuedPct}%` }} />
@@ -217,8 +228,7 @@ export function AnalyticsPage() {
                 <>
                   A computed figure, not a measurement: it assumes every slot paid its reward. Slots
                   that produced no block pay nothing, so the real counter is lower by the misses.
-                  The node's <code>getsupply</code> would settle it; the deployed build answers{" "}
-                  <code>-32601</code>.
+                  The node's <code>getsupply</code> would settle it. {supply === "absent" ? "This node does not support that method." : `The counter could not be read${supplyError ? `: ${supplyError}` : " yet"}.`}
                 </>
               )}{" "}
               Nothing here is circulating supply.
@@ -300,6 +310,11 @@ export function AnalyticsPage() {
         </div>
       </section>
 
+      <section className="card">
+        <h2 className="snap-h2">Sample coverage</h2>
+        <p>{fmtInt(closed.length)} fully read epochs included out of {fmtInt(rows.length)} loaded. Partial epochs and epochs with unread slots are excluded from the charts and rates.</p>
+        {closed.length > 0 && <p className="lookup-hint">Epochs {fmtInt(Math.min(...closed.map(r => r.epoch)))}–{fmtInt(Math.max(...closed.map(r => r.epoch)))} · {fmtInt(closed.length * PARAMS.slotsPerEpoch.value)} sampled slots. Gaps in coverage are excluded; these figures are not network lifetime totals.</p>}
+      </section>
       {/* ── the window ───────────────────────────────────────────────────── */}
       {closed.length > 0 && (
         <>
@@ -322,11 +337,22 @@ export function AnalyticsPage() {
                 <Kpi k="Blocks" v={fmtInt(window.blocks)} sub={`of ${fmtInt(window.epochs * PARAMS.slotsPerEpoch.value)} slots`} />
                 <Kpi k="Fill rate" v={`${fmtNum((window.blocks / Math.max(1, window.blocks + window.missed)) * 100, 1)}%`} sub={`${fmtInt(window.missed)} missed${window.unread ? ` · ${fmtInt(window.unread)} unread` : ""}`} />
                 <Kpi k="Attestations" v={fmtInt(window.votes)} sub={`${fmtNum(window.votes / Math.max(1, window.blocks), 2)} per block · ${Math.floor(active / PARAMS.slotsPerEpoch.value)} seats per slot is full`} />
-                <Kpi k="Transactions" v={fmtInt(window.txs)} sub={window.txs === 0 ? "none — an empty mempool this early is expected" : `${fmtNum(window.txs / Math.max(1, window.blocks), 2)} per block`} />
+                <Kpi k="Transactions" v={fmtInt(window.txs)} sub={window.txs === 0 ? "no transactions in the sampled blocks" : `${fmtNum(window.txs / Math.max(1, window.blocks), 2)} per block`} />
               </div>
             </section>
           </div>
 
+          <div className="grid three-col" style={{ marginBottom: 14 }}>
+            <ChartCard title="Transactions per epoch" hint="recorded in sampled blocks">
+              <BarChart bars={[...closed].reverse().map(r => ({ label: String(r.epoch), value: r.txs }))} yFormat={v => fmtInt(v)} />
+            </ChartCard>
+            <ChartCard title="Slot fill rate" hint="fully read epochs only · %">
+              <BarChart bars={[...closed].reverse().map(r => ({ label: String(r.epoch), value: 100 * r.blocks / PARAMS.slotsPerEpoch.value, color: "var(--chart-4)" }))} yFormat={v => `${fmtNum(v, 1)}%`} />
+            </ChartCard>
+            <ChartCard title="Distinct proposers per epoch" hint="observed proposers, not participation">
+              <BarChart bars={[...closed].reverse().map(r => ({ label: String(r.epoch), value: r.distinctProposers, color: "var(--chart-3)" }))} yFormat={v => fmtInt(v)} />
+            </ChartCard>
+          </div>
           <div className="grid three-col" style={{ marginBottom: 14 }}>
             <ChartCard title="Attestations per epoch" hint={`against ${seatsPerEpoch} seats`}>
               <BarChart
@@ -340,7 +366,7 @@ export function AnalyticsPage() {
                 yFormat={(v) => fmtInt(Math.round(v))}
               />
             </ChartCard>
-            <ChartCard title="Block intervals" hint={`${fmtInt(window.intervals.length)} gaps`}>
+            <ChartCard title="Block intervals" hint={`${fmtInt(window.intervals.length)} within-epoch gaps`}>
               <BarChart
                 bars={intervalBuckets(window.intervals).map((b) => ({ ...b, color: "var(--chart-3)" }))}
                 yFormat={(v) => fmtInt(Math.round(v))}

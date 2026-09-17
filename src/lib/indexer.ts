@@ -179,7 +179,11 @@ export function indexedBlockTransactions(blockId: string): Promise<IndexedBlockT
  * explanation ready for exactly that case.
  */
 export class IndexedTxAmbiguity extends Error {
-  constructor(public matches: IndexedTx[]) { super("This transaction ID appears more than once. Choose its block."); }
+  matches: IndexedTx[];
+  constructor(matches: IndexedTx[]) {
+    super("This transaction ID appears more than once. Choose its block.");
+    this.matches = matches;
+  }
 }
 
 export async function indexedTransaction(txid: string): Promise<IndexedTx | null> {
@@ -190,10 +194,12 @@ export async function indexedTransaction(txid: string): Promise<IndexedTx | null
     if (res.status === 404) return null;
     if (res.status === 409) {
       const body = await res.json();
-      if (Array.isArray(body.matches)) throw new IndexedTxAmbiguity(body.matches);
+      if (Array.isArray(body.matches) && body.matches.length > 0 && body.matches.every((t: unknown) => isIndexedTx(t) && t.txid.toLowerCase() === txid.toLowerCase())) throw new IndexedTxAmbiguity(body.matches);
     }
     if (!res.ok) throw new Error(res.status === 409 ? "The indexed snapshot changed. Restart this history to read the current chain." : `Indexer unavailable (${res.status}). Please retry.`);
-    return (await res.json()) as IndexedTx;
+    const body: unknown = await res.json();
+    if (!isIndexedTx(body) || body.txid.toLowerCase() !== txid.toLowerCase()) throw new Error("The indexer returned an invalid transaction receipt. Please retry.");
+    return body;
   } finally {
     clearTimeout(timer);
   }
@@ -207,4 +213,23 @@ export function sumSide(side: IndexedTxIo[]): bigint | null {
     t += BigInt(io.value_sat);
   }
   return t;
+}
+
+/** Missing amounts are not evidence of a conservation mismatch. */
+export function receiptConservation(tx: IndexedTx): "balanced" | "mismatch" | "unavailable" {
+  const inputs = sumSide(tx.inputs), outputs = sumSide(tx.outputs);
+  const integer = (v: unknown): v is string => typeof v === "string" && /^[0-9]+$/.test(v);
+  if (inputs === null || outputs === null || !integer(tx.fee_sat) ||
+      (tx.stake_sat !== undefined && !integer(tx.stake_sat))) return "unavailable";
+  return inputs - outputs - BigInt(tx.stake_sat ?? "0") === BigInt(tx.fee_sat) ? "balanced" : "mismatch";
+}
+
+function isIndexedTx(value: unknown): value is IndexedTx {
+  if (!value || typeof value !== "object") return false;
+  const t = value as IndexedTx;
+  const hash = (v: unknown) => typeof v === "string" && /^[0-9a-f]{64}$/i.test(v);
+  const count = (v: unknown) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+  const side = (v: unknown) => Array.isArray(v) && v.every(io => io && hash(io.script_hash) && count(io.vout) && typeof io.value_sat === "string");
+  return hash(t.txid) && hash(t.block_id) && count(t.slot) && count(t.height) && count(t.index) &&
+    count(t.size_bytes) && typeof t.kind === "string" && side(t.inputs) && side(t.outputs);
 }
