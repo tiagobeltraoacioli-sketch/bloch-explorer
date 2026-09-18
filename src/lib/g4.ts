@@ -161,8 +161,21 @@ export interface G4Corroboration {
   reorg_events?: { signal: string; kind: string; at: number }[];
 }
 
-/** The corroboration of the most recent call, for a page that wants to show it. */
+/** @deprecated Use `g4rpcWithMeta`; concurrent calls can replace this value. */
 export let lastCorroboration: G4Corroboration | null = null;
+
+/**
+ * A result and the evidence that travelled with that exact result.
+ *
+ * `lastCorroboration` remains exported for older consumers, but a page that
+ * renders provenance must not read that process-wide value after awaiting a
+ * request: another concurrent request may have completed in between.  This
+ * pair keeps the value and its evidence inseparable.
+ */
+export interface G4Reading<T> {
+  result: T;
+  corroboration: G4Corroboration | null;
+}
 
 /** Bumped by the edge whenever it detects a reorg; see `edge/lineage.js`. */
 let lastSalt: number | null = null;
@@ -182,6 +195,15 @@ export async function g4rpc<T>(
   params: unknown[] = [],
   opts: { signal?: AbortSignal } = {},
 ): Promise<T> {
+  return (await g4rpcWithMeta<T>(method, params, opts)).result;
+}
+
+/** One JSON-RPC call with provenance tied to this call, safe under concurrency. */
+export async function g4rpcWithMeta<T>(
+  method: string,
+  params: unknown[] = [],
+  opts: { signal?: AbortSignal } = {},
+): Promise<G4Reading<T>> {
   const body = await readRpc<T>(method, params, opts);
   if (body.error) {
     throw new G4Error(
@@ -196,7 +218,7 @@ export async function g4rpc<T>(
   if (corro) {
     honourSalt(corro.cache_salt);
   }
-  return body.result as T;
+  return { result: body.result as T, corroboration: corro ?? null };
 }
 
 /**

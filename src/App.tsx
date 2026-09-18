@@ -3,7 +3,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useRouter, Link } from "./lib/router";
 import { Route, match } from "./routes";
 import { G4Search, SEARCH_INPUT_ID } from "./components/g4search";
-import { g4rpc, pollWhileVisible, lastCorroboration, G4Head, G4Corroboration } from "./lib/g4";
+import { g4rpcWithMeta, pollWhileVisible, G4Head, G4Corroboration } from "./lib/g4";
 import { fmtInt } from "./lib/format";
 import { toggleTheme, useTheme } from "./lib/theme";
 import { G4Dashboard } from "./pages/G4Dashboard";
@@ -220,8 +220,8 @@ function useHeadPulse(): Pulse {
     let stop = false;
     const tick = async () => {
       try {
-        const h = await g4rpc<G4Head>("getchaininfo");
-        if (!stop) setP({ head: h, corro: lastCorroboration, err: null, at: Date.now() });
+        const reading = await g4rpcWithMeta<G4Head>("getchaininfo");
+        if (!stop) setP({ head: reading.result, corro: reading.corroboration, err: null, at: Date.now() });
       } catch (e: any) {
         if (!stop) setP((prev) => ({ ...prev, err: String(e?.message ?? e) }));
       }

@@ -5,7 +5,7 @@ import { Bucket, clientBucket, clientKey, NO_QUORUM, RATE_LIMITED } from '../edg
 
 import { nativeMethod, nativeActivation, forwardNative, resetNativeGatewayForTests } from './native-wallet.js';
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 export const SUBMISSION_UNKNOWN = -32052;
 export const MAX_BODY = 1024 * 1024;
 const MAX_REPLY = 2 * MAX_BODY;

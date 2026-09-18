@@ -15,7 +15,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 import { handleRead, Level, _resetCoreForTests, rederiveFinality } from '../core.js';
-import { salt, events, _setWitnessForTests, WITNESS_TTL_MS } from '../lineage.js';
+import { salt, events, _setWitnessForTests, WITNESS_TTL_MS, MAX_WITNESS_ATTEMPTS } from '../lineage.js';
 import { ARCHIVAL_RATE, ARCHIVAL_BURST, WALK_COST, CLIENT_BURST, counters } from '../governor.js';
 import {
   ARCHIVALS,
@@ -115,6 +115,44 @@ test('the fleet is asked once per witness interval however long the traffic last
   );
   // And it is spread across the fleet rather than landing on one validator.
   assert.ok(new Set(f.fleet().map((c) => c.url)).size > 1, 'the witness must rotate');
+});
+
+test('a failed fleet witness falls through to the next validator once', async () => {
+  reset();
+  const now = clock();
+  const map = healthy();
+  const first = FLEET[Math.floor(now() / WITNESS_TTL_MS) % FLEET.length];
+  map[first] = 'timeout';
+  const f = fakeFetch(map);
+
+  const out = await handleRead(call('getchaininfo'), opts(f, now, fakeCache()));
+
+  assert.equal(out.corroboration.level, Level.Corroborated);
+  assert.equal(out.corroboration.witness.available, true);
+  assert.equal(f.fleet().length, 2, 'one failed witness and one successful failover');
+  assert.equal(f.fleet()[0].url, first);
+  assert.notEqual(f.fleet()[1].url, first);
+});
+
+test('fleet witness failover is bounded when every validator is down', async () => {
+  reset();
+  const now = clock();
+  const fleet = Array.from({ length: MAX_WITNESS_ATTEMPTS + 2 }, (_, i) => `http://down-${i}/`);
+  const map = healthy();
+  for (const u of fleet) map[u] = 'timeout';
+  const f = fakeFetch(map);
+
+  const out = await handleRead(call('getchaininfo'), opts(f, now, fakeCache(), {
+    pools: { archivals: ARCHIVALS, fleet },
+  }));
+
+  assert.equal(out.corroboration.level, Level.Uncorroborated);
+  assert.equal(out.corroboration.witness.available, false);
+  assert.equal(
+    f.calls.filter(c => fleet.includes(c.url)).length,
+    MAX_WITNESS_ATTEMPTS,
+    'a down fleet must not turn one refresh into a whole-fleet sweep',
+  );
 });
 
 test('fifty concurrent cold requests are one upstream call, not fifty', async () => {

@@ -18,8 +18,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   g4rpc,
+  g4rpcWithMeta,
   pollWhileVisible,
-  lastCorroboration,
   G4,
   G4Head,
   G4Corroboration,
@@ -126,10 +126,11 @@ export function G4Dashboard() {
         // or rate limiting and is served by the consensus thread itself. The
         // edge caps the calls it will MAKE and returns the corroboration this
         // page renders beside every number.
-        const h = await g4rpc<G4Head>("getchaininfo", [], { signal: ac.signal });
+        const reading = await g4rpcWithMeta<G4Head>("getchaininfo", [], { signal: ac.signal });
+        const h = reading.result;
         if (stop) return;
         setHead(h);
-        setCorro(lastCorroboration);
+        setCorro(reading.corroboration);
         setErr(null);
         setReadAt(Date.now());
 

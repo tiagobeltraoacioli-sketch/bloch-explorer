@@ -2,43 +2,15 @@
 //
 // Live Genesis-4 head.
 //
-// Genesis-3 is finished and the rest of this explorer serves its history. This
-// card is the one place that reads the *new* chain, so a reader who arrives
-// after the halt is not left thinking Bloch stopped.
+// Compact Genesis-4 head card retained for the historical dashboard module.
+// It deliberately shares the current explorer's transport and polling rules,
+// so reusing that module cannot silently restore the old direct gateway path.
 //
-// It talks to the public proxy rather than a node: nodes bind their RPC to
-// loopback, and the proxy is the only path that exists from a browser.
 import { useEffect, useState } from "react";
 import { fmtInt } from "../lib/format";
+import { g4rpc, G4Head, pollWhileVisible } from "../lib/g4";
 
-const G4_RPC = "https://posternlabs.com/g4rpc";
 const POLL_MS = 15_000;
-
-/** The fields this card reads. The node returns more; none of it is needed here. */
-interface G4Head {
-  slot: number;
-  height: number;
-  epoch: number;
-  slot_in_epoch: number;
-  slots_per_epoch: number;
-  finalized_height: number;
-  justified: { epoch: number };
-  finalized: { epoch: number };
-  block_id: string;
-  state_root: string;
-}
-
-async function fetchHead(signal: AbortSignal): Promise<G4Head> {
-  const res = await fetch(G4_RPC, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getchaininfo", params: [] }),
-    signal,
-  });
-  const body = await res.json();
-  if (body.error) throw new Error(body.error.message ?? "rpc error");
-  return body.result as G4Head;
-}
 
 export function Genesis4Card() {
   const [head, setHead] = useState<G4Head | null>(null);
@@ -46,24 +18,31 @@ export function Genesis4Card() {
 
   useEffect(() => {
     let stop = false;
+    let inFlight = false;
     const ac = new AbortController();
     const tick = async () => {
+      if (stop || inFlight) return;
+      inFlight = true;
       try {
-        const h = await fetchHead(ac.signal);
+        // Use the same bounded archival-first transport as the rest of the
+        // explorer. This legacy card used to bypass it and poll the wallet's
+        // public g4rpc gateway directly, including while the tab was hidden.
+        const h = await g4rpc<G4Head>("getchaininfo", [], { signal: ac.signal });
         if (!stop) {
           setHead(h);
           setErr(null);
         }
       } catch (e: any) {
         if (!stop && e?.name !== "AbortError") setErr(String(e?.message ?? e));
+      } finally {
+        inFlight = false;
       }
     };
-    tick();
-    const id = setInterval(tick, POLL_MS);
+    const teardown = pollWhileVisible(() => void tick(), POLL_MS);
     return () => {
       stop = true;
       ac.abort();
-      clearInterval(id);
+      teardown();
     };
   }, []);
 

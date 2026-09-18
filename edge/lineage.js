@@ -96,7 +96,7 @@
 //    R2 are the signals that carry the weight; R5 is the backstop that catches
 //    what they cannot see, when it happens to look.
 
-import { attemptOne, order, markSick, markWell, ATTEMPT_TIMEOUT_MS } from './pool.js';
+import { attemptOne, order, markSick, markWell } from './pool.js';
 
 /**
  * How long a fleet witness is reused before another is asked.
@@ -106,6 +106,18 @@ import { attemptOne, order, markSick, markWell, ATTEMPT_TIMEOUT_MS } from './poo
  * isolate against ONE validator, whatever the public does.
  */
 export const WITNESS_TTL_MS = 20_000;
+
+/**
+ * A witness refresh may fail over across a small, fixed number of validators.
+ *
+ * This is deliberately smaller than the fleet. A refresh must not become a
+ * public-traffic-driven sweep, but one dead validator must not make two
+ * agreeing archivals unusable for a whole witness interval either. Three
+ * attempts cover the deployed fleet's current alternating healthy/down shape
+ * while keeping the worst-case refresh inside the gateway's request budget.
+ */
+export const MAX_WITNESS_ATTEMPTS = 3;
+export const WITNESS_ATTEMPT_TIMEOUT_MS = 3_000;
 
 /**
  * How far behind the witness an archival may be and still be served.
@@ -356,10 +368,11 @@ export async function saveLineage(cache) {
 }
 
 /**
- * The fleet witness: one `getchaininfo` against one validator, shared.
+ * The fleet witness: one successful `getchaininfo`, with bounded failover,
+ * shared by every caller in the interval.
  *
  * Everything about this function is about making its COST a constant:
- *   - one upstream, not a wave;
+ *   - at most MAX_WITNESS_ATTEMPTS sequential upstreams, never a wave;
  *   - reused for WITNESS_TTL_MS;
  *   - concurrent callers share the one in-flight promise;
  *   - a failure is cached too, as `ok: false`, so a down fleet does not turn
@@ -379,40 +392,52 @@ export async function fleetWitness(opts) {
     return witness || { ok: false, chain: null, at: t, url: null, reason: 'fleet_budget_exhausted' };
   }
 
-  const { order: ordered } = order(fleet, t);
-  // Rotate, so one validator does not carry the whole witness load for the
-  // lifetime of the isolate.
-  const pick = ordered[Math.floor(t / WITNESS_TTL_MS) % ordered.length];
+  // Rotate before applying the health ordering, so healthy validators share
+  // successful refreshes while cooling validators naturally move to the end.
+  const offset = Math.floor(t / WITNESS_TTL_MS) % fleet.length;
+  const rotated = fleet.slice(offset).concat(fleet.slice(0, offset));
+  const { order: ordered } = order(rotated, t);
+  const candidates = ordered.slice(0, Math.min(MAX_WITNESS_ATTEMPTS, ordered.length));
 
-  if (opts.counters) opts.counters.fleetCalls += 1;
   witnessInFlight = (async () => {
-    const r = await attemptOne(
-      pick,
-      { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
-      ATTEMPT_TIMEOUT_MS,
-      fetchImpl,
-      now,
-    );
-    const at = now();
-    const lag = Number(r.value?.result?.behind_by_slots);
-    const stale = Number.isFinite(lag) && lag > STALE_SLOTS;
-    if (r.settled && r.value.result && !stale) {
-      markWell(pick);
-      witness = { ok: true, chain: r.value.result, at, url: pick };
-      observe(r.value.result, 'witness');
-    } else {
-      markSick(pick, at);
-      witness = {
-        ok: false,
-        chain: witness && witness.chain ? witness.chain : null,
-        at,
-        url: pick,
+    let last = { url: null, reason: 'no_witness_attempted' };
+    for (const candidate of candidates) {
+      if (opts.counters) opts.counters.fleetCalls += 1;
+      const r = await attemptOne(
+        candidate,
+        { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
+        WITNESS_ATTEMPT_TIMEOUT_MS,
+        fetchImpl,
+        now,
+      );
+      const at = now();
+      const lag = Number(r.value?.result?.behind_by_slots);
+      const stale = Number.isFinite(lag) && lag > STALE_SLOTS;
+      if (r.settled && r.value.result && !stale) {
+        markWell(candidate);
+        witness = { ok: true, chain: r.value.result, at, url: candidate };
+        observe(r.value.result, 'witness');
+        witnessInFlight = null;
+        return witness;
+      }
+      markSick(candidate, at);
+      last = {
+        url: candidate,
         reason: stale ? 'stale_witness' : r.settled ? 'rpc error' : r.outcome,
-        // A carried-over chain is explicitly dated so nothing downstream can
-        // mistake it for a fresh reading.
-        chainAt: witness ? witness.at : null,
       };
     }
+
+    const at = now();
+    witness = {
+      ok: false,
+      chain: witness && witness.chain ? witness.chain : null,
+      at,
+      url: last.url,
+      reason: last.reason,
+      // A carried-over chain is explicitly dated so nothing downstream can
+      // mistake it for a fresh reading.
+      chainAt: witness ? witness.at : null,
+    };
     witnessInFlight = null;
     return witness;
   })();

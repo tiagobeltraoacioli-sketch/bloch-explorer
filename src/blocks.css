@@ -108,6 +108,63 @@
   padding: 12px 14px;
   box-shadow: var(--shadow);
 }
+.search-palette {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg1) 94%, transparent);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.palette-label {
+  padding: 9px 12px 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.palette-option {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  color: var(--fg-2);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  text-align: left;
+  cursor: pointer;
+}
+.palette-option span { font-weight: 600; color: var(--fg); }
+.palette-option small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+.palette-option kbd { opacity: 0; }
+.palette-option.selected { background: var(--brass-dim); }
+.palette-option.selected span { color: var(--brass-bright); }
+.palette-option.selected kbd { opacity: 1; }
+.palette-foot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+  color: var(--faint);
+}
+.palette-foot kbd { padding: 0 4px; font-size: 9px; }
+@media (max-width: 720px) {
+  .palette-option { grid-template-columns: minmax(0, 1fr) max-content; }
+  .palette-option small, .palette-foot { display: none; }
+}
 .choose-lede { font-size: 12.5px; line-height: 1.55; color: var(--ink-2); margin-bottom: 10px; }
 .choose-opts { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .choose-opts .pill-tab { text-align: left; border-radius: var(--r-sm); padding: 8px 12px; font-family: var(--font-ui); font-size: 13px; }

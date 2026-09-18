@@ -24,7 +24,7 @@
 //      so accepting it would show a confident empty balance for an address
 //      that was never typed correctly.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "../lib/router";
 import { parseQuery, Candidate } from "../lib/query";
 import { read, RpcRefusal, CODE, findSlotForHeight, HeightSearch } from "../lib/source";
@@ -44,11 +44,42 @@ type Phase =
 /** The id the shell focuses on ⌘K / "/" — one box, reachable from anywhere. */
 export const SEARCH_INPUT_ID = "g4-search-input";
 
+interface Destination {
+  label: string;
+  to: string;
+  hint: string;
+  terms: string;
+}
+
+/** Human destinations complement the identifier grammar without weakening it. */
+const DESTINATIONS: Destination[] = [
+  { label: "Chain overview", to: "/", hint: "head, finality and production", terms: "home dashboard chain overview head" },
+  { label: "Blocks & slots", to: "/blocks", hint: "browse the canonical slot timeline", terms: "blocks slots timeline" },
+  { label: "Transactions", to: "/transactions", hint: "landings and observer status", terms: "transactions tx transfers" },
+  { label: "Validators", to: "/validators", hint: "stake, activity and participation", terms: "validators staking participation" },
+  { label: "Finality", to: "/finality", hint: "checkpoints, support and stalls", terms: "finality checkpoints quorum" },
+  { label: "Analytics", to: "/analytics", hint: "epochs, proposers and emission", terms: "analytics metrics epochs charts" },
+  { label: "Mempool", to: "/mempool", hint: "pending load and admission", terms: "mempool pending transactions" },
+  { label: "Network & API", to: "/network", hint: "observers, builds and RPC surface", terms: "network api rpc nodes observers" },
+  { label: "Supply", to: "/supply", hint: "issuance and concentration", terms: "supply issuance tokenomics" },
+  { label: "Fees", to: "/fees", hint: "base fee and recent gas use", terms: "fees gas price" },
+  { label: "Validator guide", to: "/validators/guide", hint: "run a Genesis-4 validator", terms: "validator guide run setup operations" },
+  { label: "Genesis-3 snapshot", to: "/snapshot", hint: "inspect the handover ledger", terms: "snapshot genesis 3 carryover" },
+];
+
 export function G4Search({ hero }: { hero?: boolean }) {
   const { navigate } = useRouter();
   const [q, setQ] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  const [selected, setSelected] = useState(0);
   const abort = useRef<AbortController | null>(null);
+
+  const suggestions = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle || !/^[a-z\s&-]+$/i.test(needle)) return [];
+    return DESTINATIONS.filter((d) => `${d.label} ${d.terms}`.toLowerCase().includes(needle)).slice(0, 6);
+  }, [q]);
+  const showSuggestions = phase.kind === "idle" && suggestions.length > 0;
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -175,6 +206,10 @@ export function G4Search({ hero }: { hero?: boolean }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (showSuggestions) {
+      go(suggestions[Math.min(selected, suggestions.length - 1)].to);
+      return;
+    }
     reset();
     const parsed = parseQuery(q);
     if (parsed.candidates.length === 0) {
@@ -232,17 +267,60 @@ export function G4Search({ hero }: { hero?: boolean }) {
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
+            setSelected(0);
             if (phase.kind !== "idle") reset();
+          }}
+          onKeyDown={(e) => {
+            if (!showSuggestions) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setSelected((i) => (i + 1) % suggestions.length);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setSelected((i) => (i - 1 + suggestions.length) % suggestions.length);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              setQ("");
+              setSelected(0);
+            }
           }}
           spellCheck={false}
           autoComplete="off"
           aria-label="Search Genesis-4"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={showSuggestions}
+          aria-controls={showSuggestions ? "explorer-destinations" : undefined}
+          aria-activedescendant={showSuggestions ? `explorer-destination-${selected}` : undefined}
         />
         {!hero && phase.kind === "idle" && !q && <kbd className="kbd">⌘K</kbd>}
         <button className="search-go" type="submit" disabled={phase.kind === "busy"}>
           {phase.kind === "busy" || phase.kind === "heightSearch" ? "…" : "Go"}
         </button>
       </form>
+
+      {showSuggestions && (
+        <div className="search-palette" id="explorer-destinations" role="listbox" aria-label="Explorer destinations">
+          <div className="palette-label">Jump to</div>
+          {suggestions.map((destination, i) => (
+            <button
+              key={destination.to}
+              id={`explorer-destination-${i}`}
+              className={"palette-option" + (i === selected ? " selected" : "")}
+              type="button"
+              role="option"
+              aria-selected={i === selected}
+              onMouseEnter={() => setSelected(i)}
+              onClick={() => go(destination.to)}
+            >
+              <span>{destination.label}</span>
+              <small>{destination.hint}</small>
+              <kbd>↵</kbd>
+            </button>
+          ))}
+          <div className="palette-foot"><kbd>↑</kbd><kbd>↓</kbd> choose <span>·</span> <kbd>↵</kbd> open <span>·</span> IDs still resolve through the chain</div>
+        </div>
+      )}
 
       {phase.kind === "busy" && <div className="search-note">{phase.what}</div>}
 
