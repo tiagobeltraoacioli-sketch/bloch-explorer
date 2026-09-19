@@ -47,9 +47,7 @@ import "../dashboard.css";
 import { SlotStrip, StripLegend, Kpi, TierPill } from "../components/kit";
 import { EpochSummary, loadEpoch, tierOf, epochSlots } from "../lib/epochs";
 import { slotStartMs, slotDelaySecs } from "../lib/slots";
-import { seatsPerSlot } from "../lib/participation";
 import { fmtNum } from "../lib/format";
-import { G4 } from "../lib/g4";
 import { indexerHealth, indexedBlockTransactions, IndexerHealth, IndexedBlockTxs } from "../lib/indexer";
 import { TxRows, OutpointCheck } from "../components/txBits";
 
@@ -531,8 +529,8 @@ export function BlockBody({
         <Kpi
           k="Attestations"
           v={`${fmtInt(b.attestation_count)}`}
-          sub={`of ${seatsPerSlot(G4.validators, 32)} seats in this slot's committee — ${b.attestation_count >= seatsPerSlot(G4.validators, 32) ? "all of them" : "some absent, or carried later"}`}
-          title="Genesis-4 cuts the shuffled roster into 32 contiguous chunks; at 64 validators that is two seats per slot, so two attestations is full participation, not a shortfall."
+          sub="included in the block body · not a participation rate"
+          title="The RPC exposes only a raw included-attestation count. It does not expose aggregation bits or the duty roster needed to calculate participation."
         />
         <Kpi k="Transactions" v={fmtInt(b.tx_count)} sub={b.tx_count === 0 ? "an empty block — usual here" : "the count is all the node gives"} />
       </div>

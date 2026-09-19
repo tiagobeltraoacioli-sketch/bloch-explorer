@@ -308,7 +308,7 @@ export function ValidatorsPage() {
               <div className="g4-stat">
                 <span className="g4-k">Attestations per block</span>
                 <span className="g4-v">{fmtNum(rec.meanAttestations, 2)}</span>
-                <span className="g4-dim">two seats per slot is full participation</span>
+                <span className="g4-dim">raw included count · not participation</span>
               </div>
             </div>
             <ProposerBars proposers={rec.byProposer} blocks={rec.filled} limit={16} />

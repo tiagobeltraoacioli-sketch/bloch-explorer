@@ -151,7 +151,10 @@ export const ARCHIVAL_BURST = 60;
 export const UPSTREAM_WALK_COST = 5;
 
 /** Fleet witness calls. One token per actual validator contacted. */
-export const FLEET_RATE = 0.05; // one per 20 s
+// Refill the full three-attempt allowance over one witness interval. A lower
+// rate makes failover work only at cold start: after the first interval the
+// bucket would contain one token and could never reach a second validator.
+export const FLEET_RATE = 0.15; // three attempts per 20 s, at most
 export const FLEET_BURST = 3;
 
 /**

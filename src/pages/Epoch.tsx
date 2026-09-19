@@ -8,7 +8,7 @@
 // them with `lib/epochs`, and says which of the three tiers the head currently
 // places the epoch on — a reading as of now, never a settled fact.
 import { useEffect, useMemo, useState } from "react";
-import { g4rpc, G4, G4Head } from "../lib/g4";
+import { g4rpc, G4Head } from "../lib/g4";
 import { EpochSummary, loadEpoch, tierOf, epochSlots, epochStartMs } from "../lib/epochs";
 import { Kpi, SlotStrip, StripLegend, ProposerBars, TierPill } from "../components/kit";
 import { SlotTable } from "../components/blockstream";
@@ -72,8 +72,6 @@ export function EpochPage({ epoch }: { epoch: number }) {
   if (!head) return <Loading label={`Reading epoch ${fmtInt(epoch)}…`} />;
 
   const tier = tierOf(epoch, head);
-  const active = head.validators?.active ?? G4.validators;
-  const seats = Math.floor(active / PARAMS.slotsPerEpoch.value);
 
   if (tier === "future") {
     return (
@@ -121,7 +119,7 @@ export function EpochPage({ epoch }: { epoch: number }) {
             <Kpi k="Blocks" v={fmtInt(sum.blocks)} tone="accent" sub={`of ${fmtInt(reachable)} slots reached${sum.pending ? ` · ${fmtInt(sum.pending)} still to come` : ""}`} />
             <Kpi k="Missed" v={fmtInt(sum.empty)} sub="the chain said: no block" />
             <Kpi k="Unread" v={fmtInt(sum.unknown)} tone={sum.unknown ? "warn" : undefined} sub={sum.unknown ? "not answered — not counted as missed" : read < reachable && !done ? `reading ${fmtInt(read)}/${fmtInt(reachable)}` : "every slot answered"} />
-            <Kpi k="Attestations" v={fmtInt(sum.votes)} sub={`against ${fmtInt(active)} seats · ${sum.meanAttestations === null ? "—" : fmtNum(sum.meanAttestations, 2)} per block · ${seats} is full`} title="A count of votes included, not a participation rate." />
+            <Kpi k="Attestations" v={fmtInt(sum.votes)} sub={`${sum.meanAttestations === null ? "—" : fmtNum(sum.meanAttestations, 2)} included per block · not a participation rate`} title="A raw count of votes included in block bodies. The RPC does not expose the duty roster or aggregation bits needed for participation." />
             <Kpi k="Transactions" v={fmtInt(sum.txs)} sub={sum.txs === 0 ? "none this epoch" : "carried across the epoch"} />
             <Kpi k="Proposers" v={fmtInt(sum.distinctProposers)} sub={`distinct validators · mean interval ${sum.meanIntervalSecs === null ? "—" : fmtNum(sum.meanIntervalSecs, 0) + "s"}`} />
           </section>
@@ -199,11 +197,9 @@ export function EpochPage({ epoch }: { epoch: number }) {
             <section className="card">
               <h2 className="snap-h2">How to read this epoch</h2>
               <p className="snap-body">
-                Every validator has one duty per epoch under this chain's committee rule — the
-                roster is shuffled and cut into {PARAMS.slotsPerEpoch.value} contiguous chunks, so
-                at {fmtInt(active)} validators each slot seats {seats}. A block carrying {seats}{" "}
-                attestations has included all of them, and {fmtInt(seats * PARAMS.slotsPerEpoch.value)}{" "}
-                votes across the epoch is every seat filled.
+                The attestation figure is the raw number included in block bodies. The RPC exposes
+                neither aggregation bits nor the duty roster, so it cannot support a participation
+                percentage or identify which validators were expected to vote in each slot.
               </p>
               <p className="snap-body">
                 A validator appearing here proposed on its slot. One appearing never either missed

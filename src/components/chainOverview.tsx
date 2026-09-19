@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { G4Head } from "../lib/g4";
+import { G4Corroboration, G4Head } from "../lib/g4";
+import type { IndexerHealth } from "../lib/indexer";
 import { SlotCell, windowStats } from "../lib/slots";
 import { fmtBytes, fmtInt, fmtNum, timeAgo } from "../lib/format";
 import { Link } from "../lib/router";
@@ -8,19 +9,23 @@ interface PoolReading { size: number; max: number; bytes: number }
 
 /** Every tile is an observed slot. Pending transactions are never projected
  * into fictional blocks: neither transaction gas nor ordering is available. */
-export function ChainOverview({ head, cells, mempool, stale }: {
-  head: G4Head; cells: SlotCell[]; mempool: PoolReading | null; stale: boolean;
+export function ChainOverview({ head, cells, mempool, stale, corroboration, indexer }: {
+  head: G4Head;
+  cells: SlotCell[];
+  mempool: PoolReading | null;
+  stale: boolean;
+  corroboration: G4Corroboration | null;
+  indexer: IndexerHealth | null;
 }) {
   const stats = windowStats(cells);
   const recent = cells.slice(-7).reverse();
   const maxTxs = Math.max(1, ...cells.map(c => c.kind === "block" ? c.block.tx_count : 0));
-  const active = head.validators?.active ?? 0;
-  const seats = active > 0 ? Math.max(1, Math.floor(active / head.slots_per_epoch)) : null;
-  const attestationPct = seats && stats.meanAttestations !== null
-    ? Math.min(100, stats.meanAttestations / seats * 100)
-    : null;
   const finalityGap = Math.max(0, head.epoch - head.finalized.epoch);
   const mempoolPct = mempool && mempool.max > 0 ? Math.min(100, mempool.size / mempool.max * 100) : null;
+  const epochPct = Math.min(100, (head.slot_in_epoch + 1) / head.slots_per_epoch * 100);
+  const witnessAge = corroboration?.witness?.age_ms;
+  const trusted = !stale && (corroboration?.level === "final" || corroboration?.level === "corroborated");
+  const trustTone = trusted ? "ok" : "warn";
   return <section className="chain-overview" aria-label="Chain activity overview">
     <div className="overview-heading">
       <div><span className="eyebrow">GENESIS 4 / EXPLORER</span><h1>The chain, at a glance.</h1></div>
@@ -33,6 +38,40 @@ export function ChainOverview({ head, cells, mempool, stale }: {
       <Link to="/finality" role="listitem"><span>Finalized</span><strong>E{fmtInt(head.finalized.epoch)} <small>−{fmtInt(finalityGap)}</small></strong></Link>
       <Link to="/validators" role="listitem"><span>Active validators</span><strong>{head.validators ? fmtInt(head.validators.active) : "—"}</strong></Link>
       <Link to="/fees" role="listitem"><span>Next base fee</span><strong>{head.next_base_fee_millisat_per_gas ?? "—"} <small>msat/gas</small></strong></Link>
+    </div>
+    <div className="consensus-rail" aria-label="Chain checkpoints and independent indexing status">
+      <div className="rail-track" aria-hidden="true"><i style={{ width: `${epochPct}%` }} /></div>
+      <Link to={`/slot/${head.slot}`} className="rail-stop is-head">
+        <span className="rail-dot" />
+        <span className="eyebrow">LIVE HEAD</span>
+        <strong>S{fmtInt(head.slot)}</strong>
+        <small>H{fmtInt(head.height)} · {fmtNum(epochPct, 0)}% through epoch</small>
+      </Link>
+      <Link to="/finality" className="rail-stop is-justified">
+        <span className="rail-dot" />
+        <span className="eyebrow">JUSTIFIED</span>
+        <strong>E{fmtInt(head.justified.epoch)}</strong>
+        <small><code>{head.justified.root.slice(0, 10)}…</code></small>
+      </Link>
+      <Link to="/finality" className="rail-stop is-finalized">
+        <span className="rail-dot" />
+        <span className="eyebrow">FINALIZED</span>
+        <strong>E{fmtInt(head.finalized.epoch)}</strong>
+        <small>H{fmtInt(head.finalized_height)} · {fmtInt(finalityGap)} epochs back</small>
+      </Link>
+      <Link to="/transactions" className="rail-stop is-indexer">
+        <span className="rail-dot" />
+        <span className="eyebrow">HISTORY INDEX</span>
+        <strong>{indexer ? `S${fmtInt(indexer.indexed_to_slot)}` : "Unavailable"}</strong>
+        <small>{indexer ? `${indexer.lag_slots === null ? "live comparison unavailable" : `${fmtInt(indexer.lag_slots)} slots behind`} · ${indexer.source}` : "live chain remains available"}</small>
+      </Link>
+    </div>
+    <div className="integrity-bar">
+      <span className={`integrity-state ${trustTone}`}><i />{corroboration?.level?.replace(/_/g, " ") ?? "provenance pending"}</span>
+      <span><b>{corroboration?.archival_witnesses ?? "—"}/{corroboration?.of ?? "—"}</b> archival observers</span>
+      <span><b>{corroboration?.fleet_witness ? "linked" : "missing"}</b> fleet witness{typeof witnessAge === "number" ? ` · ${fmtNum(witnessAge / 1000, 1)}s old` : ""}</span>
+      <span><b>{corroboration?.cache_salt ?? "—"}</b> lineage salt</span>
+      <span className="integrity-root"><b>state</b> <code>{head.state_root.slice(0, 14)}…</code></span>
     </div>
     <div className="block-ribbon" tabIndex={0} role="region" aria-label="Recent slots, newest first; scroll for earlier slots">
       <Link to="/mempool" className="ribbon-pending">
@@ -52,7 +91,7 @@ export function ChainOverview({ head, cells, mempool, stale }: {
           <strong>{b ? fmtInt(b.tx_count) : "—"}</strong>
           <span>{b ? "transactions" : c.kind === "empty" ? "missed slot" : "unread slot"}</span>
           {b && <span className="ribbon-meta">height {b.height === null ? "—" : fmtInt(b.height)} · proposer v{b.proposer_index}</span>}
-          {b && <span className="ribbon-meter att" title={`${fmtInt(b.attestation_count)} attestations`} aria-hidden="true"><i style={{ width: `${seats ? Math.min(100, b.attestation_count / seats * 100) : 0}%` }} /></span>}
+          {b && <span className="ribbon-attest">{fmtInt(b.attestation_count)} attestations included</span>}
           <span className="ribbon-bottom">{b ? timeAgo(b.timestamp) : "No block data"}</span>
           <span className="ribbon-state">{b ? b.finality.replace(/_/g, " ") : c.kind === "empty" ? "missed" : "unknown"}</span>
         </Link>;
@@ -81,10 +120,10 @@ export function ChainOverview({ head, cells, mempool, stale }: {
         <strong>{fmtInt(finalityGap)}<small> epochs behind head</small></strong>
         <span>Justified E{fmtInt(head.justified.epoch)} · finalized E{fmtInt(head.finalized.epoch)} ↗</span>
       </Link>
-      <Link to="/validators" className="overview-instrument attestation-instrument">
-        <span className="eyebrow">ATTESTATION SUPPORT</span>
-        <strong>{attestationPct === null ? "—" : `${fmtNum(attestationPct, 1)}%`}<small> mean observed</small></strong>
-        <span>{stats.meanAttestations === null ? "No produced blocks read" : `${fmtNum(stats.meanAttestations, 2)} attestations per block · ${seats ?? "—"} is full`}</span>
+      <Link to="/analytics" className="overview-instrument attestation-instrument">
+        <span className="eyebrow">ATTESTATIONS INCLUDED</span>
+        <strong>{stats.meanAttestations === null ? "—" : fmtNum(stats.meanAttestations, 2)}<small> mean per block</small></strong>
+        <span>Raw block-body count · not a participation rate ↗</span>
       </Link>
     </div>
   </section>;

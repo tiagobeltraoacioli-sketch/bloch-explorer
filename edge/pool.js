@@ -218,13 +218,27 @@ export async function attemptOne(url, rpcReq, timeoutMs, fetchImpl, now = Date.n
     } catch {
       return done({ settled: false, outcome: 'non-json response' });
     }
-    if (parsed && parsed.error && typeof parsed.error.code === 'number') {
+    // A syntactically valid JSON object is not necessarily the answer to this
+    // request. In particular, accepting a late response with another id can
+    // attach the wrong block or balance to the current caller. Keep the
+    // transport strict before interpreting either branch of the envelope.
+    const hasResult = parsed && Object.prototype.hasOwnProperty.call(parsed, 'result');
+    const hasError = parsed && Object.prototype.hasOwnProperty.call(parsed, 'error');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+        parsed.jsonrpc !== '2.0' || parsed.id !== rpcReq.id || hasResult === hasError) {
+      return done({ settled: false, outcome: 'invalid json-rpc envelope' });
+    }
+    if (hasError && (!parsed.error || typeof parsed.error !== 'object' ||
+        typeof parsed.error.code !== 'number' || typeof parsed.error.message !== 'string')) {
+      return done({ settled: false, outcome: 'invalid json-rpc envelope' });
+    }
+    if (hasError) {
       if (RETRYABLE_RPC_CODES.has(parsed.error.code)) {
         return done({ settled: false, outcome: `rpc ${parsed.error.code}` });
       }
       return done({ settled: true, value: { error: parsed.error } });
     }
-    if (parsed && Object.prototype.hasOwnProperty.call(parsed, 'result')) {
+    if (hasResult) {
       return done({ settled: true, value: { result: parsed.result } });
     }
     return done({ settled: false, outcome: 'malformed json-rpc response' });

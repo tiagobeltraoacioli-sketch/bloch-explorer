@@ -1100,6 +1100,7 @@ h1, h2, h3 { font-family: var(--font-ui); letter-spacing: -.035em; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .route-loading span { animation: none; }
+  .rail-track i { transition: none; }
 }
 
 :root, :root[data-theme] { --border: var(--line); --border-hi: var(--line-strong); --border-soft: var(--line-soft); }

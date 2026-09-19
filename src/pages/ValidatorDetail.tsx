@@ -20,7 +20,6 @@ import {
   recentWindow,
   proposalRecord,
   proposalIndex,
-  seatsPerSlot,
   SlotWindow,
   ProposalRecord,
 } from "../lib/participation";
@@ -264,14 +263,10 @@ export function ValidatorDetailPage({ index }: { index: number }) {
             )}
 
             <p className="notebox-inline">
-              <strong>Two attestations per block is full participation, not a shortfall.</strong>{" "}
-              Genesis-4 does not sample a committee — it sorts the roster, shuffles it and cuts it
-              into {fmtInt(win.head.slots_per_epoch)} contiguous chunks, one per slot of the epoch.
-              With {fmtInt(d.counts.active)} validators that is{" "}
-              {fmtInt(seatsPerSlot(d.counts.active, win.head.slots_per_epoch))} seats per slot, so a
-              block including {fmtInt(seatsPerSlot(d.counts.active, win.head.slots_per_epoch))}{" "}
-              attestations has included all of them. The mean across this window is{" "}
-              {fmtNum(rec.meanAttestations, 2)}.
+              <strong>Included attestations are a raw count, not a participation rate.</strong>{" "}
+              The RPC does not expose aggregation bits or a duty roster, so this explorer cannot
+              determine who was expected, who voted, or whether an included vote was carried from
+              another slot. The mean included count across this window is {fmtNum(rec.meanAttestations, 2)}.
             </p>
             <p className="notebox-inline">
               <strong>A window this small is a texture, not a score.</strong> With{" "}

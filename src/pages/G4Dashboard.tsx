@@ -32,6 +32,7 @@ import { SlotTable } from "../components/blockstream";
 import { Kpi, SlotStrip, StripLegend } from "../components/kit";
 import { TxLandings } from "../components/txBits";
 import { ChainOverview } from "../components/chainOverview";
+import { indexerHealth, type IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
 import { Loading, Copyable } from "../components/ui";
@@ -108,6 +109,7 @@ export function G4Dashboard() {
   const [mp, setMp] = useState<Mempool | null>(null);
   const [stake, setStake] = useState<StakeTotals | null | "absent">(null);
   const [supply, setSupply] = useState<G4Supply | null | "absent">(null);
+  const [indexer, setIndexer] = useState<IndexerHealth | null>(null);
   const [cells, setCells] = useState<Map<number, SlotCell>>(() => new Map());
   const [err, setErr] = useState<string | null>(null);
   const [readAt, setReadAt] = useState<number | null>(null);
@@ -156,11 +158,12 @@ export function G4Dashboard() {
         // Each of these is allowed to fail on its own. The RPC is served by
         // the consensus loop, so a slow answer during block production is
         // ordinary — one timeout must not blank the page.
-        const [v, m, sd, sp] = await Promise.allSettled([
+        const [v, m, sd, sp, ix] = await Promise.allSettled([
           g4rpc<G4ValidatorCount>("getvalidatorcount", [], { signal: ac.signal }),
           g4rpc<Mempool>("getmempoolinfo", [], { signal: ac.signal }),
           g4rpc<StakeTotals>("getstakedistribution", [], { signal: ac.signal }),
           g4rpc<G4Supply>("getsupply", [], { signal: ac.signal }),
+          indexerHealth(),
         ]);
         if (stop) return;
         if (v.status === "fulfilled") setVals(v.value);
@@ -169,6 +172,7 @@ export function G4Dashboard() {
         else if (notServed(sd.reason)) setStake("absent");
         if (sp.status === "fulfilled") setSupply(sp.value);
         else if (notServed(sp.reason)) setSupply("absent");
+        if (ix.status === "fulfilled") setIndexer(ix.value);
       } catch (e: any) {
         if (!stop && e?.name !== "AbortError") setErr(String(e?.message ?? e));
       } finally {
@@ -235,11 +239,9 @@ export function G4Dashboard() {
   const leakPct = duty && consensus && duty > 0n ? Number(((duty - consensus) * 10_000n) / duty) / 100 : null;
 
   const newest = [...ordered].reverse().slice(0, RECENT);
-  const seats = Math.floor((vals?.active ?? head.validators?.active ?? G4.validators) / head.slots_per_epoch);
-
   return (
     <div className="container">
-      <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} />
+      <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} corroboration={corro} indexer={indexer} />
       <p><Link to="/validators/guide">Run a validator →</Link> · Download the Bloch CLI, follow every setup step and check live admission status.</p>
       {/* ── the hero: head, finality, the clock ─────────────────────────── */}
       <section className="hero-card dash-hero">
@@ -471,7 +473,7 @@ export function G4Dashboard() {
               <div className="stat">
                 <span className="label">Attestations</span>
                 <span className="value">{stats.meanAttestations === null ? "—" : fmtNum(stats.meanAttestations, 2)}</span>
-                <span className="sub">mean per block · {seats} seats per slot is full</span>
+                <span className="sub">mean included per block · not a participation rate</span>
               </div>
               <div className="stat">
                 <span className="label">Proposers</span>

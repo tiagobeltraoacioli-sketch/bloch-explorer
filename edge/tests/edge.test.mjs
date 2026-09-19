@@ -346,6 +346,7 @@ test('two archivals disagreeing about the MEMPOOL is normal and is served', asyn
   assert.ok(!out.body.error, 'disagreement about a node-local number is not a fork');
   assert.equal(out.corroboration.level, Level.NodeLocal);
   assert.ok(/does not converge/.test(out.corroboration.note));
+  assert.equal(f.fleet().length, 0, 'node-local data must not wait on or load the validator fleet');
 });
 
 test('one archival down degrades to uncorroborated rather than to an error', async () => {
@@ -704,6 +705,7 @@ test('getcapabilities is answered by the edge because no live node has it', asyn
   const out = await handleRead(call('getcapabilities'), opts(f, now, fakeCache()));
   assert.ok(out.body.result, 'the edge must answer this itself');
   assert.equal(f.ofMethod('getcapabilities').length, 0, 'and must not forward it');
+  assert.equal(f.calls.length, 0, 'edge-owned metadata must not wait on any upstream');
   assert.ok(out.body.result.methods.length >= 12);
   assert.ok(out.body.result.honesty.some((h) => /does not validate/.test(h)));
 });

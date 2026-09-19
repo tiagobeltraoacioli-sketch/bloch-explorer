@@ -150,7 +150,6 @@ export function AnalyticsPage() {
   const fillEver = slotsElapsed > 0 ? blocksEver / slotsElapsed : 0;
   const effectiveBlockSecs = fillEver > 0 ? PARAMS.slotSecs.value / fillEver : null;
   const active = head.validators?.active ?? G4.validators;
-  const seatsPerEpoch = active; // one seat per validator per epoch at n = 64
 
   // ── emission ────────────────────────────────────────────────────────────
   const slotBig = BigInt(head.slot);
@@ -283,8 +282,8 @@ export function AnalyticsPage() {
                   <td className="num">{fmtInt(r.blocks)}<span className="faint">/{PARAMS.slotsPerEpoch.value}</span></td>
                   <td className="num">{fmtInt(r.empty)}</td>
                   <td className="num">{r.unknown ? <span className="pill unknown pill-sm">{fmtInt(r.unknown)}</span> : <span className="faint">0</span>}</td>
-                  <td className="num" title={`${fmtInt(r.votes)} attestations included against ${seatsPerEpoch} seats. Not a participation rate.`}>
-                    {fmtInt(r.votes)}<span className="faint">/{seatsPerEpoch}</span>
+                  <td className="num" title={`${fmtInt(r.votes)} attestations included in block bodies. Not a participation rate.`}>
+                    {fmtInt(r.votes)}
                   </td>
                   <td className="num">{fmtInt(r.txs)}</td>
                   <td className="num">{fmtInt(r.distinctProposers)}</td>
@@ -336,7 +335,7 @@ export function AnalyticsPage() {
               <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                 <Kpi k="Blocks" v={fmtInt(window.blocks)} sub={`of ${fmtInt(window.epochs * PARAMS.slotsPerEpoch.value)} slots`} />
                 <Kpi k="Fill rate" v={`${fmtNum((window.blocks / Math.max(1, window.blocks + window.missed)) * 100, 1)}%`} sub={`${fmtInt(window.missed)} missed${window.unread ? ` · ${fmtInt(window.unread)} unread` : ""}`} />
-                <Kpi k="Attestations" v={fmtInt(window.votes)} sub={`${fmtNum(window.votes / Math.max(1, window.blocks), 2)} per block · ${Math.floor(active / PARAMS.slotsPerEpoch.value)} seats per slot is full`} />
+                <Kpi k="Attestations" v={fmtInt(window.votes)} sub={`${fmtNum(window.votes / Math.max(1, window.blocks), 2)} included per block · not a participation rate`} />
                 <Kpi k="Transactions" v={fmtInt(window.txs)} sub={window.txs === 0 ? "no transactions in the sampled blocks" : `${fmtNum(window.txs / Math.max(1, window.blocks), 2)} per block`} />
               </div>
             </section>
@@ -354,7 +353,7 @@ export function AnalyticsPage() {
             </ChartCard>
           </div>
           <div className="grid three-col" style={{ marginBottom: 14 }}>
-            <ChartCard title="Attestations per epoch" hint={`against ${seatsPerEpoch} seats`}>
+            <ChartCard title="Attestations included per epoch" hint="raw block-body count · not participation">
               <BarChart
                 bars={[...closed].reverse().map((r) => ({ label: String(r.epoch), value: r.votes }))}
                 yFormat={(v) => fmtInt(Math.round(v))}

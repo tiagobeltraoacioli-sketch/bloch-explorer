@@ -24,9 +24,9 @@
 // rate. An attestation rate per validator needs either the aggregation bits or
 // the indexer; until one exists, that column stays empty on purpose.
 //
-// Caching: a finalized slot can never change, so a fully-finalized window is
-// cached long. A window containing the head is cached briefly, because its
-// tail is still being written.
+// Caching: a window wholly behind the currently reported finalized checkpoint
+// is cached longer, but still only for ten minutes because finality can descend
+// on a reorg in this implementation. A live or unreadable window stays brief.
 // ---------------------------------------------------------------------------
 
 import { gate, gateResponse } from "../../edge/gate.js";
@@ -43,7 +43,7 @@ const ABSENT_SLOT_CODE = -32007;
 const CONCURRENCY = 6;
 const UPSTREAM_TIMEOUT_MS = 9000;
 
-/** A window whose every slot is finalized cannot change again. */
+/** A window behind the current finalized checkpoint gets a bounded long TTL. */
 const CACHE_SECONDS_FINAL = 600;
 /** A window touching the head is still moving. */
 const CACHE_SECONDS_LIVE = 30;
@@ -80,6 +80,10 @@ async function rpc(url, method, params) {
     });
     if (!res.ok) throw new Error(`archival HTTP ${res.status}`);
     const body = await res.json();
+    const hasResult = body && Object.prototype.hasOwnProperty.call(body, "result");
+    const hasError = body && Object.prototype.hasOwnProperty.call(body, "error");
+    if (!body || typeof body !== "object" || Array.isArray(body) || body.jsonrpc !== "2.0" ||
+        body.id !== 1 || hasResult === hasError) throw new Error("invalid archival JSON-RPC envelope");
     if (body && body.error) {
       const err = new Error(body.error.message || "rpc error");
       err.rpcCode = body.error.code;
@@ -93,14 +97,30 @@ async function rpc(url, method, params) {
 
 async function rpcAny(urls, method, params) {
   let lastErr;
-  for (const u of urls) {
+  for (let index = 0; index < urls.length; index++) {
+    const u = urls[index];
     try {
-      return await rpc(u, method, params);
+      return { result: await rpc(u, method, params), url: u, index };
     } catch (e) {
       lastErr = e;
     }
   }
   throw lastErr || new Error("no archival answered");
+}
+
+/** Long caching is safe only when every row is readable and demonstrably
+ * behind finality. An absent slot has no block-level `finalized` flag, so it
+ * is immutable only once its whole epoch is behind the finalized checkpoint. */
+export function cacheSecondsFor(rows, head) {
+  const slotsPerEpoch = Number(head.slots_per_epoch);
+  const finalizedEpoch = Number(head.finalized?.epoch);
+  const absentFinalBefore = Number.isFinite(slotsPerEpoch) && Number.isFinite(finalizedEpoch)
+    ? finalizedEpoch * slotsPerEpoch
+    : -1;
+  const allFinal = rows.every((row) =>
+    !row.unreadable && (row.present ? row.finalized === true : row.slot < absentFinalBefore),
+  );
+  return allFinal ? CACHE_SECONDS_FINAL : CACHE_SECONDS_LIVE;
 }
 
 async function mapLimit(items, limit, work) {
@@ -145,7 +165,10 @@ export async function onRequestGet(context) {
 
   let head;
   try {
-    head = await rpcAny(urls, "getchaininfo", []);
+    const reading = await rpcAny(urls, "getchaininfo", []);
+    head = reading.result;
+    head.sourceUrl = reading.url;
+    head.sourceIndex = reading.index;
   } catch (e) {
     return json(502, { error: `no archival answered getchaininfo: ${String((e && e.message) || e)}` });
   }
@@ -159,6 +182,7 @@ export async function onRequestGet(context) {
   const keyUrl = new URL(url.origin + url.pathname);
   keyUrl.searchParams.set("to", String(to));
   keyUrl.searchParams.set("limit", String(limit));
+  keyUrl.searchParams.set("observer", String(head.sourceIndex + 1));
   const cacheKey = new Request(keyUrl.toString(), { method: "GET" });
   const cache = caches.default;
   const hit = await cache.match(cacheKey);
@@ -191,8 +215,12 @@ export async function onRequestGet(context) {
   const slots = [];
   for (let s = to; s >= from; s--) slots.push(s);
 
-  const settled = await mapLimit(slots, CONCURRENCY, (s, n) =>
-    rpc(urls[n % urls.length], "getblockbyslot", [s]),
+  // Pin the whole window to the observer that supplied its head. Alternating
+  // slots between nodes can splice two short-lived forks into a timeline that
+  // existed on neither. A failed pinned read remains unreadable; it is not
+  // silently replaced with a different observer's history.
+  const settled = await mapLimit(slots, CONCURRENCY, (s) =>
+    rpc(head.sourceUrl, "getblockbyslot", [s]),
   );
 
   // An empty slot and an unreadable slot are different facts and are kept
@@ -225,14 +253,18 @@ export async function onRequestGet(context) {
     return { slot, present: false, unreadable: r.ok ? "empty result" : r.error };
   });
 
-  const allFinal = rows.every((r) => r.present === false || r.finalized === true);
-  const maxAge = allFinal ? CACHE_SECONDS_FINAL : CACHE_SECONDS_LIVE;
+  const maxAge = cacheSecondsFor(rows, head);
 
   const payload = {
     head: { slot: head.slot, epoch: head.epoch, height: head.height, slots_per_epoch: head.slots_per_epoch },
     from,
     to,
     slots: rows,
+    provenance: {
+      level: "pinned",
+      observer: `archival-${head.sourceIndex + 1}`,
+      note: "The entire window is pinned to one keyless archival observer so slots cannot be spliced across competing tips.",
+    },
     generated_at: Math.floor(Date.now() / 1000),
   };
 

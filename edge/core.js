@@ -695,15 +695,8 @@ export async function handleRead(payload, opts) {
 
   await loadLineage(opts.cache);
 
-  // The witness is shared and budget-capped, so this is nearly always free.
-  const wit = await fleetWitness({
-    fleet: opts.pools.fleet,
-    fetchImpl: opts.fetchImpl,
-    now,
-    budget: fleetGovernor(now),
-    counters,
-  });
-
+  // Edge-owned metadata needs no node at all. Answer it before a cold witness
+  // refresh so a validator outage cannot add nine seconds to capabilities.
   if (spec.corroboration === 'edge') {
     return {
       body: { jsonrpc: '2.0', id, result: capabilitiesJson(now()) },
@@ -720,6 +713,17 @@ export async function handleRead(payload, opts) {
       },
     };
   }
+
+  // Node-local data (the mempool) cannot be corroborated by a fleet witness:
+  // divergence is expected by definition. Reuse whatever witness telemetry is
+  // already present, but never block this read on refreshing it.
+  const wit = spec.corroboration === 'none' ? null : await fleetWitness({
+    fleet: opts.pools.fleet,
+    fetchImpl: opts.fetchImpl,
+    now,
+    budget: fleetGovernor(now),
+    counters,
+  });
 
   const params = payload.params ?? [];
   const rpcReq = { jsonrpc: '2.0', id, method, params };
