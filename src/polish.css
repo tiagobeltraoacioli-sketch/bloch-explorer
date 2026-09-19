@@ -1236,3 +1236,484 @@ details.raw[open] summary {
   .route-failure-card::before { background: Highlight; }
   .pill, .btn, .pill-tab { forced-color-adjust: auto; }
 }
+
+/* ── Round 5: Network and block-reading surfaces ────────────────────────── */
+
+/* Network: tabs remain a compact control on desktop and become a predictable
+   swipeable strip when labels no longer fit. */
+.telemetry-page > .telemetry-tabs {
+  position: relative;
+  box-shadow: inset 0 1px 0 var(--surface-highlight), 0 14px 28px -26px rgba(0, 0, 0, .85);
+}
+
+.telemetry-tabs button {
+  position: relative;
+  isolation: isolate;
+}
+
+.telemetry-tabs button::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 18px 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--brass);
+  opacity: 0;
+  transform: scaleX(.4);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.telemetry-tabs button.active::after,
+.telemetry-tabs button[aria-selected="true"]::after,
+.telemetry-tabs button[aria-pressed="true"]::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.telemetry-tabs button:focus-visible {
+  z-index: 2;
+  outline: 2px solid var(--brass);
+  outline-offset: -2px;
+}
+
+.telemetry-page [role="tabpanel"] {
+  min-width: 0;
+}
+
+.telemetry-page [role="tabpanel"] > .card:first-child,
+.telemetry-page > [role="tabpanel"].card {
+  scroll-margin-top: 96px;
+}
+
+.telemetry-page .section-heading > div {
+  min-width: 0;
+}
+
+.telemetry-page .section-heading > .pill {
+  flex: 0 0 auto;
+}
+
+.telemetry-page .metric-panel {
+  border-top: 2px solid color-mix(in srgb, var(--brass) 28%, var(--line));
+}
+
+.telemetry-page .metric-panel > span:last-child,
+.edge-counter-grid .card small {
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.edge-counter-grid .card {
+  border-top: 2px solid color-mix(in srgb, var(--info) 28%, var(--line));
+}
+
+.method-search {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  width: min(100%, 430px);
+}
+
+.method-search input {
+  min-width: 0;
+  padding-right: 76px;
+}
+
+.method-search .btn {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  min-height: 34px;
+}
+
+.node-table th[scope="row"],
+.method-table th[scope="row"] {
+  color: var(--fg-2);
+  font-weight: 500;
+  text-align: left;
+}
+
+.node-table tbody th[scope="row"] code,
+.method-table tbody th[scope="row"] code {
+  font-size: .78rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.node-table .node-outcome {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.method-table td:nth-child(2) {
+  max-width: 62ch;
+}
+
+.method-contract {
+  padding-top: 3px;
+  line-height: 1.45;
+}
+
+.api-resource-list > div {
+  min-width: 0;
+}
+
+.api-resource-list code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.api-example pre,
+.raw-reading pre {
+  tab-size: 2;
+  scrollbar-color: color-mix(in srgb, var(--brass) 34%, var(--bg4)) transparent;
+  overscroll-behavior: contain;
+}
+
+.build-card .section-heading {
+  align-items: flex-start;
+}
+
+.build-card .section-heading h2,
+.build-version {
+  overflow-wrap: anywhere;
+}
+
+/* Blocks index: the range bar reads as a single navigation instrument, while
+   the current range remains visually central and never steals a tap target. */
+.range-bar {
+  display: grid;
+  grid-template-columns: auto auto minmax(150px, 1fr) auto auto;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--bg1) 88%, transparent);
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.range-bar .pill-tab {
+  min-height: 40px;
+  justify-content: center;
+}
+
+.range-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 12px;
+  overflow: hidden;
+  border-inline: 1px solid var(--line);
+  color: var(--fg-2);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-jump {
+  min-height: 40px;
+  border-radius: 9px;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.slot-jump:hover { border-color: var(--line-strong); }
+.slot-jump:focus { border-color: var(--brass); background: var(--bg1); box-shadow: 0 0 0 3px var(--brass-dim); outline: none; }
+
+.slot-strip {
+  padding-block: 3px;
+}
+
+a.slot-cell,
+button.slot-cell {
+  min-height: 28px;
+  outline-offset: 3px;
+}
+
+.slot-cell.is-current {
+  box-shadow: 0 0 0 2px var(--fg), 0 0 14px -5px var(--brass);
+}
+
+.stats .stat {
+  border-top: 2px solid color-mix(in srgb, var(--brass) 32%, var(--line));
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+/* Block detail: separate machine identifiers from human verdicts, keeping
+   long roots copyable without allowing them to widen the viewport. */
+.hdr-row {
+  min-width: 0;
+  padding-block: 10px;
+}
+
+.hdr-row > * { min-width: 0; }
+
+.hdr-row .row-actions {
+  max-width: 100%;
+}
+
+.hdr-row .snap-hash {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.block-receipt-summary .kpi {
+  border-top: 2px solid color-mix(in srgb, var(--ok) 35%, var(--line));
+}
+
+.truth-list {
+  display: grid;
+  gap: 8px;
+  margin-block: 14px 18px;
+}
+
+.truth-list li {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg1) 72%, transparent);
+}
+
+.truth-list li:last-child { border-bottom: 1px solid var(--line); }
+
+.truth-list .mark {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.truth-list li.yes {
+  border-color: color-mix(in srgb, var(--brass) 24%, var(--line));
+}
+
+.truth-list li.no {
+  border-style: dashed;
+}
+
+.reorg-card {
+  background:
+    linear-gradient(120deg, var(--warn-dim), transparent 64%),
+    var(--bg2);
+}
+
+.dash-prod-head .pill-tab,
+.card-head .pill-tab {
+  min-height: 40px;
+}
+
+@media (max-width: 900px) {
+  .telemetry-page .overview-heading .read-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .telemetry-page .overview-heading .read-toolbar > span:first-child {
+    flex: 1 1 180px;
+  }
+
+  .build-grid { gap: 14px; }
+
+  .range-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .range-label {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 36px;
+    border-inline: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 760px) {
+  .telemetry-page > .telemetry-tabs,
+  .telemetry-page [role="tabpanel"] .telemetry-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 5px;
+    overflow-x: auto;
+    scroll-padding-inline: 5px;
+    scroll-snap-type: x proximity;
+  }
+
+  .telemetry-page .telemetry-tabs button {
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding-inline: 16px;
+    scroll-snap-align: start;
+  }
+
+  /* Sticky row labels keep a node or method identity visible while the reader
+     pans through wide technical columns. */
+  .node-table thead th:first-child,
+  .method-table thead th:first-child {
+    position: sticky;
+    z-index: 5;
+    left: 0;
+    background: var(--bg1);
+    box-shadow: 1px 0 0 var(--line-strong);
+  }
+
+  .node-table tbody th[scope="row"],
+  .method-table tbody th[scope="row"] {
+    position: sticky;
+    z-index: 2;
+    left: 0;
+    max-width: 148px;
+    overflow: hidden;
+    background: var(--bg2);
+    box-shadow: 1px 0 0 var(--line);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .node-table tbody tr:nth-child(even) th[scope="row"],
+  .method-table tbody tr:nth-child(even) th[scope="row"] {
+    background: color-mix(in srgb, var(--bg3) 20%, var(--bg2));
+  }
+
+  .method-search {
+    width: 100%;
+  }
+
+  .api-resource-list > div {
+    align-items: flex-start;
+  }
+
+  .api-example pre,
+  .raw-reading pre {
+    padding: 15px;
+    font-size: .75rem;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats .stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .truth-list li {
+    padding: 11px 12px;
+  }
+
+  .dash-prod-head,
+  .card-head {
+    align-items: stretch;
+  }
+
+  .dash-prod-head .spacer,
+  .card-head .spacer {
+    display: none;
+  }
+
+  .dash-prod-head .pill-tab,
+  .card-head .pill-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .telemetry-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .telemetry-page .metric-panel {
+    min-height: 132px;
+  }
+
+  .telemetry-page .section-heading > .pill {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .method-search .btn { padding-inline: 13px; }
+
+  .telemetry-dl > div {
+    padding-block: 8px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .telemetry-dl > div:last-child { border-bottom: 0; }
+
+  .range-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .range-bar .pill-tab {
+    min-height: 44px;
+  }
+
+  .range-label { font-size: .74rem; }
+
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stats .stat {
+    padding: 11px 12px;
+  }
+
+  .stats .stat .value { font-size: 1.25rem; }
+  .stats .stat .sub { line-height: 1.45; }
+
+  .truth-list {
+    gap: 7px;
+  }
+
+  .truth-list li {
+    grid-template-columns: 24px minmax(0, 1fr);
+    padding: 10px;
+    font-size: .82rem;
+  }
+
+  .truth-list .mark {
+    width: 21px;
+    height: 21px;
+  }
+
+  .hdr-row {
+    gap: 5px;
+    padding-block: 11px;
+  }
+
+  .hdr-row .g4-k { line-height: 1.5; }
+  .block-receipt-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 360px) {
+  .stats,
+  .block-receipt-summary { grid-template-columns: 1fr; }
+  .stats .stat:last-child:nth-child(odd) { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telemetry-tabs button::after {
+    transition: none;
+  }
+
+  .slot-cell,
+  .ep-cell,
+  .range-bar .pill-tab {
+    transition: none;
+  }
+
+  .slot-cell:hover,
+  .ep-cell:hover {
+    transform: none;
+  }
+}

@@ -152,7 +152,7 @@ export function FeesPage() {
         if (!stop) setErr(String(e?.message ?? e));
       }
     };
-    const teardown = pollWhileVisible(() => void tick(), POLL_MS);
+    const teardown = pollWhileVisible(tick, POLL_MS);
     return () => {
       stop = true;
       teardown();

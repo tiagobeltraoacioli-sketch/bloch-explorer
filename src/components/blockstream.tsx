@@ -66,9 +66,9 @@ export function SlotRow({ cell }: { cell: SlotCell }) {
   if (cell.kind === "empty") {
     return (
       <tr className="row-missed">
-        <td className="num">
+        <th scope="row" className="num">
           <Link to={`/slot/${cell.slot}`}>{fmtInt(cell.slot)}</Link>
-        </td>
+        </th>
         <td className="num faint">—</td>
         <td className="faint" colSpan={4}>
           no block — the proposer for this slot missed it
@@ -85,9 +85,9 @@ export function SlotRow({ cell }: { cell: SlotCell }) {
     // job of this row.
     return (
       <tr className="row-unknown">
-        <td className="num">
+        <th scope="row" className="num">
           <Link to={`/slot/${cell.slot}`}>{fmtInt(cell.slot)}</Link>
-        </td>
+        </th>
         <td className="num faint">?</td>
         <td className="faint" colSpan={4}>
           not read — {cell.why}. This says nothing about whether a block exists here.
@@ -104,7 +104,7 @@ export function SlotRow({ cell }: { cell: SlotCell }) {
   const withdrawn = finalityWithdrawn(cell.slot);
   return (
     <tr>
-      <td className="num">
+      <th scope="row" className="num">
         <Link to={`/slot/${b.slot}`}>{fmtInt(b.slot)}</Link>
         {changed && (
           <span
@@ -122,12 +122,12 @@ export function SlotRow({ cell }: { cell: SlotCell }) {
             !
           </span>
         )}
-      </td>
+      </th>
       <td className="num">
-        <Link to={`/validators#v${b.proposer_index}`}>v{b.proposer_index}</Link>
+        <Link to={`/validators/${b.proposer_index}`}>v{b.proposer_index}</Link>
       </td>
       <td>
-        <Link to={`/slot/${b.slot}`} className="mono-link">
+        <Link to={`/block/${b.block_id}`} className="mono-link">
           <code>{short(b.block_id, 10, 6)}</code>
         </Link>
       </td>
@@ -146,16 +146,16 @@ export function SlotRow({ cell }: { cell: SlotCell }) {
 export function SlotTable({ cells }: { cells: SlotCell[] }) {
   return (
     <div className="table-wrap">
-      <table className="tbl">
+      <table className="tbl" aria-label="Slots, blocks and read outcomes">
         <thead>
           <tr>
-            <th className="num">Slot</th>
-            <th className="num">Proposer</th>
-            <th>Block</th>
-            <th className="num">Height</th>
-            <th className="num">Txs</th>
-            <th className="num">Att.</th>
-            <th>State</th>
+            <th scope="col" className="num">Slot</th>
+            <th scope="col" className="num">Proposer</th>
+            <th scope="col">Block</th>
+            <th scope="col" className="num">Height</th>
+            <th scope="col" className="num">Txs</th>
+            <th scope="col" className="num"><abbr title="Included attestations">Att.</abbr></th>
+            <th scope="col">State</th>
           </tr>
         </thead>
         <tbody>

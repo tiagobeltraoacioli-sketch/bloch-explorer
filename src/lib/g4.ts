@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { readRpc } from "./rpcTransport";
+export { pollWhileVisible } from "./polling";
 //
 // Genesis-4 RPC client.
 //
@@ -473,30 +474,4 @@ export async function allValidators(total: number): Promise<(G4Validator | null)
     (i) => g4rpc<G4Validator>("getvalidator", [i]),
   );
   return settled.map((r) => (r.status === "fulfilled" ? r.value : null));
-}
-
-/**
- * Poll `fn` every `ms`, but only while the tab is actually being looked at.
- *
- * A backgrounded tab polling a consensus loop forever is load with no reader
- * on the other end. Returns its own teardown.
- */
-export function pollWhileVisible(fn: () => void, ms: number): () => void {
-  let timer: ReturnType<typeof setInterval> | null = null;
-  const start = () => {
-    if (timer !== null) return;
-    fn();
-    timer = setInterval(fn, ms);
-  };
-  const stop = () => {
-    if (timer !== null) clearInterval(timer);
-    timer = null;
-  };
-  const onVis = () => (document.visibilityState === "visible" ? start() : stop());
-  onVis();
-  document.addEventListener("visibilitychange", onVis);
-  return () => {
-    stop();
-    document.removeEventListener("visibilitychange", onVis);
-  };
 }

@@ -180,7 +180,7 @@ export function G4Dashboard() {
         inFlight = false;
       }
     };
-    const teardown = pollWhileVisible(() => void tick(), POLL_MS);
+    const teardown = pollWhileVisible(tick, POLL_MS);
     return () => {
       stop = true;
       ac.abort();

@@ -67,12 +67,58 @@ import { counters } from '../edge/governor.js';
 
 const CORS = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'content-type',
   'access-control-max-age': '86400',
   'access-control-expose-headers':
     'x-edge-cache, x-edge-age-ms, x-edge-corroboration, x-edge-salt, retry-after',
 };
+
+const JSON_HEADERS = {
+  'content-type': 'application/json; charset=utf-8',
+  'cache-control': 'no-store',
+  'x-content-type-options': 'nosniff',
+  ...CORS,
+};
+
+/** One read call contains only a method and small scalar parameters. */
+export const MAX_RPC_BODY_BYTES = 16 * 1024;
+
+async function readBoundedJson(request) {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_RPC_BODY_BYTES) return { tooLarge: true };
+
+  const reader = request.body?.getReader?.();
+  if (!reader) {
+    const text = await request.text();
+    if (new TextEncoder().encode(text).byteLength > MAX_RPC_BODY_BYTES) return { tooLarge: true };
+    return { payload: JSON.parse(text) };
+  }
+
+  const decoder = new TextDecoder();
+  let bytes = 0;
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > MAX_RPC_BODY_BYTES) {
+      await reader.cancel().catch(() => {});
+      return { tooLarge: true };
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  text += decoder.decode();
+  return { payload: JSON.parse(text) };
+}
+
+function transportError(status, code, message, reason) {
+  return new Response(JSON.stringify({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code, message, data: { reason } },
+  }), { status, headers: JSON_HEADERS });
+}
 
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
@@ -80,13 +126,14 @@ export async function onRequestOptions() {
 
 export function respond(out) {
   const headers = {
-    'content-type': 'application/json',
-    'cache-control': 'no-store',
+    ...JSON_HEADERS,
     'x-edge-cache': out.cacheState || 'bypass',
     'x-edge-corroboration': (out.corroboration && out.corroboration.level) || 'none',
-    ...CORS,
   };
   if (out.ageMs !== undefined) headers['x-edge-age-ms'] = String(out.ageMs);
+  if (out.corroboration?.cache_salt !== undefined) {
+    headers['x-edge-salt'] = String(out.corroboration.cache_salt);
+  }
   if (out.retryAfterMs !== undefined) {
     headers['retry-after'] = String(Math.ceil(out.retryAfterMs / 1000));
   }
@@ -110,9 +157,18 @@ export function respond(out) {
 export async function onRequestPost(context) {
   const { request, env } = context;
 
+  const mediaType = (request.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase();
+  if (mediaType !== 'application/json') {
+    return transportError(415, -32600, 'content-type must be application/json', 'unsupported_media_type');
+  }
+
   let payload;
   try {
-    payload = await request.json();
+    const read = await readBoundedJson(request);
+    if (read.tooLarge) {
+      return transportError(413, -32600, `request body exceeds ${MAX_RPC_BODY_BYTES} bytes`, 'body_too_large');
+    }
+    payload = read.payload;
   } catch {
     return respond({
       body: { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error: body is not JSON' } },
@@ -141,8 +197,27 @@ export async function onRequestPost(context) {
     });
   }
 
-  const out = await handleRead(payload, buildOpts(env, request, runtimeFor(context)));
-  return respond(out);
+  try {
+    const out = await handleRead(payload, buildOpts(env, request, runtimeFor(context)));
+    return respond(out);
+  } catch (error) {
+    // Configuration/runtime failures are edge faults, not evidence that the
+    // chain is down. Keep the JSON-RPC contract and CORS headers, but do not
+    // reflect exception text (which may contain an upstream URL or binding).
+    console.error('explorer rpc edge fault:', error?.name || 'Error');
+    return respond({
+      body: {
+        jsonrpc: '2.0',
+        id: payload && payload.id !== undefined ? payload.id : null,
+        error: {
+          code: -32603,
+          message: 'internal edge error',
+          data: { reason: 'edge_fault', chainStatusKnown: false },
+        },
+      },
+      cacheState: 'bypass',
+    });
+  }
 }
 
 /** GET /rpc — not a call surface; a description of one, plus live counters. */
@@ -152,6 +227,7 @@ export async function onRequestGet() {
       {
         endpoint: 'POST /rpc',
         surface: 'Genesis-4, read only',
+        max_request_body_bytes: MAX_RPC_BODY_BYTES,
         note:
           'JSON-RPC 2.0, one call per request, no batching. Ask getcapabilities ' +
           'for the method table, the cache classes and the corroboration contract.',
@@ -160,6 +236,18 @@ export async function onRequestGet() {
       null,
       2,
     ),
-    { status: 200, headers: { 'content-type': 'application/json', ...CORS } },
+    { status: 200, headers: JSON_HEADERS },
   );
+}
+
+/** Explicit fallback so unsupported verbs retain JSON and CORS semantics. */
+export async function onRequest(context) {
+  if (context.request.method === 'POST') return onRequestPost(context);
+  if (context.request.method === 'GET') return onRequestGet(context);
+  if (context.request.method === 'OPTIONS') return onRequestOptions();
+  return new Response(JSON.stringify({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code: -32600, message: 'POST required for JSON-RPC calls', data: { reason: 'method_not_allowed' } },
+  }), { status: 405, headers: { ...JSON_HEADERS, allow: 'GET, POST, OPTIONS' } });
 }

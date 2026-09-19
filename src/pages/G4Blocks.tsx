@@ -17,7 +17,7 @@
 // block-only list renders that catastrophe as an unremarkable run of blocks.
 // So the unit of this page is the slot, and an empty one gets a row.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SlotCell, slotRange, clearSlotCache, headAgreement, Agreement } from "../lib/source";
 import { G4Head } from "../lib/g4";
 import { SlotTable, SlotTally } from "../components/blockstream";
@@ -45,42 +45,63 @@ export function G4BlocksPage({ from }: { from?: number }) {
   const [head, setHead] = useState<G4Head | null>(null);
   const [headState, setHeadState] = useState<Agreement<G4Head> | null>(null);
   const [cells, setCells] = useState<SlotCell[] | null>(null);
+  const [loadedTop, setLoadedTop] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [jump, setJump] = useState("");
+  const [futureRequest, setFutureRequest] = useState<number | null>(null);
+  const request = useRef(0);
 
   // Where the page starts. Explicit in the URL when the reader navigated to a
   // range; otherwise the head, resolved once.
-  const [top, setTop] = useState<number | null>(from ?? null);
+  const [top, setTop] = useState<number | null>(null);
 
   useEffect(() => {
     let stop = false;
+    ++request.current;
+    setTop(null);
+    setLoadedTop(null);
+    setCells(null);
+    setHead(null);
+    setHeadState(null);
+    setErr(null);
+    setBusy(false);
+    setFutureRequest(null);
     headAgreement().then((a) => {
       if (stop) return;
       setHeadState(a);
       const h = a.kind === "agree" ? a.value : a.kind === "single" ? a.value : a.kind === "disagree" ? a.a : null;
       if (h) {
         setHead(h);
-        setTop((t) => (t === null ? h.slot : t));
+        // Resolve the head before reading an explicit range. The node's
+        // SLOT_EMPTY response cannot distinguish a future slot from a missed
+        // past proposal, so querying beyond the head would invent misses.
+        if (from !== undefined && from > h.slot) setFutureRequest(from);
+        setTop(Math.min(from ?? h.slot, h.slot));
       } else {
         setErr("No archival answered.");
       }
-    });
+    }).catch((e) => !stop && setErr(String((e as Error)?.message ?? e)));
     return () => {
       stop = true;
     };
-  }, []);
+  }, [from]);
 
   const load = useCallback(
     (topSlot: number) => {
+      const token = ++request.current;
       const ac = new AbortController();
       setBusy(true);
       setErr(null);
       slotRange(Math.max(0, topSlot - PAGE + 1), topSlot, ac.signal)
         .then((cs) => {
+          if (token !== request.current) return;
           setCells(cs);
+          setLoadedTop(topSlot);
           setBusy(false);
         })
         .catch((e) => {
+          if (token !== request.current) return;
           setErr(String(e?.message ?? e));
           setBusy(false);
         });
@@ -91,16 +112,20 @@ export function G4BlocksPage({ from }: { from?: number }) {
 
   useEffect(() => {
     if (top === null) return;
+    setJump(String(top));
     return load(top);
   }, [top, load]);
 
   const goto = (t: number) => {
-    const clamped = Math.max(PAGE - 1, t);
+    setFutureRequest(head && t > head.slot ? t : null);
+    const clamped = Math.min(head?.slot ?? t, Math.max(PAGE - 1, t));
     setTop(clamped);
     navigate(`/blocks/${clamped}`);
   };
 
-  if (err && !cells) {
+  const readyCells = loadedTop === top ? cells : null;
+
+  if (err && !readyCells) {
     return (
       <div className="container">
         <h1 className="page-title">Blocks</h1>
@@ -108,11 +133,11 @@ export function G4BlocksPage({ from }: { from?: number }) {
       </div>
     );
   }
-  if (top === null || !cells) return <Loading label="Reading slots…" />;
+  if (top === null || !readyCells) return <Loading label="Reading slots…" />;
 
   const bottom = Math.max(0, top - PAGE + 1);
   const atHead = head !== null && top >= head.slot;
-  const asc = [...cells].sort((a, b) => a.slot - b.slot);
+  const asc = [...readyCells].sort((a, b) => a.slot - b.slot);
   const st = windowStats(asc);
 
   return (
@@ -148,6 +173,8 @@ export function G4BlocksPage({ from }: { from?: number }) {
           treating a finality reading as durable, and it has not been met for this page.
         </div>
       )}
+      {futureRequest !== null && head && <div className="data-warning" role="status">Slot {fmtInt(futureRequest)} is ahead of the observed head at {fmtInt(head.slot)}. The node's empty response cannot prove that a future proposal was missed, so this page opened the head range instead of querying it.</div>}
+      {err && readyCells && <div className="errbox warn" role="alert"><strong>The re-read failed.</strong> {err} The range below is the previous complete reading for these same slots.</div>}
 
       <div className="card">
         <div className="range-bar">
@@ -195,12 +222,12 @@ export function G4BlocksPage({ from }: { from?: number }) {
           <div className="stat">
             <span className="label">Transactions</span>
             <span className="value">{fmtInt(st.txs)}</span>
-            <span className="sub">carried in these slots</span>
+            <span className="sub">carried in {fmtInt(st.blocks)} readable blocks{st.unknown ? ` · partial, ${fmtInt(st.unknown)} slots unread` : ""}</span>
           </div>
           <div className="stat">
             <span className="label">Attestations</span>
             <span className="value">{st.meanAttestations === null ? "—" : fmtNum(st.meanAttestations, 2)}</span>
-            <span className="sub">mean per block · {fmtInt(st.votes)} in all</span>
+            <span className="sub">mean per readable block · {fmtInt(st.votes)} observed{st.unknown ? " · partial" : ""}</span>
           </div>
           <div className="stat">
             <span className="label">Proposers</span>
@@ -210,29 +237,37 @@ export function G4BlocksPage({ from }: { from?: number }) {
           <div className="stat">
             <span className="label">Block interval</span>
             <span className="value">{st.meanIntervalSecs === null ? "—" : `${fmtNum(st.meanIntervalSecs, 0)}s`}</span>
-            <span className="sub">mean between blocks</span>
+            <span className="sub">mean between observed blocks{st.unknown ? " · unread gaps may distort it" : ""}</span>
+          </div>
+          <div className="stat">
+            <span className="label">Read coverage</span>
+            <span className="value">{fmtInt(st.blocks + st.empty)} / {fmtInt(st.slots)}</span>
+            <span className="sub">answered slots · unread is never counted as missed</span>
           </div>
         </div>
-        <SlotTable cells={cells} />
-        <SlotTally cells={cells} />
+        <SlotTable cells={readyCells} />
+        <SlotTally cells={readyCells} />
       </div>
 
-      <p className="lookup-hint" style={{ marginTop: 14 }}>
-        Jump to a slot:{" "}
+      <form className="lookup-hint" style={{ marginTop: 14 }} onSubmit={(event) => {
+        event.preventDefault();
+        const value = Number(jump);
+        if (Number.isSafeInteger(value) && value >= 0) goto(value);
+      }}>
+        <label htmlFor="slot-range-jump">Jump to a slot: </label>
         <input
+          id="slot-range-jump"
           className="slot-jump"
           type="number"
           min={0}
-          defaultValue={top}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") return;
-            const v = Number((e.target as HTMLInputElement).value);
-            if (Number.isSafeInteger(v) && v >= 0) goto(v);
-          }}
-          aria-label="Jump to slot"
+          max={head?.slot}
+          value={jump}
+          onChange={(event) => setJump(event.target.value)}
+          aria-describedby="slot-jump-hint"
         />{" "}
-        then press Enter.
-      </p>
+        <button className="pill-tab" type="submit" disabled={busy || !jump}>Open range</button>
+        <span id="slot-jump-hint"> {head ? `The current observed head is slot ${fmtInt(head.slot)}; future slots are clamped to it.` : "The latest readable slot is still being established."}</span>
+      </form>
     </div>
   );
 }

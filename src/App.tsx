@@ -252,7 +252,7 @@ function useHeadPulse(): Pulse {
         if (!stop) setP((prev) => ({ ...prev, err: String(e?.message ?? e) }));
       }
     };
-    const teardown = pollWhileVisible(() => void tick(), PULSE_MS);
+    const teardown = pollWhileVisible(tick, PULSE_MS);
     return () => {
       stop = true;
       teardown();

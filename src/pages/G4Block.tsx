@@ -37,7 +37,7 @@ import {
   RpcRefusal,
   CODE,
 } from "../lib/source";
-import { G4Block, NOT_CANONICAL } from "../lib/g4";
+import { G4Block, G4Head, NOT_CANONICAL } from "../lib/g4";
 import { fmtInt, timeAgo, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
 import { Loading, Copyable } from "../components/ui";
@@ -104,7 +104,7 @@ function Sightings({ seen }: { seen: Sighting[] }) {
 }
 
 /** How much of the finality bar this reading actually clears. */
-function FinalityTruth({ block, agreement, headEpoch }: { block: G4Block; agreement: Agreement<G4Block> | null; headEpoch: number | null }) {
+function FinalityTruth({ block, agreement, headEpoch }: { block: G4Block; agreement: Agreement<G4Block> | null | undefined; headEpoch: number | null }) {
   const epochsPast = headEpoch === null ? null : headEpoch - block.epoch;
   const agreed = agreement?.kind === "agree";
   const disagreed = agreement?.kind === "disagree";
@@ -131,10 +131,12 @@ function FinalityTruth({ block, agreement, headEpoch }: { block: G4Block; agreem
             {!block.finalized && " Not finalized, so it is reorganisable by the ordinary rules."}
           </span>
         </li>
-        <li className={agreed ? "yes" : "no"}>
-          <span className="mark">{agreed ? "✓" : "✗"}</span>
+        <li className={agreement === undefined ? "" : agreed ? "yes" : "no"}>
+          <span className="mark">{agreement === undefined ? "…" : agreed ? "✓" : "✗"}</span>
           <span>
-            {agreed
+            {agreement === undefined
+              ? "The two-archival cross-check is still in progress."
+              : agreed
               ? "Both archivals name the same block for this slot."
               : agreement?.kind === "single"
                 ? "Only one archival answered — no cross-check happened."
@@ -174,21 +176,27 @@ type View =
   | { kind: "block"; block: G4Block }
   | { kind: "empty"; slot: number }
   | { kind: "unknown"; slot: number; why: string }
-  | { kind: "nosuchid"; id: string };
+  | { kind: "nosuchid"; id: string }
+  | { kind: "invalidid"; id: string };
 
 export function G4BlockPage({ slot, blockId }: { slot?: number; blockId?: string }) {
   const [view, setView] = useState<View>({ kind: "loading" });
-  const [agreement, setAgreement] = useState<Agreement<G4Block> | null>(null);
-  const [headEpoch, setHeadEpoch] = useState<number | null>(null);
+  const [agreement, setAgreement] = useState<Agreement<G4Block> | null | undefined>(undefined);
+  const [head, setHead] = useState<G4Head | null>(null);
   const [seen, setSeen] = useState<Sighting[]>([]);
 
   useEffect(() => {
     let stop = false;
     setView({ kind: "loading" });
-    setAgreement(null);
+    setAgreement(undefined);
+    setHead(null);
 
     (async () => {
       if (blockId !== undefined) {
+        if (!/^[0-9a-f]{64}$/i.test(blockId)) {
+          setView({ kind: "invalidid", id: blockId });
+          return;
+        }
         // By id. This path is what makes a non-canonical block reachable at
         // all: `getblockbyid` serves blocks fork choice did not select, and
         // `getblockbyslot` by construction cannot — it resolves through the
@@ -207,11 +215,15 @@ export function G4BlockPage({ slot, blockId }: { slot?: number; blockId?: string
         return;
       }
 
-      const cell: SlotCell = await slotCell(slot!);
-      if (stop) return;
-      if (cell.kind === "block") setView({ kind: "block", block: cell.block });
-      else if (cell.kind === "empty") setView({ kind: "empty", slot: cell.slot });
-      else setView({ kind: "unknown", slot: cell.slot, why: cell.why });
+      try {
+        const cell: SlotCell = await slotCell(slot!);
+        if (stop) return;
+        if (cell.kind === "block") setView({ kind: "block", block: cell.block });
+        else if (cell.kind === "empty") setView({ kind: "empty", slot: cell.slot });
+        else setView({ kind: "unknown", slot: cell.slot, why: cell.why });
+      } catch (e) {
+        if (!stop) setView({ kind: "unknown", slot: slot!, why: e instanceof Error ? e.message : String(e) });
+      }
     })();
 
     return () => {
@@ -226,9 +238,11 @@ export function G4BlockPage({ slot, blockId }: { slot?: number; blockId?: string
     let stop = false;
     const s = view.block.slot;
     setSeen(sightings(s));
-    slotAgreement(s).then((a) => !stop && setAgreement(a));
-    read<{ epoch: number }>("getchaininfo")
-      .then((h) => !stop && setHeadEpoch(h.epoch))
+    slotAgreement(s)
+      .then((a) => !stop && setAgreement(a))
+      .catch((e) => !stop && setAgreement({ kind: "none", why: e instanceof Error ? e.message : String(e) }));
+    read<G4Head>("getchaininfo")
+      .then((h) => !stop && setHead(h))
       .catch(() => {});
     return () => {
       stop = true;
@@ -240,10 +254,11 @@ export function G4BlockPage({ slot, blockId }: { slot?: number; blockId?: string
   if (view.kind === "empty") return <EmptySlot slot={view.slot} />;
   if (view.kind === "unknown") return <UnreadSlot slot={view.slot} why={view.why} />;
   if (view.kind === "nosuchid") return <NoSuchId id={view.id} />;
+  if (view.kind === "invalidid") return <InvalidBlockId id={view.id} />;
 
   const b = view.block;
   const orphan = b.finality === NOT_CANONICAL;
-  return <BlockBody b={b} orphan={orphan} agreement={agreement} headEpoch={headEpoch} seen={seen} />;
+  return <BlockBody b={b} orphan={orphan} agreement={agreement} head={head} seen={seen} />;
 
 }
 
@@ -273,8 +288,7 @@ export function EmptySlot({ slot }: { slot: number }) {
           {fmtInt(20895)}-odd apart today and why there is no lookup by height.
         </p>
         <p className="lookup-hint">
-          <Link to={`/slot/${slot - 1}`}>← slot {fmtInt(slot - 1)}</Link>
-          {"  ·  "}
+          {slot > 0 && <><Link to={`/slot/${slot - 1}`}>← slot {fmtInt(slot - 1)}</Link>{"  ·  "}</>}
           <Link to={`/slot/${slot + 1}`}>slot {fmtInt(slot + 1)} →</Link>
           {"  ·  "}
           <Link to={`/blocks/${slot + 16}`}>this range</Link>
@@ -299,11 +313,24 @@ export function UnreadSlot({ slot, why }: { slot: number; why: string }) {
         <strong>Could not read this slot.</strong> {why}
         <div style={{ marginTop: 8, fontSize: 12.5 }}>
           This is not the same as "no block here". The archivals did not answer, so we do not
-          know what is at this slot — it may well hold a block. Reload to try again.
+          know what is at this slot — it may well hold a block.
         </div>
+        <button type="button" className="btn btn-sm" style={{ marginTop: 12 }} onClick={() => window.location.reload()}>Retry this read</button>
       </div>
     </div>
   );
+}
+
+/** Reject malformed ids locally rather than turning them into upstream work. */
+export function InvalidBlockId({ id }: { id: string }) {
+  return <div className="container">
+    <h1 className="page-title">Not a block id</h1>
+    <div className="errbox" role="alert">
+      A block id is exactly 64 hexadecimal characters. <code>{id || "(empty)"}</code> was not sent
+      to an archival because it does not match that grammar.
+    </div>
+    <p className="lookup-hint"><Link to="/blocks">Browse canonical slots</Link></p>
+  </div>;
 }
 
 /** A block id nobody holds — very often a `tx_hash` in disguise. */
@@ -401,23 +428,31 @@ function BlockTransactions({ b }: { b: G4Block }) {
   const [idx, setIdx] = useState<IndexerHealth | null | undefined>(undefined);
   const [txs, setTxs] = useState<IndexedBlockTxs | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
     let stop = false;
     setTxs(null);
     setErr(null);
-    indexerHealth().then((h) => {
-      if (stop) return;
-      setIdx(h);
-      if (h && b.tx_count > 0) {
-        indexedBlockTransactions(b.block_id)
-          .then((t) => !stop && setTxs(t))
-          .catch((e) => !stop && setErr(String(e?.message ?? e)));
-      }
-    });
+    setIdx(undefined);
+    indexerHealth()
+      .then(async (h) => {
+        if (stop) return;
+        setIdx(h);
+        if (!h || b.tx_count === 0) return;
+        const receipt = await indexedBlockTransactions(b.block_id);
+        if (receipt.block_id.toLowerCase() !== b.block_id.toLowerCase()) throw new Error("The indexer returned a receipt for a different block id.");
+        if (!stop) setTxs(receipt);
+      })
+      .catch((e) => {
+        if (!stop) {
+          setIdx(null);
+          setErr(String((e as Error)?.message ?? e));
+        }
+      });
     return () => {
       stop = true;
     };
-  }, [b.block_id, b.tx_count]);
+  }, [b.block_id, b.tx_count, revision]);
 
   return (
     <section className="card">
@@ -453,8 +488,8 @@ function BlockTransactions({ b }: { b: G4Block }) {
           <BlockReceiptSummary txs={txs.transactions} />
           <TxRows txs={txs.transactions} asOfSlot={txs.as_of_slot} showBlock={false} />
         </>
-      ) : idx && err ? (
-        <div className="errbox">The indexer did not answer for this block: {err}</div>
+      ) : err ? (
+        <div className="errbox" role="alert">The indexer did not answer for this block: {err} <button type="button" className="btn btn-sm" onClick={() => setRevision((n) => n + 1)}>Retry receipts</button></div>
       ) : idx ? (
         <Loading label="Reading the block's transactions from the indexer…" />
       ) : (
@@ -514,15 +549,16 @@ export function BlockBody({
   b,
   orphan,
   agreement,
-  headEpoch,
+  head,
   seen,
 }: {
   b: G4Block;
   orphan: boolean;
-  agreement: Agreement<G4Block> | null;
-  headEpoch: number | null;
+  agreement: Agreement<G4Block> | null | undefined;
+  head: G4Head | null;
   seen: Sighting[];
 }) {
+  const depth = b.height !== null && head && head.height >= b.height ? head.height - b.height + 1 : null;
   return (
     <div className="container">
       <h1 className="page-title">
@@ -565,9 +601,10 @@ export function BlockBody({
           title="The RPC exposes only a raw included-attestation count. It does not expose aggregation bits or the duty roster needed to calculate participation."
         />
         <Kpi k="Transactions" v={fmtInt(b.tx_count)} sub={b.tx_count === 0 ? "an empty block — usual here" : "the count is all the node gives"} />
+        <Kpi k="Observed depth" v={depth === null ? "—" : fmtInt(depth)} unit={depth === null ? undefined : depth === 1 ? "block" : "blocks"} sub={head ? `against head height ${fmtInt(head.height)} at slot ${fmtInt(head.slot)}` : "head reading unavailable; no depth inferred"} />
       </div>
 
-      <FinalityTruth block={b} agreement={agreement} headEpoch={headEpoch} />
+      <FinalityTruth block={b} agreement={agreement} headEpoch={head?.epoch ?? null} />
 
       {!orphan && <EpochContext b={b} headSlot={null} />}
 
@@ -594,8 +631,7 @@ export function BlockBody({
       </section>
 
       <p className="lookup-hint" style={{ marginTop: 14 }}>
-        <Link to={`/slot/${b.slot - 1}`}>← slot {fmtInt(b.slot - 1)}</Link>
-        {"  ·  "}
+        {b.slot > 0 && <><Link to={`/slot/${b.slot - 1}`}>← slot {fmtInt(b.slot - 1)}</Link>{"  ·  "}</>}
         <Link to={`/block/${b.parent}`}>parent block</Link>
         {"  ·  "}
         <Link to={`/slot/${b.slot + 1}`}>slot {fmtInt(b.slot + 1)} →</Link>
