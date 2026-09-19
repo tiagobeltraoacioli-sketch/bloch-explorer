@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Fragment, lazy, Suspense, useEffect, useState } from "react";
+import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, Link } from "./lib/router";
 import { Route, match } from "./routes";
 import { G4Search, SEARCH_INPUT_ID } from "./components/g4search";
@@ -7,6 +7,7 @@ import { g4rpcWithMeta, pollWhileVisible, G4Head, G4Corroboration } from "./lib/
 import { fmtInt } from "./lib/format";
 import { toggleTheme, useTheme } from "./lib/theme";
 import { G4Dashboard } from "./pages/G4Dashboard";
+import { RouteBoundary } from "./components/RouteBoundary";
 // The dashboard is the only eager page. Every specialist surface is loaded on
 // demand, keeping the first visit light even as the explorer grows richer.
 const FinalityPage = lazy(() => import("./pages/Finality").then((m) => ({ default: m.FinalityPage })));
@@ -28,9 +29,32 @@ const TransactionsPage = lazy(() => import("./pages/Transactions").then((m) => (
 const MempoolPage = lazy(() => import("./pages/Mempool").then((m) => ({ default: m.MempoolPage })));
 const NetworkPage = lazy(() => import("./pages/Network").then((m) => ({ default: m.NetworkPage })));
 const ValidatorGuidePage = lazy(() => import("./pages/ValidatorGuide").then((m) => ({ default: m.ValidatorGuidePage })));
+
+// Begin fetching a specialist view while the reader is already aiming at its
+// link. Dynamic imports are module-cached, so the subsequent lazy render reuses
+// the same request instead of making a second one.
+const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
+  "/blocks": () => import("./pages/G4Blocks"),
+  "/transactions": () => import("./pages/Transactions"),
+  "/analytics": () => import("./pages/Analytics"),
+  "/finality": () => import("./pages/Finality"),
+  "/validators": () => import("./pages/Validators"),
+  "/validators/guide": () => import("./pages/ValidatorGuide"),
+  "/supply": () => import("./pages/Supply"),
+  "/mempool": () => import("./pages/Mempool"),
+  "/network": () => import("./pages/Network"),
+  "/fees": () => import("./pages/Fees"),
+  "/hash": () => import("./pages/Balance"),
+  "/snapshot": () => import("./pages/Snapshot"),
+};
+
+function preloadRoute(to: string) {
+  return ROUTE_PRELOADERS[to]?.().catch(() => undefined);
+}
 import "./features.css";
 import "./blocks.css";
 import "./observatory.css";
+import "./polish.css";
 
 // The Bloch sphere — one qubit, every state. Canonical protocol mark,
 // self-theming via the brand tokens.
@@ -294,22 +318,61 @@ function ThemeToggle() {
 }
 
 /** The mobile drawer — the wallet's grouped sidebar, opened from the hamburger. */
-function Drawer({ open, onClose, path }: { open: boolean; onClose: () => void; path: string }) {
+function Drawer({
+  open,
+  onClose,
+  path,
+  returnFocusRef,
+}: {
+  open: boolean;
+  onClose: () => void;
+  path: string;
+  returnFocusRef: React.RefObject<HTMLButtonElement>;
+}) {
+  const panelRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const oldOverflow = document.body.style.overflow;
+    const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus());
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("hidden"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.body.style.overflow = oldOverflow;
+      returnFocusRef.current?.focus();
     };
-  }, [open, onClose]);
-  const isActive = (to: string) => (to === "/" ? path === "/" : path.startsWith(to));
+  }, [open, onClose, returnFocusRef]);
+  const isActive = (to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
   return (
     <div className={"drawer" + (open ? " open" : "")} aria-hidden={!open}>
-      <div className="drawer-scrim" onClick={onClose} />
-      <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Sections">
+      <div className="drawer-scrim" onClick={onClose} aria-hidden="true" />
+      <aside id="site-drawer" ref={panelRef} className="drawer-panel" role="dialog" aria-modal="true" aria-label="Explorer sections">
         <div className="drawer-head">
           <Link to="/" className="brand" onClick={onClose}>
             <Logo />
@@ -318,7 +381,7 @@ function Drawer({ open, onClose, path }: { open: boolean; onClose: () => void; p
               <span className="brand-sub">post-quantum · proof of stake</span>
             </span>
           </Link>
-          <button className="icon-btn" type="button" aria-label="Close" onClick={onClose}>
+          <button ref={closeRef} className="icon-btn" type="button" aria-label="Close menu" onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
         </div>
@@ -327,7 +390,14 @@ function Drawer({ open, onClose, path }: { open: boolean; onClose: () => void; p
             <div className="nav-group" key={g}>
               <div className="nav-group-label">{g}</div>
               {NAV.filter((n) => n.group === g).map((n) => (
-                <Link key={n.to} to={n.to} className={"nav-item" + (isActive(n.to) ? " active" : "")} onClick={onClose}>
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className={"nav-item" + (isActive(n.to) ? " active" : "")}
+                  onClick={onClose}
+                  onPointerDown={() => void preloadRoute(n.to)}
+                  onFocus={() => void preloadRoute(n.to)}
+                >
                   <span>{n.label}</span>
                   {n.hint && <small>{n.hint}</small>}
                 </Link>
@@ -386,12 +456,23 @@ function RpcStatus({ p }: { p: Pulse }) {
 export function App() {
   const { path } = useRouter();
   const [drawer, setDrawer] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const previousPath = useRef(path);
   const pulse = useHeadPulse();
-  const isActive = (to: string) => (to === "/" ? path === "/" : path.startsWith(to));
+  const isActive = (to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
+  const closeDrawer = useCallback(() => setDrawer(false), []);
 
   // Close the drawer on navigation, and let ⌘K / Ctrl-K / "/" reach the search
   // box from anywhere — the one keyboard habit every explorer user has.
-  useEffect(() => setDrawer(false), [path]);
+  useEffect(() => {
+    setDrawer(false);
+    if (previousPath.current !== path) {
+      previousPath.current = path;
+      const activeRoute = NAV.find((n) => n.to === "/" ? path === "/" : path === n.to || path.startsWith(`${n.to}/`));
+      document.title = `${activeRoute?.label ?? "Explorer"} · Bloch`;
+      window.requestAnimationFrame(() => document.getElementById("main")?.focus({ preventScroll: true }));
+    }
+  }, [path]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = document.getElementById(SEARCH_INPUT_ID) as HTMLInputElement | null;
@@ -417,10 +498,12 @@ export function App() {
         <div className="container">
           <div className="topbar-inner">
             <button
+              ref={menuRef}
               className="icon-btn nav-toggle"
               type="button"
               aria-label="Menu"
               aria-expanded={drawer}
+              aria-controls="site-drawer"
               onClick={() => setDrawer(true)}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
@@ -434,7 +517,14 @@ export function App() {
             </Link>
             <nav className="mainnav" aria-label="Sections">
               {NAV.filter((n) => n.desktop).map((n) => (
-                <Link key={n.to} to={n.to} className={isActive(n.to) ? "active" : ""}>
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  className={isActive(n.to) ? "active" : ""}
+                  onMouseEnter={() => void preloadRoute(n.to)}
+                  onFocus={() => void preloadRoute(n.to)}
+                  onPointerDown={() => void preloadRoute(n.to)}
+                >
                   {n.label}
                 </Link>
               ))}
@@ -448,12 +538,21 @@ export function App() {
         </div>
       </header>
 
-      <Drawer open={drawer} onClose={() => setDrawer(false)} path={path} />
+      <Drawer open={drawer} onClose={closeDrawer} path={path} returnFocusRef={menuRef} />
 
       <main id="main" tabIndex={-1}>
-        <Suspense fallback={<div className="route-loading" role="status"><span>Loading explorer data…</span></div>}>
-          {renderRoute(path)}
-        </Suspense>
+        <RouteBoundary key={path}>
+          <Suspense fallback={
+            <div className="route-loading" role="status" aria-live="polite" aria-label="Loading explorer view">
+              <div className="route-loading-inner" aria-hidden="true">
+                <span>Loading explorer data…</span>
+                <i /><i /><i />
+              </div>
+            </div>
+          }>
+            {renderRoute(path)}
+          </Suspense>
+        </RouteBoundary>
       </main>
 
       <footer className="foot">

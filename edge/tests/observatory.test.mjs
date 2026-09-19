@@ -48,10 +48,21 @@ test('optional reads work across mixed versions and retain the actual source in 
   assert.equal(first.body.result.build_version, 'test-build');
   assert.equal(first.corroboration.level, 'node_local');
   assert.equal(first.corroboration.source_node, 'archival-2');
+  assert.equal(first.corroboration.archival_witnesses, 1, 'the unsupported observer is not counted as a data witness');
   const cached = await handleRead(request('getbuildinfo'), o);
   assert.equal(cached.cacheState, 'hit');
   assert.equal(cached.corroboration.source_node, 'archival-2');
-  assert.ok(f.fleet().every(c => c.method === 'getchaininfo'));
+  assert.equal(f.archival().length, 2, 'an unsupported old observer falls through exactly once');
+  assert.equal(f.fleet().length, 0, 'node-local rollout detection does not need a fleet witness');
+});
+
+test('an optional node-local read stops after the first supporting observer', async () => {
+  const f = fakeFetch(healthy()), t = clock();
+  const out = await handleRead(request('getbuildinfo'), opts(f, t, fakeCache()));
+  assert.equal(out.body.result.build_version, 'test-build');
+  assert.equal(out.corroboration.source_node, 'archival-1');
+  assert.equal(f.archival().length, 1);
+  assert.equal(f.fleet().length, 0);
 });
 
 test('transaction status rejects malformed input without upstream traffic', async () => {

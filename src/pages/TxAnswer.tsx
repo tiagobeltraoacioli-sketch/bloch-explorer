@@ -19,6 +19,9 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
   const outSum = sumSide(tx.outputs);
   const fee = typeof tx.fee_sat === "string" && /^[0-9]+$/.test(tx.fee_sat) ? BigInt(tx.fee_sat) : null;
   const stake = tx.stake_sat && /^[0-9]+$/.test(tx.stake_sat) ? BigInt(tx.stake_sat) : 0n;
+  const feeDensity = fee !== null && tx.size_bytes > 0
+    ? Number((fee * 100n) / BigInt(tx.size_bytes)) / 100
+    : null;
   const valueTransfer = ["transfer", "transfer_v2", "funded_deposit"].includes(tx.kind);
   const conservation = receiptConservation(tx);
 
@@ -49,6 +52,7 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
         <Kpi k="Fee" v={fee === null ? "—" : fmtInt(fee)} unit={fee === null ? undefined : "sat"} sub={!valueTransfer ? "fee from the consensus receipt" : conservation === "unavailable" ? "insufficient amounts to check conservation" : conservation === "balanced" ? stake > 0n ? "inputs − change − validator stake" : "inputs − outputs, exactly" : "receipt conservation mismatch"} />
         <Kpi k="Inputs → outputs" v={`${fmtInt(tx.inputs.length)} → ${fmtInt(tx.outputs.length)}`} sub={inSum === null ? undefined : `${fmtBloch(inSum, 4)} BLOCH spent in`} />
         <Kpi k="Size" v={fmtInt(tx.size_bytes)} unit="B" sub="encoded bytes — a Falcon signature is variable length" />
+        <Kpi k="Fee density" v={feeDensity === null ? "—" : feeDensity.toFixed(2)} unit={feeDensity === null ? undefined : "sat/B"} sub="exact receipt fee ÷ encoded bytes" />
         <Kpi k="Block" v={<Link to={`/block/${tx.block_id}`} className="mono-link">{short(tx.block_id, 10, 6)}</Link>} sub={`slot ${fmtInt(tx.slot)} · height ${fmtInt(tx.height)}`} />
         {stake > 0n && <Kpi k="Validator stake" v={fmtBloch(stake, 8)} unit="BLOCH" sub="locked by this registration; excluded from the fee" />}
         <Kpi k="Receipt" v={valueTransfer && conservation === "mismatch" ? "inconsistent" : "indexed"} sub="indexer reports consensus replay and state-root verification" />

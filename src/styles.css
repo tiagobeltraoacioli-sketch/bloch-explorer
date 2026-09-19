@@ -189,6 +189,7 @@ p { margin: 0 0 10px; }
 a { color: var(--link); text-decoration: none; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { color: var(--link-hover); text-decoration: underline; }
 button { font: inherit; color: inherit; }
+button, a { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 input, textarea, select { font: inherit; }
 code, kbd, pre, .mono { font-family: var(--font-mono); }
 code { font-size: .93em; }
@@ -340,6 +341,7 @@ nav.mainnav a.active::after {
 .drawer-foot { padding: 12px 16px; border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; color: var(--faint); line-height: 1.6; }
 
 main { flex: 1; padding: 26px 0 64px; }
+main:focus { outline: none; }
 main > * { animation: modIn .22s var(--ease); }
 @keyframes modIn { from { opacity: 0; transform: translateY(6px); } }
 
@@ -348,7 +350,7 @@ main > * { animation: modIn .22s var(--ease); }
 .search-wrap.hero { max-width: 760px; margin: 0 auto; flex: none; }
 .search { position: relative; }
 .search-input {
-  width: 100%; min-height: 38px; padding: 8px 74px 8px 36px;
+  width: 100%; min-height: 38px; padding: 8px 86px 8px 36px;
   font-family: var(--font-mono); font-size: 12.5px;
   color: var(--fg); background: var(--bg2);
   border: 1px solid var(--line); border-radius: 999px;
@@ -365,10 +367,27 @@ main > * { animation: modIn .22s var(--ease); }
   min-height: 30px; padding: 0 13px; border-radius: 999px;
   font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; cursor: pointer;
   color: var(--brass-ink); background: var(--brass); border: 0;
-  transition: background var(--dur) var(--ease);
+  display: inline-grid; place-items: center;
+  transition: background var(--dur) var(--ease), transform 80ms ease;
 }
 .search-go:hover { background: var(--brass-bright); }
+.search-go:active:not(:disabled) { transform: translateY(-50%) scale(.96); }
 .search-go:disabled { opacity: .55; cursor: default; }
+.search-clear {
+  position: absolute; z-index: 1; right: 45px; top: 50%; transform: translateY(-50%);
+  display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  color: var(--faint); background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.search-clear:hover { color: var(--fg); background: var(--bg3); }
+.search-clear:active { transform: translateY(-50%) scale(.92); }
+.search-clear svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.search-spinner {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--brass-ink) 30%, transparent);
+  border-top-color: var(--brass-ink); animation: search-spin .65s linear infinite;
+}
+@keyframes search-spin { to { transform: rotate(360deg); } }
 .kbd {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
   color: var(--faint); background: var(--bg3); border: 1px solid var(--line-strong);
@@ -1114,11 +1133,30 @@ body { font-size: 1rem; background: var(--bg0); }
   letter-spacing: .12em;
   text-transform: uppercase;
 }
-.route-loading span { animation: route-pulse 1.15s ease-in-out infinite alternate; }
+.route-loading-inner { width: min(520px, calc(100vw - 44px)); display: grid; gap: 12px; }
+.route-loading span { margin-bottom: 7px; animation: route-pulse 1.15s ease-in-out infinite alternate; }
+.route-loading i {
+  display: block; height: 12px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--bg3), var(--brass-dim), var(--bg3));
+  background-size: 220% 100%; animation: route-shimmer 1.3s linear infinite;
+}
+.route-loading i:nth-of-type(2) { width: 78%; }
+.route-loading i:nth-of-type(3) { width: 54%; }
 @keyframes route-pulse {
   from { opacity: .38; transform: translateY(2px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes route-shimmer { to { background-position: -220% 0; } }
+.route-failure { padding-top: 24px; }
+.route-failure-card { max-width: 720px; margin: 0 auto; border-color: var(--danger-border); }
+.route-failure-kicker {
+  display: block; margin-bottom: 9px; color: var(--crit);
+  font: 600 .68rem/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.route-failure-actions { display: flex; flex-wrap: wrap; gap: 9px; margin: 22px 0 18px; }
+.route-failure details { border-top: 1px solid var(--line); padding-top: 13px; color: var(--muted); }
+.route-failure summary { cursor: pointer; }
+.route-failure details code { display: block; margin-top: 9px; overflow-wrap: anywhere; color: var(--crit); }
 .topbar, .site-header { border-bottom-color: var(--line); }
 .brand .wordmark, .wordmark { font-weight: 600; }
 .page-title, .dash-title { font-weight: 500; line-height: 1.14; }

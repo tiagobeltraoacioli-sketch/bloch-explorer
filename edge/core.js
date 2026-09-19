@@ -219,6 +219,46 @@ async function askArchivals(rpcReq, urls, opts) {
   // "they agreed" and "they disagreed" are equally meaningless. `order()` is
   // health-sorted, so this is the best single node we know of.
   if (opts.single) ordered = ordered.slice(0, 1);
+
+  // Node-local answers cannot form a quorum: two different mempools are both
+  // valid observations. Ask the healthiest observer first and only fall
+  // through when it did not answer. Optional rollout methods additionally
+  // fall through on -32601 so an older observer does not hide a newer one.
+  // This is sequential on purpose: launching the fallback eagerly recreates
+  // the tail latency and upstream load this path exists to avoid.
+  if (opts.firstAnswer) {
+    const answers = [];
+    const attempts = [];
+    let unsupported = null;
+    for (const u of ordered) {
+      const t = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
+      if (t < 500) {
+        attempts.push({ outcome: 'skipped: time budget exhausted' });
+        break;
+      }
+      const r = await attemptOne(u, rpcReq, t, opts.fetchImpl, opts.now);
+      counters.archivalCalls += 1;
+      if (!r.settled) {
+        markSick(u, now());
+        attempts.push({ upstream: u, outcome: r.outcome });
+        continue;
+      }
+      markWell(u);
+      attempts.push({ upstream: u, outcome: 'ok' });
+      if (opts.fallbackOnUnsupported && r.value.error?.code === -32601) {
+        // Keep the old-node answer only as a last resort. If a newer observer
+        // succeeds, provenance and `archival_witnesses` must describe that
+        // successful observation rather than count an unsupported response.
+        unsupported = { url: u, value: r.value };
+        continue;
+      }
+      answers.push({ url: u, value: r.value });
+      break;
+    }
+    if (!answers.length && unsupported) answers.push(unsupported);
+    return { answers, attempts };
+  }
+
   const t = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
   if (t < 500) return { answers: [], attempts: [{ outcome: 'skipped: time budget exhausted' }] };
 
@@ -794,6 +834,8 @@ export async function handleRead(payload, opts) {
       witness: wit,
       deadline,
       single: isPinned(method),
+      firstAnswer: spec.corroboration === 'none',
+      fallbackOnUnsupported: spec.optional,
     });
 
     if (!answers.length) {

@@ -329,7 +329,7 @@ test('two archivals disagreeing on a balance is refused, never resolved by picki
   assert.equal(out.body.error.data.reason, 'divergent_archivals');
 });
 
-test('two archivals disagreeing about the MEMPOOL is normal and is served', async () => {
+test('node-local mempool reads use one healthy observer without manufacturing a quorum', async () => {
   reset();
   const now = clock();
   // Measured on this chain: one sweep of the fleet in a single minute returned
@@ -347,6 +347,25 @@ test('two archivals disagreeing about the MEMPOOL is normal and is served', asyn
   assert.equal(out.corroboration.level, Level.NodeLocal);
   assert.ok(/does not converge/.test(out.corroboration.note));
   assert.equal(f.fleet().length, 0, 'node-local data must not wait on or load the validator fleet');
+  assert.equal(f.archival().length, 1, 'a node-local observation has no second-node quorum to buy');
+  assert.equal(out.body.result.size, 0);
+  assert.equal(out.corroboration.source_node, 'archival-1');
+});
+
+test('node-local reads fall back to the next observer after a transport failure', async () => {
+  reset();
+  const now = clock();
+  const map = healthy({ mempool: 7 });
+  map[ARCHIVALS[0]] = 'timeout';
+  const f = fakeFetch(map);
+
+  const out = await handleRead(call('getmempoolinfo'), opts(f, now, fakeCache()));
+
+  assert.equal(out.body.result.size, 7);
+  assert.equal(out.corroboration.level, Level.NodeLocal);
+  assert.equal(out.corroboration.source_node, 'archival-2');
+  assert.equal(f.archival().length, 2, 'the second observer is a fallback, not an eager duplicate');
+  assert.equal(f.fleet().length, 0);
 });
 
 test('one archival down degrades to uncorroborated rather than to an error', async () => {

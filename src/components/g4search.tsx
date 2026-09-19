@@ -74,6 +74,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
   const [selected, setSelected] = useState(0);
   const [focusWithin, setFocusWithin] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const suggestions = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -161,11 +162,18 @@ export function G4Search({ hero }: { hero?: boolean }) {
       setPhase({ kind: "error", message: `Could not read the head: ${(e as Error).message}` });
       return;
     }
-    const r: HeightSearch = await findSlotForHeight(height, head, {
-      signal,
-      maxProbes: budget,
-      onProgress: (probes) => setPhase({ kind: "heightSearch", height, probes }),
-    });
+    let r: HeightSearch;
+    try {
+      r = await findSlotForHeight(height, head, {
+        signal,
+        maxProbes: budget,
+        onProgress: (probes) => setPhase({ kind: "heightSearch", height, probes }),
+      });
+    } catch (e) {
+      if (signal.aborted) return;
+      setPhase({ kind: "error", message: `Height search was interrupted: ${(e as Error).message}` });
+      return;
+    }
     if (signal.aborted) return;
     if (r.kind === "found") go(`/slot/${r.slot}`);
     else if (r.kind === "future") {
@@ -254,6 +262,15 @@ export function G4Search({ hero }: { hero?: boolean }) {
     await take(parsed.candidates[0]);
   }
 
+  const working = phase.kind === "busy" || phase.kind === "heightSearch";
+
+  const clear = () => {
+    reset();
+    setQ("");
+    setSelected(0);
+    inputRef.current?.focus();
+  };
+
   return (
     <div
       className={"search-wrap" + (hero ? " hero" : "")}
@@ -262,12 +279,13 @@ export function G4Search({ hero }: { hero?: boolean }) {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusWithin(false);
       }}
     >
-      <form className={"search" + (hero ? " hero" : "")} onSubmit={submit} role="search">
+      <form className={"search" + (hero ? " hero" : "")} onSubmit={submit} role="search" aria-busy={working}>
         <svg className="search-ico" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
           <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
         <input
+          ref={inputRef}
           id={hero ? undefined : SEARCH_INPUT_ID}
           className="search-input"
           placeholder={hero ? "Slot, height, epoch, block id, transaction id, address, script hash, outpoint, v‹n›" : "Search…"}
@@ -278,6 +296,11 @@ export function G4Search({ hero }: { hero?: boolean }) {
             if (phase.kind !== "idle") reset();
           }}
           onKeyDown={(e) => {
+            if (e.key === "Escape" && (q || phase.kind !== "idle")) {
+              e.preventDefault();
+              clear();
+              return;
+            }
             if (!showSuggestions) return;
             if (e.key === "ArrowDown") {
               e.preventDefault();
@@ -285,10 +308,6 @@ export function G4Search({ hero }: { hero?: boolean }) {
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               setSelected((i) => (i - 1 + suggestions.length) % suggestions.length);
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              setQ("");
-              setSelected(0);
             }
           }}
           spellCheck={false}
@@ -301,8 +320,13 @@ export function G4Search({ hero }: { hero?: boolean }) {
           aria-activedescendant={showSuggestions ? `explorer-destination-${selected}` : undefined}
         />
         {!hero && phase.kind === "idle" && !q && <kbd className="kbd">⌘K</kbd>}
-        <button className="search-go" type="submit" disabled={phase.kind === "busy"}>
-          {phase.kind === "busy" || phase.kind === "heightSearch" ? "…" : "Go"}
+        {(q || phase.kind !== "idle") && (
+          <button className="search-clear" type="button" aria-label="Clear search" onClick={clear}>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" /></svg>
+          </button>
+        )}
+        <button className="search-go" type="submit" disabled={working} aria-label={working ? "Search in progress" : "Search"}>
+          {working ? <span className="search-spinner" aria-hidden="true" /> : "Go"}
         </button>
       </form>
 

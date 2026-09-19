@@ -1,0 +1,539 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Interaction and responsive finish. Kept as the last stylesheet so the
+   explorer's functional page styles remain the source of layout truth. */
+
+:root {
+  --content-max: 1520px;
+  --interactive-ring: 0 0 0 1px var(--brass-line), 0 12px 32px -20px var(--brass);
+  --surface-highlight: color-mix(in srgb, var(--fg) 5%, transparent);
+}
+
+html {
+  min-width: 280px;
+  scroll-padding-top: 92px;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+button,
+[role="button"],
+a,
+input,
+select,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+a.btn,
+.pill-tab,
+.search-go,
+.lookup-go,
+.icon-btn {
+  touch-action: manipulation;
+}
+
+.container {
+  max-width: var(--content-max);
+  padding-inline: clamp(18px, 3.2vw, 52px);
+}
+
+main {
+  position: relative;
+  isolation: isolate;
+  padding-top: clamp(24px, 3vw, 42px);
+}
+
+main::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 62px 0 auto;
+  height: min(58vh, 650px);
+  pointer-events: none;
+  background:
+    radial-gradient(60% 75% at 12% 0%, color-mix(in srgb, var(--brass) 8%, transparent), transparent 72%),
+    radial-gradient(52% 68% at 88% 0%, color-mix(in srgb, var(--info) 6%, transparent), transparent 76%);
+  opacity: .72;
+}
+
+header.topbar {
+  border-bottom-color: color-mix(in srgb, var(--brass) 13%, var(--line));
+  box-shadow: 0 10px 35px -32px rgba(0, 0, 0, .9);
+}
+
+.topbar-inner {
+  min-height: 70px;
+}
+
+.brand .logo {
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--brass) 28%, transparent));
+  transition: filter var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.brand:hover .logo {
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--brass) 48%, transparent));
+  transform: rotate(-4deg) scale(1.04);
+}
+
+.search-input,
+.lookup-input,
+.mine-input,
+.method-search input,
+.tx-status-form input {
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.search-input:hover:not(:focus),
+.lookup-input:hover:not(:focus),
+.mine-input:hover:not(:focus),
+.method-search input:hover:not(:focus),
+.tx-status-form input:hover:not(:focus) {
+  border-color: var(--line-strong);
+}
+
+.search-input:focus,
+.lookup-input:focus,
+.mine-input:focus,
+.method-search input:focus,
+.tx-status-form input:focus {
+  background: color-mix(in srgb, var(--bg2) 92%, var(--brass) 8%);
+}
+
+.card,
+.overview-panels,
+.consensus-rail,
+.network-tape,
+.table-wrap {
+  box-shadow:
+    inset 0 1px 0 var(--surface-highlight),
+    0 22px 54px -42px rgba(0, 0, 0, .85);
+}
+
+.card {
+  background:
+    linear-gradient(145deg, var(--surface-highlight), transparent 42%),
+    var(--bg2);
+}
+
+/* Only surfaces that actually navigate lift. Static cards retain a stable
+   cursor and silhouette, so visual motion remains an honest affordance. */
+a.card,
+a.overview-instrument,
+a.rail-stop,
+a.ribbon-block,
+a.ribbon-pending,
+.network-tape a {
+  position: relative;
+  cursor: pointer;
+  transition:
+    transform var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+a.card::after,
+a.overview-instrument::after,
+a.rail-stop::after,
+.network-tape a::after {
+  content: "\2197";
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  color: var(--faint);
+  font: 500 .72rem/1 var(--font-mono);
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.btn,
+.pill-tab,
+.seg-btn,
+.lookup-go,
+.search-go,
+.icon-btn,
+.copy-btn {
+  transition:
+    transform 90ms ease,
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.btn:active:not(:disabled),
+.pill-tab:active:not(:disabled),
+.seg-btn:active:not(:disabled),
+.lookup-go:active:not(:disabled),
+.search-go:active:not(:disabled),
+.icon-btn:active:not(:disabled),
+.copy-btn:active:not(:disabled) {
+  transform: scale(.97);
+}
+
+.btn-primary,
+.lookup-go,
+.search-go,
+.pill-tab.go {
+  box-shadow: 0 8px 24px -14px var(--brass);
+}
+
+.btn:focus-visible,
+.pill-tab:focus-visible,
+.seg-btn:focus-visible,
+.icon-btn:focus-visible,
+.copy-btn:focus-visible,
+.network-tape a:focus-visible,
+.rail-stop:focus-visible,
+.overview-instrument:focus-visible,
+.ribbon-block:focus-visible,
+.ribbon-pending:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  box-shadow: var(--interactive-ring);
+}
+
+.table-wrap {
+  position: relative;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap:focus-within,
+.table-wrap:hover {
+  border-color: var(--line-strong);
+}
+
+.tbl {
+  min-width: max-content;
+}
+
+.tbl thead {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+}
+
+.tbl th {
+  background: color-mix(in srgb, var(--bg1) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+
+.tbl tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.tbl tbody tr:focus-within td {
+  background: var(--brass-dim);
+}
+
+.tbl td:first-child,
+.tbl th:first-child {
+  padding-left: clamp(14px, 1.5vw, 22px);
+}
+
+.tbl td:last-child,
+.tbl th:last-child {
+  padding-right: clamp(14px, 1.5vw, 22px);
+}
+
+.mono-link {
+  border-radius: 4px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--brass) 36%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.mono-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.page-title,
+.overview-heading h1 {
+  text-wrap: balance;
+}
+
+.page-lede,
+.section-heading p,
+.lookup-hint {
+  text-wrap: pretty;
+}
+
+.pill,
+.chip,
+.eyebrow,
+.num,
+.g4-v,
+.metric-panel strong,
+.overview-instrument strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.errbox,
+.err-box,
+.data-warning,
+.notebox,
+.notebox-inline,
+.callout,
+.rail {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, currentColor 55%, transparent);
+}
+
+.drawer-scrim {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.drawer-panel {
+  width: min(360px, 92vw);
+}
+
+.nav-item small {
+  max-width: 58%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+footer.foot {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brass) 3%, transparent), transparent 45%),
+    var(--bg1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.card:hover,
+  a.overview-instrument:hover,
+  a.rail-stop:hover,
+  .network-tape a:hover {
+    z-index: 2;
+    transform: translateY(-2px);
+    border-color: var(--brass-line);
+    box-shadow: var(--interactive-ring);
+    text-decoration: none;
+  }
+
+  a.card:hover::after,
+  a.overview-instrument:hover::after,
+  a.rail-stop:hover::after,
+  .network-tape a:hover::after {
+    opacity: .8;
+    transform: none;
+  }
+
+  .btn:hover:not(:disabled),
+  .pill-tab:hover:not(:disabled),
+  .lookup-go:hover:not(:disabled),
+  .search-go:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+}
+
+@media (max-width: 1100px) {
+  :root { --content-max: 1100px; }
+
+  .container { padding-inline: clamp(18px, 3vw, 34px); }
+  .topbar-inner { min-height: 66px; }
+  main { padding-top: 28px; }
+
+  .card.pad-lg { padding: 20px; }
+  .telemetry-metrics { gap: 12px; }
+  .metric-panel { padding: 20px; }
+}
+
+@media (max-width: 760px) {
+  html { scroll-padding-top: 76px; }
+  .container {
+    padding-left: max(15px, env(safe-area-inset-left));
+    padding-right: max(15px, env(safe-area-inset-right));
+  }
+  main { padding-top: 20px; padding-bottom: 48px; }
+  main::before { inset-block-start: 56px; height: 440px; opacity: .58; }
+
+  .topbar-inner { min-height: 60px; }
+  .topbar-tools { gap: 2px; }
+  .brand .logo { width: 28px; height: 28px; }
+
+  .overview-heading { margin-bottom: 20px; }
+  .overview-heading h1,
+  .page-title { font-size: clamp(1.55rem, 7vw, 2rem); }
+  .page-lede { font-size: .94rem; }
+
+  .card,
+  .card.pad-lg,
+  .metric-panel { padding: 17px; }
+
+  .table-wrap {
+    margin-inline: -1px;
+    border-radius: 10px;
+  }
+
+  .tbl th,
+  .tbl td {
+    padding-block: 12px;
+  }
+
+  .tbl th { font-size: .68rem; letter-spacing: .11em; }
+  .tbl td { font-size: .82rem; }
+
+  .toolbar,
+  .actions,
+  .read-toolbar {
+    gap: 8px;
+  }
+
+  .btn,
+  .pill-tab,
+  .lookup-go,
+  .seg-btn,
+  .read-toolbar button {
+    min-height: 44px;
+  }
+
+  .lookup-row > .lookup-go,
+  .mine-inline > button,
+  .tx-status-form > button {
+    flex: 1 1 auto;
+  }
+
+  .network-tape strong { font-size: .92rem; }
+  .overview-instrument strong { font-size: 1.55rem; }
+
+  .foot-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  main { padding-top: 16px; }
+
+  .topbar-inner > .search-wrap {
+    padding-bottom: 2px;
+  }
+
+  .search-input {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  .search-go { min-height: 34px; }
+  .card, .card.pad-lg, .metric-panel { padding: 15px; }
+
+  .page-title { margin-bottom: 12px; }
+  .section-heading { align-items: flex-start; }
+  .section-heading > * { min-width: 0; }
+
+  .overview-tools,
+  .read-toolbar,
+  .toolbar,
+  .actions {
+    width: 100%;
+  }
+
+  .overview-tools > *,
+  .read-toolbar > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .telemetry-tabs {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  .telemetry-tabs button { flex: 1 0 auto; }
+
+  .network-tape a { padding: 12px; }
+  .network-tape span { font-size: .62rem; }
+
+  .integrity-bar {
+    scroll-snap-type: x proximity;
+  }
+
+  .integrity-bar > * { scroll-snap-align: start; }
+
+  .kv .k { font-size: .68rem; }
+  .kv .v { overflow-wrap: anywhere; word-break: normal; }
+
+  footer.foot {
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 360px) {
+  .wordmark { font-size: 15px; }
+  .brand { gap: 7px; }
+  .brand .logo { width: 25px; height: 25px; }
+  .icon-btn { width: 38px; height: 38px; }
+  .network-tape { grid-template-columns: 1fr; }
+  .network-tape a:nth-child(n) { border-left: 0; border-top: 1px solid var(--line); }
+  .network-tape a:first-child { border-top: 0; }
+  .dash-kpis { grid-template-columns: 1fr; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: color-mix(in srgb, var(--fg) 24%, transparent);
+    --line-strong: color-mix(in srgb, var(--fg) 42%, transparent);
+  }
+
+  .muted, .faint, .lookup-hint { color: var(--fg-2); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  header.topbar,
+  .tbl th,
+  .drawer-scrim,
+  .telemetry-tabs {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  header.topbar, .tbl th { background: var(--bg1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand:hover .logo,
+  a.card:hover,
+  a.overview-instrument:hover,
+  a.rail-stop:hover,
+  a.ribbon-block:hover,
+  a.ribbon-pending:hover,
+  .network-tape a:hover {
+    transform: none;
+  }
+}
+
+@media print {
+  header.topbar, footer.foot, .drawer, .overview-tools, .read-toolbar { display: none !important; }
+  body, main, .card, .table-wrap { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+  main { padding: 0; }
+  .container { max-width: none; padding: 0; }
+  .table-wrap { overflow: visible; border-color: #aaa; }
+}
+
+/* Search actions are vertically centred with a transform. Preserve that base
+   transform when adding hover/press feedback so the button never jumps. */
+@media (hover: hover) and (pointer: fine) {
+  .search-go:hover:not(:disabled) { transform: translateY(-50%) scale(1.02); }
+}
+.search-go:active:not(:disabled) { transform: translateY(-50%) scale(.97); }

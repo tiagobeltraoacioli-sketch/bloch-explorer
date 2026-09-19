@@ -450,6 +450,7 @@ function BlockTransactions({ b }: { b: G4Block }) {
               it. Neither is trusted over the other here.
             </div>
           )}
+          <BlockReceiptSummary txs={txs.transactions} />
           <TxRows txs={txs.transactions} asOfSlot={txs.as_of_slot} showBlock={false} />
         </>
       ) : idx && err ? (
@@ -474,6 +475,37 @@ function BlockTransactions({ b }: { b: G4Block }) {
         </>
       )}
     </section>
+  );
+}
+
+/** Aggregates over verified indexer receipts. Kept separate from header facts:
+ * the node reports only tx_count, while bytes, kinds and fees come from replay. */
+function BlockReceiptSummary({ txs }: { txs: IndexedBlockTxs["transactions"] }) {
+  const bytes = txs.reduce((sum, tx) => sum + tx.size_bytes, 0);
+  let fees = 0n;
+  let feeRows = 0;
+  const kinds = new Map<string, number>();
+  for (const tx of txs) {
+    kinds.set(tx.kind, (kinds.get(tx.kind) ?? 0) + 1);
+    if (typeof tx.fee_sat === "string" && /^\d+$/.test(tx.fee_sat)) {
+      fees += BigInt(tx.fee_sat);
+      feeRows++;
+    }
+  }
+  const density = bytes > 0 && feeRows === txs.length
+    ? Number((fees * 100n) / BigInt(bytes)) / 100
+    : null;
+  const composition = [...kinds.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([kind, count]) => `${kind} ${count}`)
+    .join(" · ");
+  return (
+    <div className="kpi-grid block-receipt-summary" style={{ marginBottom: 14 }}>
+      <Kpi k="Indexed bytes" v={fmtInt(bytes)} unit="B" sub="sum of encoded receipt sizes" />
+      <Kpi k="Total fees" v={feeRows === txs.length ? fmtInt(fees) : "partial"} unit={feeRows === txs.length ? "sat" : undefined} sub={`${feeRows}/${txs.length} receipts expose an exact fee`} />
+      <Kpi k="Fee density" v={density === null ? "—" : fmtNum(density, 2)} unit={density === null ? undefined : "sat/B"} sub="total receipt fees ÷ encoded bytes" />
+      <Kpi k="Composition" v={fmtInt(kinds.size)} unit={kinds.size === 1 ? "kind" : "kinds"} sub={composition || "no indexed transactions"} />
+    </div>
   );
 }
 

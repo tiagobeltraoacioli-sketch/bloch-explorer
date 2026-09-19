@@ -65,9 +65,9 @@ export function Link({
       title={title}
       {...rest}
       onClick={(e) => {
-        onClick?.();
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
+        onClick?.();
         navigate(to);
       }}
     >
