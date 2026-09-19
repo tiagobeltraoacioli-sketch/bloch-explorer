@@ -72,6 +72,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
   const [q, setQ] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [selected, setSelected] = useState(0);
+  const [focusWithin, setFocusWithin] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   const suggestions = useMemo(() => {
@@ -79,7 +80,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
     if (!needle || !/^[a-z\s&-]+$/i.test(needle)) return [];
     return DESTINATIONS.filter((d) => `${d.label} ${d.terms}`.toLowerCase().includes(needle)).slice(0, 6);
   }, [q]);
-  const showSuggestions = phase.kind === "idle" && suggestions.length > 0;
+  const showSuggestions = focusWithin && phase.kind === "idle" && suggestions.length > 0;
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -254,7 +255,13 @@ export function G4Search({ hero }: { hero?: boolean }) {
   }
 
   return (
-    <div className={"search-wrap" + (hero ? " hero" : "")}>
+    <div
+      className={"search-wrap" + (hero ? " hero" : "")}
+      onFocus={() => setFocusWithin(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusWithin(false);
+      }}
+    >
       <form className={"search" + (hero ? " hero" : "")} onSubmit={submit} role="search">
         <svg className="search-ico" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -322,9 +329,9 @@ export function G4Search({ hero }: { hero?: boolean }) {
         </div>
       )}
 
-      {phase.kind === "busy" && <div className="search-note">{phase.what}</div>}
+      {phase.kind === "busy" && <div className="search-note" role="status" aria-live="polite">{phase.what}</div>}
 
-      {phase.kind === "error" && <div className="search-err">{phase.message}</div>}
+      {phase.kind === "error" && <div className="search-err" role="alert">{phase.message}</div>}
 
       {phase.kind === "choose" && (
         <div className="search-choose">
@@ -354,7 +361,7 @@ export function G4Search({ hero }: { hero?: boolean }) {
       )}
 
       {phase.kind === "heightSearch" && (
-        <div className="search-note">
+        <div className="search-note" role="status" aria-live="polite">
           Searching for height {fmtInt(phase.height)} — {phase.probes} slots probed. There is no
           lookup by height, so this closes a bracket on it.
         </div>

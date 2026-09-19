@@ -22,8 +22,8 @@
 //
 //     however many requests arrive, an isolate performs at most
 //     ARCHIVAL_RATE calls/second to the archival plane and at most
-//     one bounded fleet witness refresh per WITNESS_TTL_MS. A refresh may
-//     fail over sequentially across up to three validators.
+//     FLEET_RATE calls/second to the witness plane. A refresh may fail over
+//     sequentially, but every actual validator attempt spends its own token.
 //
 // Past that ceiling the edge serves stale cache, and past THAT it refuses. A
 // refusal to a caller is a bounded, honest failure; a node whose consensus
@@ -150,9 +150,9 @@ export const ARCHIVAL_BURST = 60;
  */
 export const UPSTREAM_WALK_COST = 5;
 
-/** Fleet witness refreshes. One per interval; the burst covers a tiebreak. */
+/** Fleet witness calls. One token per actual validator contacted. */
 export const FLEET_RATE = 0.05; // one per 20 s
-export const FLEET_BURST = 2;
+export const FLEET_BURST = 3;
 
 /**
  * Per-isolate state. Module scope on purpose — surviving between requests in

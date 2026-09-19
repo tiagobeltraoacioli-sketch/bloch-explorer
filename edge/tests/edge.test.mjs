@@ -16,7 +16,7 @@ import { test } from 'node:test';
 
 import { handleRead, Level, _resetCoreForTests, rederiveFinality } from '../core.js';
 import { salt, events, _setWitnessForTests, WITNESS_TTL_MS, MAX_WITNESS_ATTEMPTS } from '../lineage.js';
-import { ARCHIVAL_RATE, ARCHIVAL_BURST, WALK_COST, CLIENT_BURST, counters } from '../governor.js';
+import { ARCHIVAL_RATE, ARCHIVAL_BURST, WALK_COST, CLIENT_BURST, FLEET_BURST, counters } from '../governor.js';
 import {
   ARCHIVALS,
   FLEET,
@@ -153,6 +153,12 @@ test('fleet witness failover is bounded when every validator is down', async () 
     MAX_WITNESS_ATTEMPTS,
     'a down fleet must not turn one refresh into a whole-fleet sweep',
   );
+  assert.equal(counters.fleetCalls, FLEET_BURST, 'every actual witness attempt spends one fleet token');
+
+  await handleRead(call('getchaininfo'), opts(f, now, fakeCache(), {
+    pools: { archivals: ARCHIVALS, fleet },
+  }));
+  assert.equal(counters.fleetCalls, FLEET_BURST, 'the cached failed witness prevents an immediate retry wave');
 });
 
 test('fifty concurrent cold requests are one upstream call, not fifty', async () => {

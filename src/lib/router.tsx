@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+  type AnchorHTMLAttributes,
+} from "react";
 
 // Minimal history-based router — no dependency. SPA fallback (_redirects)
 // makes deep links work on Cloudflare Pages.
@@ -34,6 +42,13 @@ export function useRouter() {
   return useContext(Ctx);
 }
 
+type LinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "onClick"> & {
+  to: string;
+  children: ReactNode;
+  /** Runs before the navigation — for closing a drawer, say. */
+  onClick?: () => void;
+};
+
 export function Link({
   to,
   children,
@@ -41,16 +56,7 @@ export function Link({
   title,
   onClick,
   ...rest
-}: {
-  to: string;
-  children: ReactNode;
-  className?: string;
-  title?: string;
-  /** Runs before the navigation — for closing a drawer, say. */
-  onClick?: () => void;
-  "aria-label"?: string;
-  "aria-current"?: "page" | undefined;
-}) {
+}: LinkProps) {
   const { navigate } = useRouter();
   return (
     <a

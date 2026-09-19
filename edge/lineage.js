@@ -378,9 +378,10 @@ export async function saveLineage(cache) {
  *   - a failure is cached too, as `ok: false`, so a down fleet does not turn
  *     every request into a fresh 9-second attempt against a box that is down.
  *
- * `opts` = { fleet, fetchImpl, now, budget }. `budget` is the fleet governor;
- * when it refuses, the previous witness is returned however old it is, marked
- * with its age, and the caller degrades to `uncorroborated` on its own.
+ * `opts` = { fleet, fetchImpl, now, budget }. `budget` is the fleet governor.
+ * Every actual attempt consumes one token; failover therefore cannot turn one
+ * admitted refresh into unmetered upstream work. When the budget refuses, the
+ * previous witness is retained and the caller degrades to `uncorroborated`.
  */
 export async function fleetWitness(opts) {
   const { fleet, fetchImpl, now } = opts;
@@ -388,10 +389,6 @@ export async function fleetWitness(opts) {
   if (witness && t - witness.at < WITNESS_TTL_MS) return witness;
   if (witnessInFlight) return witnessInFlight;
   if (!fleet.length) return witness || { ok: false, chain: null, at: t, url: null, reason: 'no_fleet_configured' };
-  if (opts.budget && !opts.budget.take(1)) {
-    return witness || { ok: false, chain: null, at: t, url: null, reason: 'fleet_budget_exhausted' };
-  }
-
   // Rotate before applying the health ordering, so healthy validators share
   // successful refreshes while cooling validators naturally move to the end.
   const offset = Math.floor(t / WITNESS_TTL_MS) % fleet.length;
@@ -402,6 +399,10 @@ export async function fleetWitness(opts) {
   witnessInFlight = (async () => {
     let last = { url: null, reason: 'no_witness_attempted' };
     for (const candidate of candidates) {
+      if (opts.budget && !opts.budget.take(1)) {
+        last = { url: last.url, reason: 'fleet_budget_exhausted' };
+        break;
+      }
       if (opts.counters) opts.counters.fleetCalls += 1;
       const r = await attemptOne(
         candidate,

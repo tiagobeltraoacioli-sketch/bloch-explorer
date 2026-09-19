@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, lazy, Suspense, useEffect, useState } from "react";
 import { useRouter, Link } from "./lib/router";
 import { Route, match } from "./routes";
 import { G4Search, SEARCH_INPUT_ID } from "./components/g4search";
@@ -7,25 +7,27 @@ import { g4rpcWithMeta, pollWhileVisible, G4Head, G4Corroboration } from "./lib/
 import { fmtInt } from "./lib/format";
 import { toggleTheme, useTheme } from "./lib/theme";
 import { G4Dashboard } from "./pages/G4Dashboard";
-import { FinalityPage } from "./pages/Finality";
-import { G4BlockPage } from "./pages/G4Block";
-import { G4BlocksPage } from "./pages/G4Blocks";
-import { TxAnswerPage } from "./pages/TxAnswer";
-import { BalancePage } from "./pages/Balance";
-import { HashPage } from "./pages/Hash";
-import { OutpointPage } from "./pages/Outpoint";
-import { ValidatorsPage } from "./pages/Validators";
-import { ValidatorDetailPage } from "./pages/ValidatorDetail";
-import { ValidatorQueuesPage } from "./pages/ValidatorQueues";
-import { SnapshotPage } from "./pages/Snapshot";
-import { SupplyPage } from "./pages/Supply";
-import { FeesPage } from "./pages/Fees";
-import { AnalyticsPage } from "./pages/Analytics";
-import { EpochPage } from "./pages/Epoch";
-import { TransactionsPage } from "./pages/Transactions";
-import { MempoolPage } from "./pages/Mempool";
-import { NetworkPage } from "./pages/Network";
-import { ValidatorGuidePage } from "./pages/ValidatorGuide";
+// The dashboard is the only eager page. Every specialist surface is loaded on
+// demand, keeping the first visit light even as the explorer grows richer.
+const FinalityPage = lazy(() => import("./pages/Finality").then((m) => ({ default: m.FinalityPage })));
+const G4BlockPage = lazy(() => import("./pages/G4Block").then((m) => ({ default: m.G4BlockPage })));
+const G4BlocksPage = lazy(() => import("./pages/G4Blocks").then((m) => ({ default: m.G4BlocksPage })));
+const TxAnswerPage = lazy(() => import("./pages/TxAnswer").then((m) => ({ default: m.TxAnswerPage })));
+const BalancePage = lazy(() => import("./pages/Balance").then((m) => ({ default: m.BalancePage })));
+const HashPage = lazy(() => import("./pages/Hash").then((m) => ({ default: m.HashPage })));
+const OutpointPage = lazy(() => import("./pages/Outpoint").then((m) => ({ default: m.OutpointPage })));
+const ValidatorsPage = lazy(() => import("./pages/Validators").then((m) => ({ default: m.ValidatorsPage })));
+const ValidatorDetailPage = lazy(() => import("./pages/ValidatorDetail").then((m) => ({ default: m.ValidatorDetailPage })));
+const ValidatorQueuesPage = lazy(() => import("./pages/ValidatorQueues").then((m) => ({ default: m.ValidatorQueuesPage })));
+const SnapshotPage = lazy(() => import("./pages/Snapshot").then((m) => ({ default: m.SnapshotPage })));
+const SupplyPage = lazy(() => import("./pages/Supply").then((m) => ({ default: m.SupplyPage })));
+const FeesPage = lazy(() => import("./pages/Fees").then((m) => ({ default: m.FeesPage })));
+const AnalyticsPage = lazy(() => import("./pages/Analytics").then((m) => ({ default: m.AnalyticsPage })));
+const EpochPage = lazy(() => import("./pages/Epoch").then((m) => ({ default: m.EpochPage })));
+const TransactionsPage = lazy(() => import("./pages/Transactions").then((m) => ({ default: m.TransactionsPage })));
+const MempoolPage = lazy(() => import("./pages/Mempool").then((m) => ({ default: m.MempoolPage })));
+const NetworkPage = lazy(() => import("./pages/Network").then((m) => ({ default: m.NetworkPage })));
+const ValidatorGuidePage = lazy(() => import("./pages/ValidatorGuide").then((m) => ({ default: m.ValidatorGuidePage })));
 import "./features.css";
 import "./blocks.css";
 import "./observatory.css";
@@ -448,7 +450,11 @@ export function App() {
 
       <Drawer open={drawer} onClose={() => setDrawer(false)} path={path} />
 
-      <main id="main" tabIndex={-1}>{renderRoute(path)}</main>
+      <main id="main" tabIndex={-1}>
+        <Suspense fallback={<div className="route-loading" role="status"><span>Loading explorer data…</span></div>}>
+          {renderRoute(path)}
+        </Suspense>
+      </main>
 
       <footer className="foot">
         <div className="container">
