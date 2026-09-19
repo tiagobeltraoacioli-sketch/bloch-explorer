@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "../lib/router";
 import { fmtBloch, fmtCompactBloch, fmtInt, short, timeAgo } from "../lib/format";
-import { Copyable } from "../components/ui";
+import { Copyable, Loading } from "../components/ui";
 import { ChartCard, ProportionBars } from "../components/charts";
 import { Kpi } from "../components/kit";
 import { indexedTransaction, IndexedTxAmbiguity, IndexedTx, sumSide, receiptConservation } from "../lib/indexer";
@@ -24,6 +24,14 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
     : null;
   const valueTransfer = ["transfer", "transfer_v2", "funded_deposit"].includes(tx.kind);
   const conservation = receiptConservation(tx);
+  const receiptLabel = !valueTransfer ? "verified" : conservation === "mismatch" ? "inconsistent" : conservation === "unavailable" ? "not checkable" : "balanced";
+  const receiptNote = !valueTransfer
+    ? "consensus-replayed receipt; transfer conservation does not describe this transaction kind"
+    : conservation === "balanced"
+      ? "inputs equal outputs + stake + fee exactly"
+      : conservation === "mismatch"
+        ? "recorded amounts do not conserve; do not rely on this receipt"
+        : "amounts are insufficient for an exact conservation check";
 
   const allocations = outSum !== null && fee !== null && conservation === "balanced" && inSum !== null && inSum > 0n && valueTransfer
     ? [{ label: "Outputs", value: outSum, color: "var(--chart-1)" }, { label: "Validator stake", value: stake, color: "var(--chart-3)" }, { label: "Fee", value: fee, color: "var(--chart-4)" }].map(row => ({ ...row, pct: Number(row.value * 1000000n / inSum) / 10000, sub: `${fmtBloch(row.value, 8)} BLOCH` }))
@@ -54,8 +62,10 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
         <Kpi k="Size" v={fmtInt(tx.size_bytes)} unit="B" sub="encoded bytes — a Falcon signature is variable length" />
         <Kpi k="Fee density" v={feeDensity === null ? "—" : feeDensity.toFixed(2)} unit={feeDensity === null ? undefined : "sat/B"} sub="exact receipt fee ÷ encoded bytes" />
         <Kpi k="Block" v={<Link to={`/block/${tx.block_id}`} className="mono-link">{short(tx.block_id, 10, 6)}</Link>} sub={`slot ${fmtInt(tx.slot)} · height ${fmtInt(tx.height)}`} />
+        <Kpi k="Body position" v={`#${fmtInt(tx.index + 1)}`} sub={`zero-based index ${fmtInt(tx.index)} in the canonical block body`} />
+        {tx.as_of_slot !== undefined && <Kpi k="Index snapshot" v={`slot ${fmtInt(tx.as_of_slot)}`} sub={tx.chain_tip ? `tip ${short(tx.chain_tip, 10, 6)}` : "verified historical snapshot"} />}
         {stake > 0n && <Kpi k="Validator stake" v={fmtBloch(stake, 8)} unit="BLOCH" sub="locked by this registration; excluded from the fee" />}
-        <Kpi k="Receipt" v={valueTransfer && conservation === "mismatch" ? "inconsistent" : "indexed"} sub="indexer reports consensus replay and state-root verification" />
+        <Kpi k="Receipt" v={receiptLabel} sub={receiptNote} />
       </div>
 
       {allocations.length > 0 && <ChartCard title="Recorded value allocation" hint="share of exact input value · outputs may include change">
@@ -69,8 +79,8 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
             <p className="lookup-hint">This transaction spends no eUTXO inputs. Any withdrawal proceeds are shown under outputs.</p>
           ) : (
             <div className="table-wrap">
-              <table className="tbl">
-                <thead><tr><th>Outpoint spent</th><th>From</th><th className="num">Value</th></tr></thead>
+              <table className="tbl" aria-label={`Inputs consumed by transaction ${tx.txid}`}>
+                <thead><tr><th scope="col">Outpoint spent</th><th scope="col">Owner script hash</th><th scope="col" className="num">Value (BLOCH)</th></tr></thead>
                 <tbody>
                   {tx.inputs.map((i, n) => (
                     <tr key={n}>
@@ -88,15 +98,15 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
         <section className="card" style={{ margin: 0 }}>
           <h2 className="snap-h2">Outputs — {fmtInt(tx.outputs.length)}</h2>
           <div className="table-wrap">
-            <table className="tbl">
-              <thead><tr><th className="num">#</th><th>To</th><th className="num">Value</th><th>Now</th></tr></thead>
+            <table className="tbl" aria-label={`Outputs created by transaction ${tx.txid}`}>
+              <thead><tr><th scope="col" className="num">Output</th><th scope="col">Owner script hash</th><th scope="col" className="num">Value (BLOCH)</th><th scope="col">State</th></tr></thead>
               <tbody>
                 {tx.outputs.map((o) => (
                   <tr key={o.vout}>
                     <td className="num">{o.vout}</td>
                     <td><Link to={`/hash/${o.script_hash}`} className="mono-link">{short(o.script_hash, 8, 6)}</Link></td>
                     <td className="num">{/^[0-9]+$/.test(o.value_sat) ? fmtBloch(o.value_sat, 8) : "—"}</td>
-                    <td><Link to={`/outpoint/${tx.txid}:${o.vout}`}>check</Link></td>
+                    <td><Link to={`/outpoint/${tx.txid}:${o.vout}`} aria-label={`View current state and history of output ${o.vout}`}>View output</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -127,22 +137,32 @@ export function TxAnswerPage({ hash }: { hash?: string }) {
   const [indexError, setIndexError] = useState<string | null>(null);
   const [matches, setMatches] = useState<IndexedTx[]>([]);
   const [tx, setTx] = useState<IndexedTx | null | undefined>(hash ? undefined : null);
+  const wellFormed = !hash || /^[0-9a-f]{64}$/i.test(hash);
   useEffect(() => {
     let stop = false;
     setTx(hash ? undefined : null);
     setMatches([]);
     setIndexError(null);
-    if (hash) {
+    if (hash && wellFormed) {
       indexedTransaction(hash.toLowerCase())
         .then((value) => { if (!stop) setTx(value); })
         .catch(e => { if (!stop) { setTx(null); if (e instanceof IndexedTxAmbiguity) setMatches(e.matches); else setIndexError(e instanceof Error ? e.message : "Historical index unavailable."); } });
     }
     return () => { stop = true; };
-  }, [hash, attempt]);
+  }, [hash, attempt, wellFormed]);
 
   if (!hash) return <div className="container">
     <h1 className="page-title">Transaction lookup</h1>
     <TxStatusLookup />
+  </div>;
+
+  if (!wellFormed) return <div className="container">
+    <h1 className="page-title">Not a transaction ID</h1>
+    <div className="err-box" role="alert">
+      A transaction ID is exactly 64 hexadecimal characters. This value was not sent to the
+      observer or historical index because it does not match that grammar.
+    </div>
+    <p><Link to="/tx">Try another transaction</Link></p>
   </div>;
 
   return <>
@@ -151,10 +171,10 @@ export function TxAnswerPage({ hash }: { hash?: string }) {
       <p className="page-lede mono-wrap"><Copyable text={hash}><code className="snap-hash">{hash}</code></Copyable></p>
       <p><Link to="/tx">Look up another transaction</Link></p>
       <TransactionStatus key={hash} hash={hash.toLowerCase()} />
-      {matches.length > 0 && <section className="card"><h2 className="snap-h2">Choose a transaction occurrence</h2><p>This ID occurs in more than one position. Select its indexed block.</p>{matches.map(t => <p key={`${t.block_id}:${t.index}`}><button className="btn" onClick={() => setTx(t)}>Slot {fmtInt(t.slot)} · transaction {t.index + 1} · {short(t.block_id, 10, 6)}</button></p>)}</section>}
+      {matches.length > 0 && <section className="card" aria-labelledby="tx-occurrences"><h2 className="snap-h2" id="tx-occurrences">Choose a transaction occurrence</h2><p>This ID occurs in more than one position. Select its indexed block.</p>{matches.map(t => <p key={`${t.block_id}:${t.index}`}><button type="button" className="btn" onClick={() => setTx(t)}>Slot {fmtInt(t.slot)} · transaction {t.index + 1} · {short(t.block_id, 10, 6)}</button></p>)}</section>}
       {indexError && <p className="errbox" role="alert">{indexError}</p>}
-      <button className="btn btn-sm" disabled={tx === undefined} onClick={() => setAttempt(n => n + 1)}>{tx === undefined ? "Reading details…" : "Refresh transaction details"}</button>
-      {!tx && matches.length === 0 && <section className="card">
+      {tx === undefined ? <Loading label="Reading the verified transaction receipt…" /> : <button type="button" className="btn btn-sm" onClick={() => { setTx(undefined); setAttempt(n => n + 1); }}>Refresh transaction details</button>}
+      {tx === null && matches.length === 0 && <section className="card">
         <h2 className="snap-h2">Transaction details</h2>
         <p>{indexError ? "Transaction details could not be read. Retry when the index is available." : tx === undefined ? "Checking the historical index for inputs, outputs and fees…" : "The historical index has no receipt for this ID in its current snapshot. This does not prove transaction failure."}</p>
         <p className="lookup-hint">The status above is queried separately and remains available when the index is offline or does not contain this transaction.</p>

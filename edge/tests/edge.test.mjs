@@ -669,6 +669,50 @@ test('a cached block never carries a stale finality claim', async () => {
   assert.equal(second.body.result.finalized, true, 'finality must be recomputed, not replayed');
 });
 
+test('an immutable cache hit does not block on stale evidence and never replays stale finality', async () => {
+  reset();
+  const now = clock();
+  const cache = fakeCache();
+  const base = fakeFetch(healthy());
+  const first = await handleRead(call('getblockbyid', ['ac'.repeat(32)]), opts(base, now, cache));
+  const initialFinality = first.body.result.finalized;
+
+  // Expire both witness and plane evidence while the content-addressed block
+  // itself remains fresh for a week.
+  now.advance(WITNESS_TTL_MS * 3 + 1);
+  let releaseWitness;
+  const blockedFetch = (url, init) => {
+    if (!FLEET.includes(url)) return base(url, init);
+    return new Promise(resolve => {
+      releaseWitness = () => base(url, init).then(resolve);
+    });
+  };
+  const scheduled = [];
+  const backgroundOpts = opts(blockedFetch, now, cache, { waitUntil: promise => scheduled.push(promise) });
+  const [second, parallel] = await Promise.all([
+    handleRead(call('getblockbyid', ['ac'.repeat(32)]), backgroundOpts),
+    handleRead(call('getblockbyid', ['ac'.repeat(32)]), { ...backgroundOpts, clientKey: 'parallel-reader' }),
+  ]);
+
+  assert.equal(second.cacheState, 'hit');
+  assert.equal(parallel.cacheState, 'hit');
+  assert.equal(second.body.result.finalized, null, 'expired witness evidence cannot assert block finality');
+  assert.equal(second.body.result.finality, 'unknown');
+  assert.equal(second.corroboration.level, Level.Uncorroborated);
+  assert.ok(second.corroboration.missing.some(m => /fleet witness/.test(m)));
+  assert.equal(typeof releaseWitness, 'function', 'the evidence refresh started in the background');
+  assert.equal(scheduled.length, 2);
+
+  releaseWitness();
+  await Promise.all(scheduled);
+  assert.equal(base.fleet().length, 2, 'one initial witness plus one coalesced background refresh');
+  assert.equal(base.ofMethod('getchaininfo').length, 6, 'initial and background plane certification each fan out once');
+  const third = await handleRead(call('getblockbyid', ['ac'.repeat(32)]), opts(base, now, cache));
+  assert.equal(third.cacheState, 'hit');
+  assert.equal(third.body.result.finalized, initialFinality, 'fresh background evidence restores derived finality');
+  assert.equal(third.corroboration.level, Level.Corroborated);
+});
+
 test('with no witness a block says finality is unknown, not false', async () => {
   reset();
   const now = clock();

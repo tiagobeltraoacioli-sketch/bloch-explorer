@@ -5,13 +5,16 @@ import { g4rpc, G4Head, G4TxOut, G4_RPC } from "../lib/g4";
 import { indexerHealth, indexedOutpoint, IndexedOutpoint, IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtInt } from "../lib/format";
 import { Link } from "../lib/router";
-import { Loading } from "../components/ui";
+import { Copyable, Loading } from "../components/ui";
 
 export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
   const [d, setD] = useState<{ out: G4TxOut; head: G4Head; endpoint: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [idx, setIdx] = useState<IndexerHealth | null | undefined>(undefined);
   const [indexed, setIndexed] = useState<IndexedOutpoint | null>(null);
+  const [indexPending, setIndexPending] = useState(false);
+  const [indexError, setIndexError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
 
   const wellFormed = /^[0-9a-f]{64}$/.test(txid) && Number.isInteger(vout) && vout >= 0;
 
@@ -21,23 +24,44 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
     setD(null);
     setErr(null);
     setIndexed(null);
+    setIdx(undefined);
+    setIndexPending(true);
+    setIndexError(null);
     (async () => {
-      const head = await g4rpc<G4Head>("getchaininfo");
-      const out = await g4rpc<G4TxOut>("gettxout", [txid, vout]);
+      const [head, out] = await Promise.all([
+        g4rpc<G4Head>("getchaininfo"),
+        g4rpc<G4TxOut>("gettxout", [txid, vout]),
+      ]);
       return { head, out, endpoint: G4_RPC };
     })()
       .then((r) => !stop && setD(r))
       .catch((e) => !stop && setErr(String(e?.message ?? e)));
 
-    indexerHealth().then((h) => {
-      if (stop) return;
-      setIdx(h);
-      if (h) indexedOutpoint(txid, vout).then((o) => !stop && setIndexed(o)).catch(() => {});
-    });
+    indexerHealth()
+      .then(async (h) => {
+        if (stop) return;
+        setIdx(h);
+        if (!h) return;
+        try {
+          const receipt = await indexedOutpoint(txid, vout);
+          if (!stop) setIndexed(receipt);
+        } catch (e) {
+          if (!stop) setIndexError(String((e as Error)?.message ?? e));
+        }
+      })
+      .catch((e) => {
+        if (!stop) {
+          setIdx(null);
+          setIndexError(String((e as Error)?.message ?? e));
+        }
+      })
+      .finally(() => {
+        if (!stop) setIndexPending(false);
+      });
     return () => {
       stop = true;
     };
-  }, [txid, vout, wellFormed]);
+  }, [txid, vout, wellFormed, revision]);
 
   if (!wellFormed) {
     return (
@@ -58,62 +82,64 @@ export function OutpointPage({ txid, vout }: { txid: string; vout: number }) {
     <div className="container">
       <h1 className="page-title">Outpoint</h1>
       <p className="page-lede">
-        <code>
-          {txid}:{vout}
-        </code>
+        <Copyable text={`${txid}:${vout}`}><code>{txid}:{vout}</code></Copyable>
         <br />
         One recorded output: its exact value, owner, creation and spend history.
         View the <Link to={`/tx/${txid}`}>creating transaction</Link>.
       </p>
 
-      {err && <div className="err-box">{err}</div>}
+      {(err || indexError) && <div className="err-box" role="alert">
+        {err && <p><strong>Live UTXO read unavailable:</strong> {err}</p>}
+        {indexError && <p><strong>Historical receipt unavailable:</strong> {indexError}</p>}
+        <button className="btn btn-sm" type="button" onClick={() => setRevision((n) => n + 1)}>Retry observations</button>
+      </div>}
       {!d && !err && <Loading label="Asking the archival…" />}
+      {indexPending && !indexed && <Loading label="Checking the historical receipt…" />}
 
-      {d && (
+      {(d || indexed) && (
         <>
           <div className="g4-grid card" style={{ marginBottom: 14 }}>
             <div className="g4-stat">
               <span className="g4-k">Value</span>
               <span className="g4-v">
-                {d.out.utxo || indexed ? `${fmtBloch(d.out.utxo?.value_sat ?? indexed!.value_sat, 8)} BLOCH` : "—"}
+                {d?.out.utxo || indexed ? `${fmtBloch(d?.out.utxo?.value_sat ?? indexed!.value_sat, 8)} BLOCH` : "—"}
               </span>
             </div>
             <div className="g4-stat">
-              <span className="g4-k">Unspent</span>
-              <span className="g4-v">{d.out.unspent ? "yes" : "no"}</span>
+              <span className="g4-k">Live UTXO state</span>
+              <span className="g4-v">{d ? d.out.unspent ? "unspent" : "not in set" : "unavailable"}</span>
             </div>
             <div className="g4-stat">
-              <span className="g4-k">Answered at slot</span>
-              <span className="g4-v">{fmtInt(d.out.at_slot)}</span>
+              <span className="g4-k">Created</span>
+              <span className="g4-v">{indexed ? <Link to={`/slot/${indexed.created_slot}`}>slot {fmtInt(indexed.created_slot)}</Link> : "not indexed"}</span>
             </div>
             <div className="g4-stat">
-              <span className="g4-k">Finalized to</span>
-              <span className="g4-v">{fmtInt(d.head.finalized_height)}</span>
+              <span className="g4-k">Creation finality</span>
+              <span className="g4-v">{d && indexed ? indexed.created_height <= d.head.finalized_height ? "finalized" : "not finalized" : "not established"}</span>
+              {d && indexed && <span className="g4-dim">creation height {fmtInt(indexed.created_height)} · finalized {fmtInt(d.head.finalized_height)}</span>}
             </div>
           </div>
 
-          {(d.out.utxo || indexed) && (
+          {(d?.out.utxo || indexed) && (
             <section className="card">
               <h2 className="snap-h2">Owner</h2>
               <div className="bal-meta">
                 <span className="g4-k">Script hash</span>
-                <code className="bal-hash">
-                  <Link className="mono-link" to={`/hash/${(d.out.utxo?.script_hash ?? indexed!.script_hash)}`}>
-                    {(d.out.utxo?.script_hash ?? indexed!.script_hash)}
-                  </Link>
-                </code>
+                <Copyable text={d?.out.utxo?.script_hash ?? indexed!.script_hash}>
+                  <code className="bal-hash"><Link className="mono-link" to={`/hash/${(d?.out.utxo?.script_hash ?? indexed!.script_hash)}`}>{(d?.out.utxo?.script_hash ?? indexed!.script_hash)}</Link></code>
+                </Copyable>
               </div>
               <p className="lookup-hint">
-                {fmtInt(d.out.utxo?.value_sat ?? indexed!.value_sat)} sat. Whoever can open this hash can spend
+                {fmtInt(d?.out.utxo?.value_sat ?? indexed!.value_sat)} sat. Whoever can open this hash can spend
                 this output — see the entry page for the second hash the same key may also
                 open.
               </p>
             </section>
           )}
 
-          <AtSlot out={d.out} head={d.head} endpoint={d.endpoint} indexed={indexed} />
-          {!d.out.unspent && <NotUnspent indexed={indexed} idx={idx} />}
-          <Settlement head={d.head} out={d.out} indexed={indexed} />
+          {d && <AtSlot out={d.out} head={d.head} endpoint={d.endpoint} indexed={indexed} />}
+          {d && !d.out.unspent && <NotUnspent indexed={indexed} idx={idx} />}
+          <Settlement head={d?.head ?? null} out={d?.out ?? null} indexed={indexed} idx={idx} />
         </>
       )}
     </div>
@@ -229,11 +255,67 @@ function NotUnspent({
  * `{txid, vout, unspent, utxo, at_slot}`, five fields, and none of them is
  * finality. Finality is a property of the chain, read from `getchaininfo`.
  */
-function Settlement({ head, out, indexed }: { head: G4Head; out: G4TxOut; indexed: IndexedOutpoint | null }) {
+function Settlement({
+  head,
+  out,
+  indexed,
+  idx,
+}: {
+  head: G4Head | null;
+  out: G4TxOut | null;
+  indexed: IndexedOutpoint | null;
+  idx: IndexerHealth | null | undefined;
+}) {
+  const confirmations = head && indexed && head.height >= indexed.created_height
+    ? head.height - indexed.created_height + 1
+    : null;
+  const creationFinal = head && indexed
+    ? indexed.created_height <= head.finalized_height
+    : null;
+  const spendFinal = head && indexed?.spent_height != null
+    ? indexed.spent_height <= head.finalized_height
+    : null;
+  const snapshotsApart = out && indexed ? Math.abs(out.at_slot - indexed.as_of_slot) : null;
+
   return <section className="card">
-    <h2 className="snap-h2">Finality observations</h2>
-    <p className="lookup-hint">The node answered at slot {fmtInt(out.at_slot)} and reported this outpoint as {out.unspent ? "unspent" : "absent from its unspent set"}. The observed finalized height is {fmtInt(head.finalized_height)}.</p>
-    {indexed && <p className="lookup-hint">The historical index records creation at height {fmtInt(indexed.created_height)}, as of slot {fmtInt(indexed.as_of_slot)}. Creation and unspent status are separate observations.</p>}
-    <p className="lookup-hint">This page does not authorize deposit crediting. Confirm canonical block membership, continued finality and independent observers under the <Link to="/finality">finality policy</Link>.</p>
+    <div className="section-heading">
+      <div>
+        <h2 className="snap-h2">Settlement evidence</h2>
+        <p>Creation, live ownership and finality are independent observations.</p>
+      </div>
+      {creationFinal !== null && <span className={`pill ${creationFinal ? "ok" : "warn"}`}>{creationFinal ? "creation finalized" : "awaiting finality"}</span>}
+    </div>
+
+    <div className="g4-grid" aria-label="Outpoint settlement evidence">
+      <div className="g4-stat">
+        <span className="g4-k">Creation receipt</span>
+        <span className="g4-v">{indexed ? `height ${fmtInt(indexed.created_height)}` : "unavailable"}</span>
+        {indexed && <span className="g4-dim"><Link to={`/slot/${indexed.created_slot}`}>slot {fmtInt(indexed.created_slot)}</Link></span>}
+      </div>
+      <div className="g4-stat">
+        <span className="g4-k">Depth at live head</span>
+        <span className="g4-v">{confirmations === null ? "—" : fmtInt(confirmations)}</span>
+        <span className="g4-dim">canonical block{confirmations === 1 ? "" : "s"} including creation</span>
+      </div>
+      <div className="g4-stat">
+        <span className="g4-k">Finalized checkpoint</span>
+        <span className="g4-v">{head ? `height ${fmtInt(head.finalized_height)}` : "unavailable"}</span>
+        <span className="g4-dim">from the live chain observation</span>
+      </div>
+      <div className="g4-stat">
+        <span className="g4-k">Spend receipt</span>
+        <span className="g4-v">{indexed?.spent_height != null ? spendFinal ? "finalized" : "not finalized" : indexed ? "none indexed" : "unavailable"}</span>
+        {indexed?.spent_slot != null && <span className="g4-dim"><Link to={`/slot/${indexed.spent_slot}`}>slot {fmtInt(indexed.spent_slot)}</Link> · height {fmtInt(indexed.spent_height!)}</span>}
+      </div>
+    </div>
+
+    {out && <p className="lookup-hint">The archival answered at slot {fmtInt(out.at_slot)} and reported this outpoint as {out.unspent ? "unspent" : "absent from its unspent set"}.</p>}
+    {indexed && <p className="lookup-hint">The verified historical index records creation as of slot {fmtInt(indexed.as_of_slot)}{idx ? ` and is indexed through slot ${fmtInt(idx.indexed_to_slot)}` : ""}. {snapshotsApart !== null && snapshotsApart > 0 ? `The live and historical observations are ${fmtInt(snapshotsApart)} slots apart; a state change between them is possible.` : "The observations refer to the same slot."}</p>}
+    {out && indexed && out.unspent === (indexed.spent_slot == null) ? (
+      <p className="lookup-hint"><strong>Observations agree:</strong> the live UTXO state and indexed spend history describe the same spend state.</p>
+    ) : out && indexed ? (
+      <div className="warn-box"><span className="warn-ico">!</span><div><strong>Observations differ.</strong> The live UTXO state and historical snapshot do not describe the same spend state. Compare their slots above and wait for the indexer to catch up before drawing a conclusion.</div></div>
+    ) : null}
+    <p className="lookup-hint">A creation is labelled finalized here only when the verified canonical receipt's creation height is at or below the live finalized height. This is evidence, not authorization for deposit crediting; require the observer policy appropriate to your exchange under the <Link to="/finality">finality policy</Link>.</p>
   </section>;
 }

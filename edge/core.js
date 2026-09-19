@@ -190,10 +190,12 @@ const inFlight = new Map();
 
 /** The archival plane's certification, refreshed at most every PLANE_TTL_MS. */
 let plane = null;
+let planeInFlight = null;
 
 export function _resetCoreForTests() {
   inFlight.clear();
   plane = null;
+  planeInFlight = null;
 }
 
 /** The last known certification, never null, always dated. */
@@ -293,19 +295,27 @@ async function askArchivals(rpcReq, urls, opts) {
 export async function refreshPlane(opts, force) {
   const now = opts.now();
   if (!force && plane && now - plane.at < PLANE_TTL_MS) return plane;
+  if (planeInFlight) return planeInFlight;
 
-  const gov = archivalGovernor(opts.now);
-  if (!gov.take(opts.archivals.length)) {
-    counters.archivalRefused += 1;
-    return plane; // whatever we last knew, dated by planeView
+  planeInFlight = (async () => {
+    const gov = archivalGovernor(opts.now);
+    if (!gov.take(opts.archivals.length)) {
+      counters.archivalRefused += 1;
+      return plane; // whatever we last knew, dated by planeView
+    }
+
+    const { answers } = await askArchivals(
+      { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
+      opts.archivals,
+      opts,
+    );
+    return adoptPlane(answers, opts);
+  })();
+  try {
+    return await planeInFlight;
+  } finally {
+    planeInFlight = null;
   }
-
-  const { answers } = await askArchivals(
-    { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
-    opts.archivals,
-    opts,
-  );
-  return adoptPlane(answers, opts);
 }
 
 /** Fold a set of getchaininfo answers into the plane certification. */
@@ -434,7 +444,7 @@ function corroborationOf(spec, answers, ctx) {
 
   const agreed = answers.length >= 2;
   const witnessed = wit.available && wit.age_ms !== null && wit.age_ms < WITNESS_TTL_MS * 3;
-  const planeOk = pv.certified === true;
+  const planeOk = pv.certified === true && pv.age_ms !== null && pv.age_ms < PLANE_TTL_MS * 3;
   const doubt = justificationInDoubt(now);
 
   let level;
@@ -445,7 +455,7 @@ function corroborationOf(spec, answers, ctx) {
   const missing = [];
   if (!agreed) missing.push('only one archival answered');
   if (!witnessed) missing.push(`no fresh fleet witness (${wit.reason || 'stale'})`);
-  if (!planeOk) missing.push(`archival plane not certified (${pv.reason || 'not probed'})`);
+  if (!planeOk) missing.push(`archival plane not certified (${pv.certified ? 'stale certification' : pv.reason || 'not probed'})`);
   if (doubt) missing.push('a justified checkpoint was rewritten recently');
 
   return {
@@ -513,7 +523,8 @@ export function rederiveFinality(result, now) {
   const wit = witnessView(now);
   const out = { ...result };
   const h = Number(result.height);
-  const fh = wit.available ? Number(wit.finalized_height) : NaN;
+  const witnessFresh = wit.available && wit.age_ms !== null && wit.age_ms < WITNESS_TTL_MS * 3;
+  const fh = witnessFresh ? Number(wit.finalized_height) : NaN;
 
   if (Number.isFinite(h) && Number.isFinite(fh)) {
     out.finalized = h <= fh;
@@ -754,6 +765,48 @@ export async function handleRead(payload, opts) {
     };
   }
 
+  const params = payload.params ?? [];
+  const rpcReq = { jsonrpc: '2.0', id, method, params };
+
+  // A content-addressed object cannot change while its hash stays the same, so
+  // a cache hit does not need to wait for fresh chain evidence. Return the
+  // immutable body immediately, label stale evidence as uncorroborated (and
+  // block finality as unknown), then refresh witness + plane for the next read.
+  // Other cache classes remain below the witness because their keys or values
+  // depend on epoch/lineage state.
+  if (spec.cacheClass === CacheClass.Content) {
+    const contentKey = cacheKeyFor(method, params, spec, { salt: salt(), epoch: null });
+    const contentHit = await readCache(opts.cache, contentKey, spec, now(), false);
+    if (contentHit) {
+      counters.cacheHits += 1;
+      if (opts.waitUntil) {
+        const refresh = (async () => {
+          const backgroundWitness = await fleetWitness({
+            fleet: opts.pools.fleet,
+            fetchImpl: opts.fetchImpl,
+            now,
+            budget: fleetGovernor(now),
+            counters,
+          });
+          await refreshPlane({
+            ...opts,
+            archivals: opts.pools.archivals,
+            witness: backgroundWitness,
+          }, false);
+        })().catch(() => {});
+        opts.waitUntil(refresh);
+      }
+      return finish(contentHit.result, contentHit.meta, {
+        id,
+        spec,
+        cacheState: 'hit',
+        ageMs: contentHit.ageMs,
+        now,
+        archivalCount: opts.pools.archivals.length,
+      });
+    }
+  }
+
   // Node-local data (the mempool) cannot be corroborated by a fleet witness:
   // divergence is expected by definition. Reuse whatever witness telemetry is
   // already present, but never block this read on refreshing it.
@@ -765,8 +818,6 @@ export async function handleRead(payload, opts) {
     counters,
   });
 
-  const params = payload.params ?? [];
-  const rpcReq = { jsonrpc: '2.0', id, method, params };
   const epoch = wit && wit.ok && wit.chain ? Number(wit.chain.epoch) : null;
   const ctx = { salt: salt(), epoch };
   const key = cacheKeyFor(method, params, spec, ctx);

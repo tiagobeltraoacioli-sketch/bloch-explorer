@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link } from "../lib/router";
 
 export function Loading({ label = "Loading…" }: { label?: string }) {
@@ -52,21 +52,38 @@ export function Stat({
 }
 
 export function Copyable({ text, children }: { text: string; children?: ReactNode }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "copied" | "error">("idle");
+  useEffect(() => {
+    if (state === "idle") return;
+    const timer = window.setTimeout(() => setState("idle"), 1600);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
+  async function copy() {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(text);
+      setState("copied");
+    } catch {
+      setState("error");
+    }
+  }
+
   return (
     <span className="row-actions" style={{ display: "inline-flex" }}>
       {children ?? <code>{text}</code>}
       <button
+        type="button"
         className="copy-btn"
-        title="Copy"
-        onClick={() => {
-          navigator.clipboard?.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1200);
-        }}
+        title={state === "copied" ? "Copied" : state === "error" ? "Clipboard unavailable" : "Copy"}
+        aria-label={state === "copied" ? "Copied to clipboard" : state === "error" ? "Could not copy to clipboard" : "Copy to clipboard"}
+        onClick={() => void copy()}
       >
-        {copied ? "✓" : "⧉"}
+        {state === "copied" ? "✓" : state === "error" ? "!" : "⧉"}
       </button>
+      <span role="status" aria-live="polite" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+        {state === "copied" ? "Copied to clipboard" : state === "error" ? "Could not copy to clipboard" : ""}
+      </span>
     </span>
   );
 }

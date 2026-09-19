@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   g4rpc,
-  g4rpcWithMeta,
+  g4HeadWithMeta,
   pollWhileVisible,
   G4,
   G4Head,
@@ -128,7 +128,7 @@ export function G4Dashboard() {
         // or rate limiting and is served by the consensus thread itself. The
         // edge caps the calls it will MAKE and returns the corroboration this
         // page renders beside every number.
-        const reading = await g4rpcWithMeta<G4Head>("getchaininfo", [], { signal: ac.signal });
+        const reading = await g4HeadWithMeta({ signal: ac.signal });
         const h = reading.result;
         if (stop) return;
         setHead(h);

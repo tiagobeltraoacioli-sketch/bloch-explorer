@@ -221,6 +221,51 @@ export async function g4rpcWithMeta<T>(
   return { result: body.result as T, corroboration: corro ?? null };
 }
 
+// The shell pulse and the dashboard are independent consumers of the same
+// head. Their cadences overlap often enough that issuing two browser requests
+// adds latency and edge work without adding evidence. Share a successful read
+// for one small freshness window and coalesce concurrent reads; failures are
+// never cached. Consumer aborts detach only that consumer and do not cancel
+// the request another mounted view is still awaiting.
+const HEAD_SHARE_MS = 5_000;
+let sharedHead: G4Reading<G4Head> | null = null;
+let sharedHeadAt = 0;
+let sharedHeadFlight: Promise<G4Reading<G4Head>> | null = null;
+
+function followWithSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(Object.assign(new Error("request cancelled"), { name: "AbortError" }));
+  return new Promise<T>((resolve, reject) => {
+    const cancel = () => {
+      cleanup();
+      reject(Object.assign(new Error("request cancelled"), { name: "AbortError" }));
+    };
+    const cleanup = () => signal.removeEventListener("abort", cancel);
+    signal.addEventListener("abort", cancel, { once: true });
+    promise.then(
+      (value) => { cleanup(); resolve(value); },
+      (error) => { cleanup(); reject(error); },
+    );
+  });
+}
+
+export function g4HeadWithMeta(opts: { signal?: AbortSignal } = {}): Promise<G4Reading<G4Head>> {
+  const now = Date.now();
+  if (sharedHead && now - sharedHeadAt < HEAD_SHARE_MS) {
+    return followWithSignal(Promise.resolve(sharedHead), opts.signal);
+  }
+  if (!sharedHeadFlight) {
+    sharedHeadFlight = g4rpcWithMeta<G4Head>("getchaininfo")
+      .then((reading) => {
+        sharedHead = reading;
+        sharedHeadAt = Date.now();
+        return reading;
+      })
+      .finally(() => { sharedHeadFlight = null; });
+  }
+  return followWithSignal(sharedHeadFlight, opts.signal);
+}
+
 /**
  * A page of unspent outputs — and, crucially, how much of the set it is NOT.
  *
