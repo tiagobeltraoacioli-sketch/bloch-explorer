@@ -378,7 +378,7 @@ export async function saveLineage(cache) {
  *   - a failure is cached too, as `ok: false`, so a down fleet does not turn
  *     every request into a fresh 9-second attempt against a box that is down.
  *
- * `opts` = { fleet, fetchImpl, now, budget }. `budget` is the fleet governor.
+ * `opts` = { fleet, fetchImpl, now, budget, deadlineAt? }. `budget` is the fleet governor.
  * Every actual attempt consumes one token; failover therefore cannot turn one
  * admitted refresh into unmetered upstream work. When the budget refuses, the
  * previous witness is retained and the caller degrades to `uncorroborated`.
@@ -399,6 +399,13 @@ export async function fleetWitness(opts) {
   witnessInFlight = (async () => {
     let last = { url: null, reason: 'no_witness_attempted' };
     for (const candidate of candidates) {
+      const remaining = Number.isFinite(opts.deadlineAt)
+        ? opts.deadlineAt - now() - 250
+        : WITNESS_ATTEMPT_TIMEOUT_MS;
+      if (remaining < 500) {
+        last = { url: last.url, reason: 'witness_deadline_exhausted' };
+        break;
+      }
       if (opts.budget && !opts.budget.take(1)) {
         last = { url: last.url, reason: 'fleet_budget_exhausted' };
         break;
@@ -407,7 +414,7 @@ export async function fleetWitness(opts) {
       const r = await attemptOne(
         candidate,
         { jsonrpc: '2.0', id: 1, method: 'getchaininfo', params: [] },
-        WITNESS_ATTEMPT_TIMEOUT_MS,
+        Math.min(WITNESS_ATTEMPT_TIMEOUT_MS, remaining),
         fetchImpl,
         now,
       );

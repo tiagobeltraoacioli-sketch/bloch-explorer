@@ -880,3 +880,359 @@ footer.foot {
     justify-content: center;
   }
 }
+
+/* ── Round 4: resilient states and calmer interaction ───────────────────── */
+
+/* Loading should occupy a predictable surface, preventing a momentary jump
+   from a loose line of text to a full data panel. */
+.loading {
+  width: fit-content;
+  min-height: 44px;
+  padding: 11px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg2) 92%, transparent);
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.container > .loading {
+  margin-block: 8px 20px;
+  padding: 13px 16px;
+}
+
+.card > .loading {
+  margin-block: 6px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-right-color: color-mix(in srgb, var(--brass) 36%, var(--line-strong));
+  box-shadow: 0 0 12px -5px var(--brass);
+}
+
+[aria-busy="true"] {
+  cursor: progress;
+}
+
+[aria-busy="true"] :is(button, a, input) {
+  cursor: progress;
+}
+
+.skel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: var(--bg2);
+}
+
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--surface-highlight) 46%, var(--brass-dim) 50%, var(--surface-highlight) 54%, transparent 80%);
+  transform: translateX(-110%);
+  animation: polish-skeleton 1.55s var(--ease) infinite;
+}
+
+@keyframes polish-skeleton {
+  to { transform: translateX(110%); }
+}
+
+.route-loading {
+  min-height: clamp(360px, 58vh, 650px);
+  padding-inline: 18px;
+}
+
+.route-loading-inner {
+  position: relative;
+  padding: clamp(20px, 4vw, 32px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, var(--surface-highlight), transparent 48%),
+    var(--bg2);
+  box-shadow: inset 0 1px 0 var(--surface-highlight), var(--shadow);
+}
+
+.route-loading-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 42%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  animation: polish-route-progress 1.6s var(--ease) infinite alternate;
+}
+
+@keyframes polish-route-progress {
+  from { transform: translateX(-70%); opacity: .45; }
+  to { transform: translateX(210%); opacity: 1; }
+}
+
+.route-loading i {
+  height: 11px;
+  border: 1px solid var(--line-soft);
+}
+
+/* Error and warning treatments share geometry but retain their semantic
+   colours. A leading status mark makes them scannable without colour alone. */
+.errbox,
+.err-box,
+.data-warning {
+  position: relative;
+  padding: 15px 18px 15px 43px;
+  border-radius: 10px;
+  box-shadow: inset 3px 0 0 color-mix(in srgb, currentColor 62%, transparent), 0 14px 30px -28px rgba(0, 0, 0, .8);
+  text-wrap: pretty;
+}
+
+.errbox::before,
+.err-box::before,
+.data-warning::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 18px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.err-box {
+  color: var(--fg-2);
+  border-color: color-mix(in srgb, var(--crit) 44%, transparent);
+  background:
+    linear-gradient(110deg, var(--crit-dim), transparent 72%),
+    var(--bg2);
+}
+
+.err-box::before { color: var(--crit); }
+
+.errbox,
+.data-warning {
+  background:
+    linear-gradient(110deg, var(--warn-dim), transparent 72%),
+    var(--bg2);
+}
+
+.errbox::before,
+.data-warning::before { color: var(--warn); }
+
+.errbox.warn::before {
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.telemetry-empty,
+.chart-empty,
+.ribbon-empty,
+.state {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--line) 36%, transparent) 8px 9px),
+    var(--bg1);
+}
+
+.telemetry-empty,
+.chart-empty {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+  text-wrap: balance;
+}
+
+.state {
+  min-height: 44px;
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.state-error {
+  border-color: color-mix(in srgb, var(--crit) 48%, transparent);
+  background: var(--crit-dim);
+}
+
+/* The route boundary is a recovery control, not a dead-end error page. */
+.route-failure-card {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(22px, 4vw, 36px);
+  border-color: color-mix(in srgb, var(--crit) 42%, var(--line));
+  background:
+    radial-gradient(65% 100% at 100% 0%, var(--crit-dim), transparent 72%),
+    var(--bg2);
+}
+
+.route-failure-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--crit);
+}
+
+.route-failure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-block: 22px;
+}
+
+.route-failure-card details,
+.raw-reading,
+details.raw {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg0) 72%, transparent);
+}
+
+.route-failure-card details {
+  padding: 0 14px;
+}
+
+.route-failure-card summary,
+.raw-reading summary,
+details.raw summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.route-failure-card summary:hover,
+.raw-reading summary:hover,
+details.raw summary:hover { color: var(--fg); }
+
+.route-failure-card details[open] summary,
+.raw-reading[open] summary,
+details.raw[open] summary {
+  color: var(--brass);
+  border-bottom: 1px solid var(--line);
+}
+
+.route-failure-card details code {
+  display: block;
+  padding-block: 14px;
+  overflow-wrap: anywhere;
+  color: var(--crit);
+  font-size: .78rem;
+  line-height: 1.6;
+}
+
+/* Disabled controls remain legible but are unmistakably unavailable. */
+:is(.btn, .pill-tab, .seg-btn, .lookup-go, .search-go, .icon-btn):disabled,
+:is(input, select, textarea):disabled {
+  filter: saturate(.45);
+  box-shadow: none;
+}
+
+:is(input, select, textarea):disabled {
+  color: var(--faint);
+  border-color: var(--line);
+  background: var(--bg1);
+  cursor: not-allowed;
+}
+
+.copy-btn[aria-label^="Copied"] {
+  color: var(--brass);
+  border-color: var(--brass-line);
+  background: var(--brass-dim);
+}
+
+@media (min-width: 1080px) {
+  /* Dense screens keep rows compact while maintaining generous card rhythm. */
+  .table-wrap .tbl th { padding-block: 9px; }
+  .table-wrap .tbl td { padding-block: 11px; }
+  .telemetry-dl { gap: 11px; }
+  .api-resource-list > div { padding-block: 11px; }
+}
+
+@media (max-width: 520px) {
+  .loading,
+  .container > .loading { width: 100%; }
+
+  .route-loading {
+    min-height: 52vh;
+    padding-inline: 12px;
+  }
+
+  .route-loading-inner { padding: 20px; }
+
+  .errbox,
+  .err-box,
+  .data-warning {
+    max-width: none;
+    padding: 14px 14px 14px 38px;
+    font-size: .82rem;
+  }
+
+  .errbox::before,
+  .err-box::before,
+  .data-warning::before {
+    top: 18px;
+    left: 14px;
+  }
+
+  .route-failure-actions > * {
+    flex: 1 1 145px;
+  }
+
+  .telemetry-empty,
+  .chart-empty { min-height: 92px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-color: var(--line-strong);
+    border-top-color: var(--brass);
+  }
+
+  .skel {
+    animation: none;
+    background: var(--bg3);
+  }
+
+  .skel::after,
+  .route-loading-inner::before,
+  .route-loading i,
+  .state-loading .state-dot,
+  .dot.live,
+  .dot.ok {
+    animation: none;
+  }
+
+  .route-loading-inner::before {
+    width: 100%;
+    opacity: .7;
+    transform: none;
+  }
+
+  .route-loading i {
+    background: var(--bg3);
+  }
+}
+
+@media (forced-colors: active) {
+  .card,
+  .route-loading-inner,
+  .route-failure-card,
+  .errbox,
+  .err-box,
+  .data-warning,
+  .telemetry-empty,
+  .state {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .spinner { border-color: GrayText; border-top-color: Highlight; }
+  .route-failure-card::before { background: Highlight; }
+  .pill, .btn, .pill-tab { forced-color-adjust: auto; }
+}

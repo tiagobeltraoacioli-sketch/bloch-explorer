@@ -233,7 +233,8 @@ async function askArchivals(rpcReq, urls, opts) {
     const attempts = [];
     let unsupported = null;
     for (const u of ordered) {
-      const t = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
+      const hardDeadline = opts.deadline ?? opts.deadlineAt ?? now() + ATTEMPT_TIMEOUT_MS + 250;
+      const t = Math.min(ATTEMPT_TIMEOUT_MS, hardDeadline - now() - 250);
       if (t < 500) {
         attempts.push({ outcome: 'skipped: time budget exhausted' });
         break;
@@ -261,7 +262,8 @@ async function askArchivals(rpcReq, urls, opts) {
     return { answers, attempts };
   }
 
-  const t = Math.min(ATTEMPT_TIMEOUT_MS, (opts.deadline ?? now() + ATTEMPT_TIMEOUT_MS + 250) - now() - 250);
+  const hardDeadline = opts.deadline ?? opts.deadlineAt ?? now() + ATTEMPT_TIMEOUT_MS + 250;
+  const t = Math.min(ATTEMPT_TIMEOUT_MS, hardDeadline - now() - 250);
   if (t < 500) return { answers: [], attempts: [{ outcome: 'skipped: time budget exhausted' }] };
 
   const results = await Promise.all(ordered.map((u) => attemptOne(u, rpcReq, t, opts.fetchImpl, opts.now)));
@@ -705,7 +707,7 @@ export function capabilitiesJson(now) {
  * The whole decision path, independent of the Workers runtime.
  *
  * `opts` = { pools:{archivals,fleet}, fetchImpl, cache, waitUntil, now,
- *            clientKey, budgetMs }
+ *            clientKey, budgetMs, deadlineAt? }
  */
 export async function handleRead(payload, opts) {
   const now = opts.now;
@@ -745,6 +747,12 @@ export async function handleRead(payload, opts) {
   }
 
   await loadLineage(opts.cache);
+  // One absolute deadline covers witness selection and archival reads. Callers
+  // that expand one HTTP request into multiple reads (the REST ranges) pass the
+  // same `deadlineAt` to every item, so no layer can accidentally reset it.
+  const requestDeadline = Number.isFinite(opts.deadlineAt)
+    ? opts.deadlineAt
+    : now() + (opts.budgetMs || 20_000);
 
   // Edge-owned metadata needs no node at all. Answer it before a cold witness
   // refresh so a validator outage cannot add nine seconds to capabilities.
@@ -816,6 +824,7 @@ export async function handleRead(payload, opts) {
     now,
     budget: fleetGovernor(now),
     counters,
+    deadlineAt: requestDeadline,
   });
 
   const epoch = wit && wit.ok && wit.chain ? Number(wit.chain.epoch) : null;
@@ -879,7 +888,7 @@ export async function handleRead(payload, opts) {
     }
 
     // ── 6. archivals ────────────────────────────────────────────────────────
-    const deadline = now() + (opts.budgetMs || 20_000);
+    const deadline = requestDeadline;
     const { answers, attempts } = await askArchivals(rpcReq, opts.pools.archivals, {
       ...opts,
       witness: wit,
@@ -897,7 +906,12 @@ export async function handleRead(payload, opts) {
     if (method === 'getchaininfo') {
       adoptPlane(answers, { ...opts, witness: wit, archivals: opts.pools.archivals });
     } else if (isBranchSensitive(method)) {
-      await refreshPlane({ ...opts, archivals: opts.pools.archivals, witness: wit }, false);
+      await refreshPlane({
+        ...opts,
+        archivals: opts.pools.archivals,
+        witness: wit,
+        deadlineAt: requestDeadline,
+      }, false);
     }
 
     // ── 7. corroborate ──────────────────────────────────────────────────────

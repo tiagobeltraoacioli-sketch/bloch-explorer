@@ -18,7 +18,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { handleApi, MAX_RANGE, MAX_VALIDATORS } from '../api.js';
+import { handleApi, MAX_RANGE, MAX_VALIDATORS, API_FANOUT_BUDGET_MS } from '../api.js';
 import { toScriptHash, displayAddress } from '../address.js';
 import { addressFromHashHex, sha3_256, bytesToHex } from '../sha3.js';
 import { ARCHIVALS, FLEET, clock, fakeCache, fakeFetch, chainInfo, blockAt, reset, opts } from './harness.mjs';
@@ -81,6 +81,30 @@ test('a range is clamped, not obeyed', async () => {
   assert.ok(f.archival().length <= MAX_RANGE * 2 + 2, `${f.archival().length} upstream calls for one range`);
 });
 
+test('a range has one aggregate deadline instead of a fresh timeout per slot', async () => {
+  reset();
+  const now = clock();
+  const map = healthy();
+  for (const url of ARCHIVALS) {
+    const answer = map[url];
+    map[url] = (method, params) => {
+      if (method === 'getblockbyslot') now.advance(1_000);
+      return answer(method, params);
+    };
+  }
+  const f = fakeFetch(map);
+  const out = await handleApi('/api/v1/blocks', qs('from=54592&limit=20'), opts(f, now, fakeCache(), { budgetMs: 4_000 }));
+
+  assert.equal(out.status, 200, 'items read before the deadline remain a valid partial response');
+  assert.equal(out.body.truncated, true);
+  assert.equal(out.body.truncated_because.reason, 'api_deadline_exhausted');
+  assert.equal(out.body.truncated_because.budget_ms, 4_000);
+  assert.equal(out.body.truncated_because.at_slot, 54590);
+  assert.equal(out.body.data.length, 2);
+  assert.equal(f.ofMethod('getblockbyslot').length, 4, 'two observers per completed slot, then stop');
+  assert.equal(API_FANOUT_BUDGET_MS, 12_000);
+});
+
 test('a range reports the WEAKEST of its items, not the best', async () => {
   reset();
   const now = clock();
@@ -115,6 +139,40 @@ test('the validator list does not fan out by default', async () => {
 
   const paged = await handleApi('/api/v1/validators', qs('from=0&limit=999'), opts(f, now, fakeCache()));
   assert.equal(paged.body.requested.limit, MAX_VALIDATORS);
+});
+
+test('validator pagination shares one deadline and skips fan-out when the count fails', async () => {
+  reset();
+  const now = clock();
+  const map = healthy();
+  for (const url of ARCHIVALS) {
+    const answer = map[url];
+    map[url] = (method, params) => {
+      if (method === 'getvalidator') now.advance(1_000);
+      return answer(method, params);
+    };
+  }
+  const f = fakeFetch(map);
+  const partial = await handleApi('/api/v1/validators', qs('from=0&limit=16'), opts(f, now, fakeCache(), { budgetMs: 4_000 }));
+  assert.equal(partial.status, 200);
+  assert.equal(partial.body.data.records.length, 2);
+  assert.equal(partial.body.truncated, true);
+  assert.equal(partial.body.truncated_because.reason, 'api_deadline_exhausted');
+  assert.equal(partial.body.truncated_because.at_index, 2);
+  assert.equal(f.ofMethod('getvalidator').length, 4);
+
+  reset();
+  const unavailable = healthy();
+  for (const url of ARCHIVALS) {
+    unavailable[url] = method => method === 'getchaininfo'
+      ? { result: chainInfo() }
+      : { error: { code: -32601, message: 'method not found' } };
+  }
+  const failed = fakeFetch(unavailable);
+  const out = await handleApi('/api/v1/validators', qs('from=0&limit=16'), opts(failed, clock(), fakeCache()));
+  assert.equal(out.status, 404);
+  assert.deepEqual(out.body.data.records, []);
+  assert.equal(failed.ofMethod('getvalidator').length, 0, 'a failed primary count must not trigger sixteen more reads');
 });
 
 test('a mistyped address is refused rather than answered with an empty balance', async () => {

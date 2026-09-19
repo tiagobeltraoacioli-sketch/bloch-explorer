@@ -161,6 +161,26 @@ test('fleet witness failover is bounded when every validator is down', async () 
   assert.equal(counters.fleetCalls, FLEET_BURST, 'the cached failed witness prevents an immediate retry wave');
 });
 
+test('one absolute deadline covers witness failover and archival reads', async () => {
+  reset();
+  const now = clock();
+  const map = healthy();
+  const first = FLEET[Math.floor(now() / WITNESS_TTL_MS) % FLEET.length];
+  map[first] = () => {
+    now.advance(1_000);
+    return { error: { code: -32004, message: 'temporarily unavailable' } };
+  };
+  const f = fakeFetch(map);
+  const deadlineAt = now() + 1_500;
+
+  const out = await handleRead(call('getchaininfo'), opts(f, now, fakeCache(), { deadlineAt }));
+
+  assert.ok(out.body.error);
+  assert.equal(f.fleet().length, 1, 'the deadline prevents a second witness attempt');
+  assert.equal(f.archival().length, 0, 'the archival phase cannot reset an exhausted witness deadline');
+  assert.ok(now() <= deadlineAt);
+});
+
 test('fifty concurrent cold requests are one upstream call, not fifty', async () => {
   reset();
   const now = clock();

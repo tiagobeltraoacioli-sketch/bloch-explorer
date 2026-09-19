@@ -27,19 +27,22 @@
 // THE FAN-OUT RULES
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// `/blocks` is the only endpoint that expands into more than one upstream
-// call, and it is the shape that caused the incident this whole layer is a
+// `/blocks` and opt-in validator pagination expand into more than one upstream
+// call. The former is the shape that caused the incident this whole layer is a
 // response to: a test that swept every slot on every poll — roughly 3,000
 // round trips — starved the nodes it was measuring and then reported the
 // fracture it had caused.
 //
-// So it is bounded three times over, and each bound is independent:
+// So it is bounded four times over, and each bound is independent:
 //   - `limit` is clamped to MAX_RANGE (20), not merely defaulted;
 //   - each slot goes through the ordinary cached read, so a finalised slot
 //     costs nothing after the first caller anywhere in the world;
 //   - the whole fan-out is subject to the isolate's archival governor, which
 //     means a cold range simply degrades to fewer blocks rather than to a
 //     burst — the response says which slots it could not fill and why.
+//   - one aggregate wall-clock deadline covers the entire REST request; each
+//     item receives only the time left, so twenty slow slots cannot multiply a
+//     per-read timeout into a response that occupies a Worker for minutes.
 
 import { handleRead, Level, capabilitiesJson, planeView } from './core.js';
 import { poolSnapshot, MAX_POOL_SIZE } from './pool.js';
@@ -52,6 +55,39 @@ export const MAX_RANGE = 20;
 
 /** The most validators one request may ask for. */
 export const MAX_VALIDATORS = 16;
+
+/**
+ * One REST request gets one wall-clock budget, not a fresh upstream deadline
+ * for every item it expands into. Without this, twenty sequential 20-second
+ * reads can hold a Worker open for minutes even though the fan-out count is
+ * bounded. A partial response keeps the items already read and states exactly
+ * where and why it stopped.
+ */
+export const API_FANOUT_BUDGET_MS = 12_000;
+const MIN_ITEM_BUDGET_MS = 500;
+
+function fanoutDeadline(opts) {
+  const requested = Number.isFinite(opts.budgetMs) && opts.budgetMs > 0
+    ? opts.budgetMs
+    : API_FANOUT_BUDGET_MS;
+  const budgetMs = Math.min(API_FANOUT_BUDGET_MS, requested);
+  return { at: opts.now() + budgetMs, budgetMs };
+}
+
+function withRemainingBudget(opts, deadline) {
+  const remaining = deadline.at - opts.now();
+  if (remaining < MIN_ITEM_BUDGET_MS) return null;
+  return { ...opts, budgetMs: remaining, deadlineAt: deadline.at };
+}
+
+function deadlineStop(at, deadline) {
+  return {
+    ...at,
+    reason: 'api_deadline_exhausted',
+    budget_ms: deadline.budgetMs,
+    detail: 'the aggregate REST fan-out deadline expired; retry from this position',
+  };
+}
 
 function envelope(out, extra) {
   const body = out.body || {};
@@ -248,6 +284,7 @@ async function block(arg, opts) {
 }
 
 async function blocks(searchParams, opts) {
+  const deadline = fanoutDeadline(opts);
   const fromRaw = searchParams.get('from');
   const limit = clamp(Number(searchParams.get('limit') || 10), 1, MAX_RANGE);
 
@@ -278,7 +315,12 @@ async function blocks(searchParams, opts) {
   const items = [];
   let stopped = null;
   for (const s of slots) {
-    const out = await call('getblockbyslot', [s], opts);
+    const itemOpts = withRemainingBudget(opts, deadline);
+    if (!itemOpts) {
+      stopped = deadlineStop({ at_slot: s }, deadline);
+      break;
+    }
+    const out = await call('getblockbyslot', [s], itemOpts);
     if (out.status === 429) {
       stopped = { at_slot: s, reason: out.body.error.data.reason, retry_after_ms: out.retryAfterMs };
       break;
@@ -304,7 +346,7 @@ async function blocks(searchParams, opts) {
   }
 
   return {
-    status: stopped && !items.length ? 429 : 200,
+    status: stopped && !items.length ? (stopped.reason === 'api_deadline_exhausted' ? 503 : 429) : 200,
     body: {
       data: items,
       requested: { from, limit, max_limit: MAX_RANGE },
@@ -336,7 +378,12 @@ function weakest(items) {
 }
 
 async function validators(searchParams, opts) {
-  const count = await call('getvalidatorcount', [], opts);
+  const deadline = fanoutDeadline(opts);
+  const countOpts = withRemainingBudget(opts, deadline);
+  if (!countOpts) {
+    return { status: 503, body: { error: deadlineStop({ at_index: 0 }, deadline) } };
+  }
+  const count = await call('getvalidatorcount', [], countOpts);
   const from = clamp(Number(searchParams.get('from') || 0), 0, 1e9);
   const limit = clamp(Number(searchParams.get('limit') || 0), 0, MAX_VALIDATORS);
 
@@ -359,9 +406,18 @@ async function validators(searchParams, opts) {
     return { status: statusFor(count), body };
   }
 
+  // A failed count is already the primary answer. Do not multiply that outage
+  // into sixteen more reads which cannot make the page internally complete.
+  if (count.body.error) return { status: statusFor(count), body };
+
   let stopped = null;
   for (let i = from; i < from + limit; i++) {
-    const out = await call('getvalidator', [i], opts);
+    const itemOpts = withRemainingBudget(opts, deadline);
+    if (!itemOpts) {
+      stopped = deadlineStop({ at_index: i }, deadline);
+      break;
+    }
+    const out = await call('getvalidator', [i], itemOpts);
     if (out.status === 429) {
       stopped = { at_index: i, reason: out.body.error.data.reason, retry_after_ms: out.retryAfterMs };
       break;
