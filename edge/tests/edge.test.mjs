@@ -181,6 +181,22 @@ test('one absolute deadline covers witness failover and archival reads', async (
   assert.ok(now() <= deadlineAt);
 });
 
+test('a route can reserve archival time when witness selection is slow', async () => {
+  reset();
+  const now = clock();
+  const f = fakeFetch(healthy());
+  const out = await handleRead(call('getchaininfo'), opts(f, now, fakeCache(), {
+    deadlineAt: now() + 6_000,
+    witnessDeadlineAt: now() + 400,
+  }));
+
+  assert.equal(f.fleet().length, 0, 'an exhausted witness slice does not start a validator call');
+  assert.equal(f.archival().length, 2, 'the reserved request time still reaches both archivals');
+  assert.ok(out.body.result, 'healthy archivals keep the explorer readable');
+  assert.equal(out.corroboration.level, Level.Uncorroborated);
+  assert.equal(out.corroboration.witness.available, false);
+});
+
 test('fifty concurrent cold requests are one upstream call, not fifty', async () => {
   reset();
   const now = clock();

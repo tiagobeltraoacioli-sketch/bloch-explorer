@@ -753,6 +753,13 @@ export async function handleRead(payload, opts) {
   const requestDeadline = Number.isFinite(opts.deadlineAt)
     ? opts.deadlineAt
     : now() + (opts.budgetMs || 20_000);
+  // A cold or unhealthy witness fleet must not consume the whole request and
+  // prevent healthy read-only observers from answering. Routes may reserve a
+  // smaller part of the request for witness selection; the returned reading
+  // is then explicitly uncorroborated if no witness was obtained.
+  const witnessDeadline = Number.isFinite(opts.witnessDeadlineAt)
+    ? Math.min(requestDeadline, opts.witnessDeadlineAt)
+    : requestDeadline;
 
   // Edge-owned metadata needs no node at all. Answer it before a cold witness
   // refresh so a validator outage cannot add nine seconds to capabilities.
@@ -824,7 +831,7 @@ export async function handleRead(payload, opts) {
     now,
     budget: fleetGovernor(now),
     counters,
-    deadlineAt: requestDeadline,
+    deadlineAt: witnessDeadline,
   });
 
   const epoch = wit && wit.ok && wit.chain ? Number(wit.chain.epoch) : null;

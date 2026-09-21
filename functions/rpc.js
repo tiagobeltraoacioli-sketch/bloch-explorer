@@ -83,6 +83,12 @@ const JSON_HEADERS = {
 
 /** One read call contains only a method and small scalar parameters. */
 export const MAX_RPC_BODY_BYTES = 16 * 1024;
+// The browser gives the primary /rpc route 12 seconds before trying its
+// independent fallback. Always answer inside that window. A witness refresh
+// gets four seconds; the remaining six are reserved for the two archival
+// observers, so a slow validator cannot make healthy archivals look offline.
+export const RPC_REQUEST_BUDGET_MS = 10_000;
+export const RPC_WITNESS_BUDGET_MS = 4_000;
 
 async function readBoundedJson(request) {
   const declared = Number(request.headers.get('content-length'));
@@ -198,7 +204,14 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const out = await handleRead(payload, buildOpts(env, request, runtimeFor(context)));
+    const runtime = runtimeFor(context);
+    const startedAt = runtime.now();
+    const out = await handleRead(payload, {
+      ...buildOpts(env, request, runtime),
+      budgetMs: RPC_REQUEST_BUDGET_MS,
+      deadlineAt: startedAt + RPC_REQUEST_BUDGET_MS,
+      witnessDeadlineAt: startedAt + RPC_WITNESS_BUDGET_MS,
+    });
     return respond(out);
   } catch (error) {
     // Configuration/runtime failures are edge faults, not evidence that the

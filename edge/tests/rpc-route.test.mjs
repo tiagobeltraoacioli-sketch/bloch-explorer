@@ -4,11 +4,19 @@ import { test } from 'node:test';
 
 import {
   MAX_RPC_BODY_BYTES,
+  RPC_REQUEST_BUDGET_MS,
+  RPC_WITNESS_BUDGET_MS,
   onRequest,
   onRequestOptions,
   onRequestPost,
   respond,
 } from '../../functions/rpc.js';
+
+test('the edge answers before the browser fallback and reserves time for archivals', () => {
+  assert.ok(RPC_REQUEST_BUDGET_MS < 12_000);
+  assert.ok(RPC_WITNESS_BUDGET_MS < RPC_REQUEST_BUDGET_MS);
+  assert.ok(RPC_REQUEST_BUDGET_MS - RPC_WITNESS_BUDGET_MS >= 5_000);
+});
 
 const url = 'https://blochl1.com/rpc';
 const context = request => ({ request, env: {}, waitUntil() {} });
