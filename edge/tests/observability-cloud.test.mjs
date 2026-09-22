@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, observabilityQueries } from '../observability.js';
+import { observabilityPromotion } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -88,4 +89,15 @@ test('only an https Prometheus endpoint is accepted', async () => {
     const out = await handleObservability({ ...env, GRAFANA_PROM_URL: url });
     assert.equal(out.body.state, 'unconfigured');
   }
+});
+
+test('homepage promotion requires real telemetry, not configuration or connectivity', () => {
+  for (const value of [
+    null,
+    { data: null, state: 'unconfigured' },
+    { data: { state: 'awaiting_telemetry', coverage: { prometheus: false, bloch: false, kubernetes: false } } },
+    { data: { state: 'live', coverage: { prometheus: false, bloch: false, kubernetes: false } } },
+  ]) assert.equal(observabilityPromotion(value), null);
+  assert.deepEqual(observabilityPromotion({ data: { state: 'live', coverage: { prometheus: true, bloch: false, kubernetes: true } } }), { layers: 2, state: 'live' });
+  assert.deepEqual(observabilityPromotion({ data: { state: 'partial', coverage: { prometheus: true } } }), { layers: 1, state: 'partial' });
 });

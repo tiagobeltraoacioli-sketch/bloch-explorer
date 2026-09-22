@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Grafana k8s-monitoring chart 4.5.x. Credentials and the cluster name are
+# intentionally injected at install time by install.sh and never stored here.
+
+collectorCommon:
+  alloy:
+    remoteConfig:
+      enabled: true
+      url: https://fleet-management-prod-015.grafana.net
+      auth:
+        username: "1840457"
+
+collectors:
+  alloy-daemonset:
+    presets: [xlarge, root, host-network, host-storage, host-cgroup, clustered, service-discovery, filesystem-log-reader, daemonset]
+    controller:
+      autoscaling:
+        vertical:
+          enabled: true
+          resourcePolicy:
+            containerPolicies:
+              - containerName: alloy
+                controlledResources: [cpu, memory]
+                controlledValues: RequestsAndLimits
+                maxAllowed:
+                  cpu: 4
+                  memory: 8Gi
+                minAllowed:
+                  cpu: 1
+                  memory: 2Gi
+
+  alloy-deployment:
+    presets: [xlarge, clustered, deployment, otel-receiver]
+    extraService:
+      enabled: true
+      name: otel-receiver
+    controller:
+      autoscaling:
+        horizontal:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 5
+          targetCPUUtilizationPercentage: 75
+          targetMemoryUtilizationPercentage: 80
+
+telemetryServices:
+  node-exporter:
+    deploy: true
+
+  kube-state-metrics:
+    deploy: true
+
+  beyla:
+    deploy: true
+    k8sCache:
+      replicas: 1
+
+  opencost:
+    deploy: true
+    metricsSource: custom
+    opencost:
+      exporter:
+        # install.sh pins this to the same runtime value as cluster.name.
+        defaultClusterId: ""
+      prometheus:
+        username: "3605138"
+        external:
+          url: https://prometheus-prod-40-prod-sa-east-1.grafana.net/api/prom
+
+  kepler:
+    deploy: true
+
+  k8s-manifest-tail:
+    deploy: true
+    config:
+      objects:
+        - { apiVersion: v1, kind: Pod }
+        - { apiVersion: apps/v1, kind: Deployment }
+        - { apiVersion: apps/v1, kind: StatefulSet }
+        - { apiVersion: apps/v1, kind: DaemonSet }
+
+  sdkInjector:
+    deploy: true
+    allowedConfigMapWriters: system:serviceaccount:monitoring:grafana-cloud-alloy-daemonset,system:serviceaccount:monitoring:grafana-cloud-alloy-deployment

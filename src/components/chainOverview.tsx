@@ -9,13 +9,14 @@ interface PoolReading { size: number; max: number; bytes: number }
 
 /** Every tile is an observed slot. Pending transactions are never projected
  * into fictional blocks: neither transaction gas nor ordering is available. */
-export function ChainOverview({ head, cells, mempool, stale, corroboration, indexer }: {
+export function ChainOverview({ head, cells, mempool, stale, corroboration, indexer, observability }: {
   head: G4Head;
   cells: SlotCell[];
   mempool: PoolReading | null;
   stale: boolean;
   corroboration: G4Corroboration | null;
   indexer: IndexerHealth | null;
+  observability?: { layers: number; state: "live" | "partial" } | null;
 }) {
   const stats = windowStats(cells);
   const recent = cells.slice(-7).reverse();
@@ -29,7 +30,7 @@ export function ChainOverview({ head, cells, mempool, stale, corroboration, inde
   return <section className="chain-overview" aria-label="Chain activity overview">
     <div className="overview-heading">
       <div><span className="eyebrow">GENESIS 4 / EXPLORER</span><h1>The chain, at a glance.</h1></div>
-      <div className="overview-tools"><span className={"pill " + (stale ? "warn" : "quiet")}>{stale ? "Last available reading" : "Auto-refresh · 15s"}</span><Link to="/network" className="pill-tab">Network & RPCs ↗</Link></div>
+      <div className="overview-tools"><span className={"pill " + (stale ? "warn" : "quiet")}>{stale ? "Last available reading" : "Auto-refresh · 15s"}</span>{observability && <Link to="/observability" className="pill-tab observability-tab"><i aria-hidden="true" />Observability <small>{observability.layers}/3</small></Link>}<Link to="/network" className="pill-tab">Network & RPCs ↗</Link></div>
     </div>
     <div className="network-tape" role="list" aria-label="Live chain tape">
       <Link to={`/slot/${head.slot}`} role="listitem"><span>Head slot</span><strong>{fmtInt(head.slot)}</strong></Link>

@@ -35,6 +35,9 @@ nav.mainnav a { font-family: var(--font-ui); font-size: .875rem; padding: 10px; 
 .eyebrow { font-size: .75rem; letter-spacing: .13em; font-weight: 600; color: var(--muted); }
 .overview-heading h1 { margin: 8px 0 0; font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.2; letter-spacing: -.045em; font-weight: 650; }
 .overview-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.observability-tab { display: inline-flex; align-items: center; gap: 7px; }
+.observability-tab i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 9px var(--ok); }
+.observability-tab small { color: var(--muted); font: .68rem var(--font-mono); }
 .network-tape {
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: -4px 0 18px; border: 1px solid var(--line); border-radius: 12px;
