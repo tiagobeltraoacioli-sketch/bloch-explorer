@@ -33,6 +33,15 @@ const QUERIES = Object.freeze({
   host_memory_total_bytes: 'sum(node_memory_MemTotal_bytes)',
   host_root_disk_free_bytes: 'sum(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"})',
   host_root_disk_min_free_percent: 'min(100 * node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"})',
+
+  k8s_nodes: 'count(kube_node_info)',
+  k8s_pods_running: 'sum(kube_pod_status_phase{phase="Running"})',
+  k8s_pods_unhealthy: 'sum(kube_pod_status_phase{phase=~"Pending|Failed|Unknown"})',
+  k8s_container_restarts: 'sum(kube_pod_container_status_restarts_total)',
+  k8s_deployments_desired: 'sum(kube_deployment_spec_replicas)',
+  k8s_deployments_available: 'sum(kube_deployment_status_replicas_available)',
+  k8s_cpu_cores: 'sum(rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]))',
+  k8s_memory_bytes: 'sum(container_memory_working_set_bytes{container!="",image!=""})',
 });
 
 const GROUPS = Object.freeze({
@@ -46,6 +55,11 @@ const GROUPS = Object.freeze({
     'host_nodes', 'host_cpu_busy_cores', 'host_memory_used_bytes',
     'host_memory_total_bytes', 'host_root_disk_free_bytes',
     'host_root_disk_min_free_percent',
+  ],
+  kubernetes: [
+    'k8s_nodes', 'k8s_pods_running', 'k8s_pods_unhealthy', 'k8s_container_restarts',
+    'k8s_deployments_desired', 'k8s_deployments_available', 'k8s_cpu_cores',
+    'k8s_memory_bytes',
   ],
 });
 
@@ -146,6 +160,7 @@ export async function handleObservability(env, runtime = {}) {
           prometheus: hasAny(values, GROUPS.prometheus),
           bloch: hasAny(values, GROUPS.bloch),
           host: hasAny(values, GROUPS.host),
+          kubernetes: hasAny(values, GROUPS.kubernetes),
         },
         prometheus: {
           targets_total: values.targets_total,
@@ -170,6 +185,16 @@ export async function handleObservability(env, runtime = {}) {
           memory_total_bytes: values.host_memory_total_bytes,
           root_disk_free_bytes: values.host_root_disk_free_bytes,
           root_disk_min_free_percent: values.host_root_disk_min_free_percent,
+        },
+        kubernetes: {
+          nodes: values.k8s_nodes,
+          pods_running: values.k8s_pods_running,
+          pods_unhealthy: values.k8s_pods_unhealthy,
+          container_restarts: values.k8s_container_restarts,
+          deployments_desired: values.k8s_deployments_desired,
+          deployments_available: values.k8s_deployments_available,
+          cpu_cores: values.k8s_cpu_cores,
+          memory_bytes: values.k8s_memory_bytes,
         },
       },
       state,

@@ -31,6 +31,7 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_head_slot, '70001'],
     [observabilityQueries.host_nodes, '8'],
     [observabilityQueries.host_root_disk_min_free_percent, '12.5'],
+    [observabilityQueries.k8s_nodes, '3'],
   ]);
   const fetchImpl = async (input, init) => {
     const url = new URL(input);
@@ -48,7 +49,8 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.data.bloch.head_slot, 70001);
   assert.equal(out.body.data.host.nodes, 8);
   assert.equal(out.body.data.host.root_disk_min_free_percent, 12.5);
-  assert.deepEqual(out.body.data.coverage, { prometheus: true, bloch: true, host: true });
+  assert.equal(out.body.data.kubernetes.nodes, 3);
+  assert.deepEqual(out.body.data.coverage, { prometheus: true, bloch: true, host: true, kubernetes: true });
   assert.equal(seen.length, Object.keys(observabilityQueries).length);
   assert.ok(seen.every(({ url }) => url.origin === 'https://prometheus.example' && url.pathname === '/api/prom/api/v1/query'));
   assert.ok(seen.every(({ authorization }) => authorization === 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu'));
@@ -63,7 +65,7 @@ test('an empty but successful tenant is awaiting telemetry, not down', async () 
   });
   assert.equal(out.status, 200);
   assert.equal(out.body.state, 'awaiting_telemetry');
-  assert.deepEqual(out.body.data.coverage, { prometheus: false, bloch: false, host: false });
+  assert.deepEqual(out.body.data.coverage, { prometheus: false, bloch: false, host: false, kubernetes: false });
   assert.equal(out.body.queries.failed, 0);
 });
 
@@ -97,9 +99,9 @@ test('homepage promotion requires real telemetry, not configuration or connectiv
   for (const value of [
     null,
     { data: null, state: 'unconfigured' },
-    { data: { state: 'awaiting_telemetry', coverage: { prometheus: false, bloch: false, host: false } } },
-    { data: { state: 'live', coverage: { prometheus: false, bloch: false, host: false } } },
+    { data: { state: 'awaiting_telemetry', coverage: { prometheus: false, bloch: false, host: false, kubernetes: false } } },
+    { data: { state: 'live', coverage: { prometheus: false, bloch: false, host: false, kubernetes: false } } },
   ]) assert.equal(observabilityPromotion(value), null);
-  assert.deepEqual(observabilityPromotion({ data: { state: 'live', coverage: { prometheus: true, bloch: false, host: true } } }), { layers: 2, state: 'live' });
+  assert.deepEqual(observabilityPromotion({ data: { state: 'live', coverage: { prometheus: true, bloch: false, host: true, kubernetes: false } } }), { layers: 2, state: 'live' });
   assert.deepEqual(observabilityPromotion({ data: { state: 'partial', coverage: { prometheus: true } } }), { layers: 1, state: 'partial' });
 });

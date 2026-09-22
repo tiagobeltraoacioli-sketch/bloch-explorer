@@ -106,7 +106,7 @@ const ROUTES: NavRoute[] = [
   { pattern: "/supply", nav: "Supply", group: "Economy", hint: "cap, issuance, concentration", render: () => <SupplyPage /> },
   { pattern: "/mempool", nav: "Mempool", group: "Economy", hint: "pending transactions, bytes and admission", render: () => <MempoolPage /> },
   { pattern: "/network", nav: "Network", group: "Network", hint: "RPC nodes, build identities and API", render: () => <NetworkPage /> },
-  { pattern: "/observability", desktop: false, nav: "Observability", group: "Network", hint: "Grafana, Prometheus and validator hosts", render: () => <ObservabilityPage /> },
+  { pattern: "/observability", desktop: false, nav: "Observability", group: "Network", hint: "Grafana, Prometheus, hosts and Kubernetes", render: () => <ObservabilityPage /> },
   { pattern: "/fees", desktop: false, nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
   // `/hash/<64 hex>` is the canonical name of an eUTXO-set entry, and every
   // other identifier a person can paste redirects into it. `/balance…` are the

@@ -11,7 +11,7 @@ interface ObservabilityData {
   provider: string;
   state: ObservatoryState;
   sampled_at: number;
-  coverage: { prometheus: boolean; bloch: boolean; host: boolean };
+  coverage: { prometheus: boolean; bloch: boolean; host: boolean; kubernetes: boolean };
   prometheus: { targets_total: Metric; targets_healthy: Metric; targets_unhealthy: Metric };
   bloch: {
     nodes: Metric; head_slot: Metric; finalized_epoch: Metric; worst_lag_slots: Metric;
@@ -22,6 +22,10 @@ interface ObservabilityData {
     nodes: Metric; cpu_busy_cores: Metric; memory_used_bytes: Metric;
     memory_total_bytes: Metric; root_disk_free_bytes: Metric;
     root_disk_min_free_percent: Metric;
+  };
+  kubernetes: {
+    nodes: Metric; pods_running: Metric; pods_unhealthy: Metric; container_restarts: Metric;
+    deployments_desired: Metric; deployments_available: Metric; cpu_cores: Metric; memory_bytes: Metric;
   };
 }
 
@@ -84,16 +88,20 @@ export function ObservabilityPage() {
   const prom = data?.prometheus;
   const bloch = data?.bloch;
   const host = data?.host;
+  const k8s = data?.kubernetes;
   const targets = prom?.targets_total ?? null;
   const healthy = prom?.targets_healthy ?? null;
   const targetPercent = targets !== null && targets > 0 && healthy !== null ? Math.min(100, healthy / targets * 100) : null;
   const memoryUsed = host?.memory_used_bytes ?? null;
   const memoryTotal = host?.memory_total_bytes ?? null;
   const memoryPercent = memoryUsed !== null && memoryTotal !== null && memoryTotal > 0 ? Math.min(100, memoryUsed / memoryTotal * 100) : null;
+  const deployments = k8s?.deployments_desired ?? null;
+  const available = k8s?.deployments_available ?? null;
+  const deploymentPercent = deployments !== null && deployments > 0 && available !== null ? Math.min(100, available / deployments * 100) : null;
 
   return <div className="container telemetry-page obs-page">
     <div className="overview-heading">
-      <div><span className="eyebrow">NETWORK OPERATIONS / GRAFANA CLOUD</span><h1>Chain and hosts, one view.</h1></div>
+      <div><span className="eyebrow">NETWORK OPERATIONS / GRAFANA CLOUD</span><h1>Chain, hosts and cluster, one view.</h1></div>
       <ReadToolbar {...live} onRefresh={live.refresh} onPause={() => live.setPaused(!live.paused)} />
     </div>
 
@@ -106,10 +114,10 @@ export function ObservabilityPage() {
           ? "Grafana Cloud accepted the connection, but the tenant has no samples yet. Start Alloy on the validator hosts to populate this view."
           : "Fixed, aggregate PromQL runs at the edge. Credentials, host names, instance labels and arbitrary queries never reach the browser."}</p>
       </div>
-      <div className="obs-radar" aria-label={`${data?.coverage ? Object.values(data.coverage).filter(Boolean).length : 0} of 3 telemetry layers detected`}>
+      <div className="obs-radar" aria-label={`${data?.coverage ? Object.values(data.coverage).filter(Boolean).length : 0} of 4 telemetry layers detected`}>
         <i className="ring ring-a" /><i className="ring ring-b" /><i className="ring ring-c" />
-        <span className="radar-core"><b>{data?.coverage ? Object.values(data.coverage).filter(Boolean).length : 0}</b><small>/ 3 layers</small></span>
-        <span className="radar-node node-a" /><span className="radar-node node-b" /><span className="radar-node node-c" />
+        <span className="radar-core"><b>{data?.coverage ? Object.values(data.coverage).filter(Boolean).length : 0}</b><small>/ 4 layers</small></span>
+        <span className={`radar-node node-a ${data?.coverage.prometheus ? "is-active" : ""}`} /><span className={`radar-node node-b ${data?.coverage.bloch ? "is-active" : ""}`} /><span className={`radar-node node-c ${data?.coverage.host ? "is-active" : ""}`} /><span className={`radar-node node-d ${data?.coverage.kubernetes ? "is-active" : ""}`} />
       </div>
     </section>
 
@@ -154,11 +162,28 @@ export function ObservabilityPage() {
       </section>
     </div>
 
+    <section className="card obs-panel obs-cluster-panel">
+      <div className="section-heading"><div><span className="eyebrow">KUBERNETES</span><h2>Cluster runtime</h2></div><span className="pill quiet">Alloy + kube-state-metrics</span></div>
+      <div className="obs-readout-grid">
+        <div><span>Cluster nodes</span><strong>{integer(k8s?.nodes ?? null)}</strong><small>inventory discovered</small></div>
+        <div><span>Running pods</span><strong>{integer(k8s?.pods_running ?? null)}</strong><small>current running phase</small></div>
+        <div><span>Unhealthy pods</span><strong>{integer(k8s?.pods_unhealthy ?? null)}</strong><small>pending, failed or unknown</small></div>
+        <div><span>Restarts</span><strong>{integer(k8s?.container_restarts ?? null)}</strong><small>container restart counter</small></div>
+        <div><span>CPU workload</span><strong>{decimal(k8s?.cpu_cores ?? null)}</strong><small>cores · 5m rate</small></div>
+        <div><span>Working memory</span><strong>{bytes(k8s?.memory_bytes ?? null)}</strong><small>container working sets</small></div>
+      </div>
+      <div className="obs-progress-block">
+        <div><span>Deployment availability</span><strong>{available === null || deployments === null ? "—" : `${integer(available)} / ${integer(deployments)}`}</strong></div>
+        <span className="obs-progress"><i style={{ width: `${deploymentPercent ?? 0}%` }} /></span>
+      </div>
+    </section>
+
     <section className="card obs-coverage">
-      <div className="section-heading"><div><h2>Telemetry coverage</h2><p>Three independent layers distinguish a quiet chain from a broken observation path.</p></div><Link to="/network">Inspect RPC observers ↗</Link></div>
+      <div className="section-heading"><div><h2>Telemetry coverage</h2><p>Four layers distinguish a quiet chain from a broken observation path.</p></div><Link to="/network">Inspect RPC observers ↗</Link></div>
       <Coverage active={data?.coverage.prometheus ?? false} title="Prometheus collection" note="Waiting for Alloy service discovery and the first scrape" />
       <Coverage active={data?.coverage.bloch ?? false} title="Bloch protocol metrics" note="Waiting for native bloch_pos_* metrics" />
       <Coverage active={data?.coverage.host ?? false} title="Host infrastructure" note="Waiting for Unix exporter metrics from Alloy" />
+      <Coverage active={data?.coverage.kubernetes ?? false} title="Kubernetes infrastructure" note="Waiting for kube-state-metrics and cAdvisor metrics" />
       <p className="lookup-hint">This view is operational telemetry, not consensus truth. Finality and chain data remain sourced from corroborated read-only observers; infrastructure metrics explain the health of the systems carrying those reads.</p>
       <RawData data={response} label="Inspect aggregate telemetry response" />
     </section>

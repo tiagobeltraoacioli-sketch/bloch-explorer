@@ -17,5 +17,7 @@ it. Check the Alloy config, restart Alloy, and confirm both `bloch_pos_*` and
 prove that either metric family is present.
 
 `k8s-monitoring.values.yaml` and `install.sh` are retained for a future
-Kubernetes deployment. They are not part of the current Ubuntu collection
-path.
+Kubernetes deployment. The Observability page also shows Kubernetes metrics
+when that collector sends `kube_*` and container series; until then the
+cluster panel reports missing samples. Kubernetes is not part of the current
+Ubuntu collection path.
