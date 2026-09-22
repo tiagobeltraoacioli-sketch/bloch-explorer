@@ -1,5 +1,11 @@
 # Grafana Cloud collection
 
+The production Genesis-4 fleet currently runs directly on Ubuntu hosts rather
+than Kubernetes. `standalone-host.alloy` is the corresponding least-privilege
+collector configuration: it scrapes loopback-only Bloch and host metrics and
+remote-writes them to Grafana Cloud. Credentials must be supplied through the
+host's `/etc/default/alloy`; they are never stored in this repository.
+
 This installs the official `grafana/k8s-monitoring` chart and sends aggregate
 Prometheus telemetry to the Grafana Cloud tenant read by `/api/v1/observability`.
 The access token is never stored in Git or passed as a Helm command-line value.

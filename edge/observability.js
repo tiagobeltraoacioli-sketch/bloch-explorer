@@ -12,15 +12,20 @@ const QUERIES = Object.freeze({
   targets_healthy: 'sum(up)',
   targets_unhealthy: 'count(up) - sum(up)',
 
-  bloch_nodes: 'count(bloch_pos_head_slot)',
+  // Booting/replaying exporters deliberately report a zero head and heartbeat.
+  // They are scrapeable targets, but not yet chain observers.
+  bloch_nodes: 'count(bloch_pos_head_slot > 0)',
   bloch_head_slot: 'max(bloch_pos_head_slot)',
   bloch_finalized_epoch: 'max(bloch_pos_finalized_epoch)',
   bloch_worst_lag_slots: 'max(bloch_pos_behind_by_slots)',
   bloch_peers: 'sum(bloch_pos_peer_count)',
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
-  bloch_blocks_per_minute: 'sum(rate(bloch_pos_blocks_applied_total[5m])) * 60',
+  // Every validator applies the same canonical blocks, so summing multiplies
+  // chain throughput by the number of exporters. Select one synchronized
+  // observer's rate instead.
+  bloch_blocks_per_minute: 'max(rate(bloch_pos_blocks_applied_total[5m]) and on(instance) (bloch_pos_head_slot > 0) and on(instance) (bloch_pos_behind_by_slots <= 2)) * 60',
   bloch_rejected_blocks_1h: 'sum(increase(bloch_pos_blocks_rejected_total[1h]))',
-  bloch_heartbeat_age_seconds: 'max(time() - bloch_pos_heartbeat_unix)',
+  bloch_heartbeat_age_seconds: 'max(time() - (bloch_pos_heartbeat_unix > 0))',
 
   k8s_nodes: 'count(kube_node_info)',
   k8s_pods_running: 'sum(kube_pod_status_phase{phase="Running"})',

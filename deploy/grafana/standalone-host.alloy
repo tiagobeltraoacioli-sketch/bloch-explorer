@@ -1,0 +1,45 @@
+// Grafana Alloy collector for the Genesis-4 validator hosts.
+// Credentials are injected by systemd through /etc/default/alloy.
+
+logging {
+  level = "warn"
+}
+
+prometheus.remote_write "grafana_cloud" {
+  external_labels = {
+    cluster     = "postern",
+    environment = "production",
+  }
+
+  endpoint {
+    url = "https://prometheus-prod-40-prod-sa-east-1.grafana.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("GRAFANA_PROM_USER")
+      password = sys.env("GRAFANA_PROM_TOKEN")
+    }
+  }
+}
+
+prometheus.scrape "bloch_validators" {
+  targets = [
+    { "__address__" = "127.0.0.1:17400", "instance" = "validator-0",  "validator" = "v0"  },
+    { "__address__" = "127.0.0.1:17442", "instance" = "validator-42", "validator" = "v42" },
+    { "__address__" = "127.0.0.1:17449", "instance" = "validator-49", "validator" = "v49" },
+    { "__address__" = "127.0.0.1:17456", "instance" = "validator-56", "validator" = "v56" },
+  ]
+  scrape_interval = "15s"
+  scrape_timeout  = "5s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.unix "host" {
+  include_exporter_metrics = true
+  disable_collectors       = ["mdadm"]
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "30s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
