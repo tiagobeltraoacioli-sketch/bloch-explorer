@@ -35,6 +35,7 @@ import { ChainOverview } from "../components/chainOverview";
 import { indexerHealth, type IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
+import { ValidatorGlobe } from "../components/ValidatorGlobe";
 import { Loading, Copyable } from "../components/ui";
 import { gradeStall, CONSENSUS } from "../lib/finality";
 import { PARAMS } from "../lib/g4params";
@@ -242,7 +243,21 @@ export function G4Dashboard() {
   return (
     <div className="container">
       <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} corroboration={corro} indexer={indexer} />
-      <p><Link to="/validators/guide">Run a validator →</Link> · Download the Bloch CLI, follow every setup step and check live admission status.</p>
+      <section className="card validator-constellation" aria-labelledby="validator-constellation-title">
+        <div className="validator-constellation-copy">
+          <span className="eyebrow">LIVE VALIDATOR REGISTRY</span>
+          <h2 id="validator-constellation-title">The network, point by point.</h2>
+          <p>Every point is a validator index from the current Genesis-4 registry. Select one to inspect its identity, stake, lifecycle state and recent duties.</p>
+          <div className="validator-constellation-stats">
+            <div><strong>{fmtInt(vals?.total ?? head.validators?.total ?? 140)}</strong><span>registered</span></div>
+            <div><strong>{vals ? fmtInt(vals.active) : head.validators ? fmtInt(head.validators.active) : "—"}</strong><span>active</span></div>
+            <div><strong>30s</strong><span>slot cadence</span></div>
+          </div>
+          <div className="validator-constellation-actions"><Link className="btn" to="/validators">Explore validator set →</Link><Link to="/validators/guide">Run a validator ↗</Link></div>
+          <p className="validator-globe-help">Drag your attention across the globe: hover or tap a point. Keyboard users can focus it, move with arrow keys and press Enter.</p>
+        </div>
+        <ValidatorGlobe total={vals?.total ?? head.validators?.total ?? 140} active={vals?.active ?? head.validators?.active ?? null} />
+      </section>
       {/* ── the hero: head, finality, the clock ─────────────────────────── */}
       <section className="hero-card dash-hero">
         <div className="dash-hero-main">
