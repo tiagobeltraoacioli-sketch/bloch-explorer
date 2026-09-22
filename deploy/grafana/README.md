@@ -16,8 +16,14 @@ it. Check the Alloy config, restart Alloy, and confirm both `bloch_pos_*` and
 `node_*` samples arrive in Grafana Cloud. A healthy `up` sample alone does not
 prove that either metric family is present.
 
-`k8s-monitoring.values.yaml` and `install.sh` are retained for a future
-Kubernetes deployment. The Observability page also shows Kubernetes metrics
-when that collector sends `kube_*` and container series; until then the
-cluster panel reports missing samples. Kubernetes is not part of the current
-Ubuntu collection path.
+The Edgevana host formerly used for Genesis-3 AuxPoW now runs a single-node
+K3s cluster for observability. Its Kubernetes API remains behind UFW and is
+administered through an SSH tunnel. `k8s-monitoring-edgevana.values.yaml`
+enables cluster metrics, cAdvisor and kube-state-metrics with one Alloy
+DaemonSet. `install.sh` pins chart version 4.5.2 and injects the Grafana Cloud
+token at runtime. The old `k8s-monitoring.values.yaml` records the full Grafana
+PDF configuration, whose xlarge collectors and extra services are unsuitable
+for this 2-vCPU, 8-GB host.
+
+The public Observability page reads Kubernetes aggregate metrics from the same
+Grafana Cloud Prometheus destination as the Genesis-4 host metrics.

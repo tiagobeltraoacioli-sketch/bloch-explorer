@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Single-node K3s collector for the repurposed Genesis-3 AuxPoW host.
+# The Grafana Cloud password is supplied by install.sh at deployment time.
+cluster:
+  name: edgevana-observability
+
+destinations:
+  grafanaCloud:
+    type: prometheus
+    url: https://prometheus-prod-40-prod-sa-east-1.grafana.net/api/prom/push
+    auth:
+      type: basic
+      username: "3605138"
+
+clusterMetrics:
+  enabled: true
+
+collectors:
+  alloy-metrics:
+    presets: [clustered, daemonset]
+
+hostMetrics:
+  enabled: false
+
+telemetryServices:
+  kube-state-metrics:
+    deploy: true
+  node-exporter:
+    deploy: false
