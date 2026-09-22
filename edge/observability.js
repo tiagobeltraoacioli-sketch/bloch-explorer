@@ -10,7 +10,7 @@ const QUERY_TIMEOUT_MS = 6_000;
 const QUERIES = Object.freeze({
   targets_total: 'count(up)',
   targets_healthy: 'sum(up)',
-  targets_unhealthy: 'count(up == 0)',
+  targets_unhealthy: 'count(up) - sum(up)',
 
   bloch_nodes: 'count(bloch_pos_head_slot)',
   bloch_head_slot: 'max(bloch_pos_head_slot)',
