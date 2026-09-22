@@ -27,14 +27,12 @@ const QUERIES = Object.freeze({
   bloch_rejected_blocks_1h: 'sum(increase(bloch_pos_blocks_rejected_total[1h]))',
   bloch_heartbeat_age_seconds: 'max(time() - (bloch_pos_heartbeat_unix > 0))',
 
-  k8s_nodes: 'count(kube_node_info)',
-  k8s_pods_running: 'sum(kube_pod_status_phase{phase="Running"})',
-  k8s_pods_unhealthy: 'sum(kube_pod_status_phase{phase=~"Pending|Failed|Unknown"})',
-  k8s_container_restarts: 'sum(kube_pod_container_status_restarts_total)',
-  k8s_deployments_desired: 'sum(kube_deployment_spec_replicas)',
-  k8s_deployments_available: 'sum(kube_deployment_status_replicas_available)',
-  k8s_cpu_cores: 'sum(rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]))',
-  k8s_memory_bytes: 'sum(container_memory_working_set_bytes{container!="",image!=""})',
+  host_nodes: 'count(node_uname_info)',
+  host_cpu_busy_cores: 'sum(rate(node_cpu_seconds_total{mode!="idle"}[5m]))',
+  host_memory_used_bytes: 'sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)',
+  host_memory_total_bytes: 'sum(node_memory_MemTotal_bytes)',
+  host_root_disk_free_bytes: 'sum(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"})',
+  host_root_disk_min_free_percent: 'min(100 * node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"})',
 });
 
 const GROUPS = Object.freeze({
@@ -44,10 +42,10 @@ const GROUPS = Object.freeze({
     'bloch_peers', 'bloch_mempool_transactions', 'bloch_blocks_per_minute',
     'bloch_rejected_blocks_1h', 'bloch_heartbeat_age_seconds',
   ],
-  kubernetes: [
-    'k8s_nodes', 'k8s_pods_running', 'k8s_pods_unhealthy', 'k8s_container_restarts',
-    'k8s_deployments_desired', 'k8s_deployments_available', 'k8s_cpu_cores',
-    'k8s_memory_bytes',
+  host: [
+    'host_nodes', 'host_cpu_busy_cores', 'host_memory_used_bytes',
+    'host_memory_total_bytes', 'host_root_disk_free_bytes',
+    'host_root_disk_min_free_percent',
   ],
 });
 
@@ -147,7 +145,7 @@ export async function handleObservability(env, runtime = {}) {
         coverage: {
           prometheus: hasAny(values, GROUPS.prometheus),
           bloch: hasAny(values, GROUPS.bloch),
-          kubernetes: hasAny(values, GROUPS.kubernetes),
+          host: hasAny(values, GROUPS.host),
         },
         prometheus: {
           targets_total: values.targets_total,
@@ -165,15 +163,13 @@ export async function handleObservability(env, runtime = {}) {
           rejected_blocks_1h: values.bloch_rejected_blocks_1h,
           heartbeat_age_seconds: values.bloch_heartbeat_age_seconds,
         },
-        kubernetes: {
-          nodes: values.k8s_nodes,
-          pods_running: values.k8s_pods_running,
-          pods_unhealthy: values.k8s_pods_unhealthy,
-          container_restarts: values.k8s_container_restarts,
-          deployments_desired: values.k8s_deployments_desired,
-          deployments_available: values.k8s_deployments_available,
-          cpu_cores: values.k8s_cpu_cores,
-          memory_bytes: values.k8s_memory_bytes,
+        host: {
+          nodes: values.host_nodes,
+          cpu_busy_cores: values.host_cpu_busy_cores,
+          memory_used_bytes: values.host_memory_used_bytes,
+          memory_total_bytes: values.host_memory_total_bytes,
+          root_disk_free_bytes: values.host_root_disk_free_bytes,
+          root_disk_min_free_percent: values.host_root_disk_min_free_percent,
         },
       },
       state,

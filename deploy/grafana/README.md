@@ -1,37 +1,21 @@
 # Grafana Cloud collection
 
-The production Genesis-4 fleet currently runs directly on Ubuntu hosts rather
-than Kubernetes. `standalone-host.alloy` is the corresponding least-privilege
-collector configuration: it scrapes loopback-only Bloch and host metrics and
-remote-writes them to Grafana Cloud. Credentials must be supplied through the
-host's `/etc/default/alloy`; they are never stored in this repository.
+The production Genesis-4 fleet runs on Ubuntu hosts. `standalone-host.alloy`
+scrapes loopback-only Bloch validator metrics and the Alloy Unix exporter, then
+remote-writes samples to Grafana Cloud. Supply credentials through the host's
+`/etc/default/alloy`; never store them in Git.
 
-This installs the official `grafana/k8s-monitoring` chart and sends aggregate
-Prometheus telemetry to the Grafana Cloud tenant read by `/api/v1/observability`.
-The access token is never stored in Git or passed as a Helm command-line value.
+The public `/observability` page reads only fixed aggregate PromQL through
+`/api/v1/observability`. The Cloud token stays in the Pages Function secret.
+Individual host labels, mountpoints, and arbitrary PromQL are not returned to
+the browser. The page distinguishes missing samples from a measured zero.
 
-Prerequisites:
+The collector file lists the local metrics ports for one host. Adjust its
+targets to match the validator services running on each host before installing
+it. Check the Alloy config, restart Alloy, and confirm both `bloch_pos_*` and
+`node_*` samples arrive in Grafana Cloud. A healthy `up` sample alone does not
+prove that either metric family is present.
 
-- `kubectl config current-context` points at the intended production cluster;
-- the selected identity can create resources in the `monitoring` namespace;
-- `helm` 4.x and a compatible `kubectl` are available;
-- the Bloch node exposes `/metrics` only on loopback or its pod network, never
-  as an unauthenticated public service.
-
-Read the token without echoing it and run the guarded installer:
-
-```sh
-export BLOCH_CLUSTER_NAME='postern'
-read -rs GRAFANA_CLOUD_TOKEN
-export GRAFANA_CLOUD_TOKEN
-deploy/grafana/install.sh
-unset GRAFANA_CLOUD_TOKEN
-```
-
-The installer refuses to continue without a selected, reachable Kubernetes
-context. It writes credentials to a mode-0600 temporary values file, removes
-that file on exit, waits for the release, and verifies the Alloy deployment.
-
-After samples arrive, the Explorer promotes the Observability link on its
-front page automatically. Until then, the dedicated page remains explicit
-about awaiting telemetry rather than rendering zeros.
+`k8s-monitoring.values.yaml` and `install.sh` are retained for a future
+Kubernetes deployment. They are not part of the current Ubuntu collection
+path.
