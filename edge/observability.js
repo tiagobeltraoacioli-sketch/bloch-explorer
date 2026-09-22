@@ -1,0 +1,183 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// A deliberately narrow Grafana Cloud Prometheus reader. The public endpoint
+// does not accept PromQL: every query is fixed here, aggregate-only, and
+// returns no infrastructure labels. This keeps the access token and the
+// cluster inventory on the server side.
+
+const QUERY_TIMEOUT_MS = 6_000;
+
+const QUERIES = Object.freeze({
+  targets_total: 'count(up)',
+  targets_healthy: 'sum(up)',
+  targets_unhealthy: 'count(up == 0)',
+
+  bloch_nodes: 'count(bloch_pos_head_slot)',
+  bloch_head_slot: 'max(bloch_pos_head_slot)',
+  bloch_finalized_epoch: 'max(bloch_pos_finalized_epoch)',
+  bloch_worst_lag_slots: 'max(bloch_pos_behind_by_slots)',
+  bloch_peers: 'sum(bloch_pos_peer_count)',
+  bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
+  bloch_blocks_per_minute: 'sum(rate(bloch_pos_blocks_applied_total[5m])) * 60',
+  bloch_rejected_blocks_1h: 'sum(increase(bloch_pos_blocks_rejected_total[1h]))',
+  bloch_heartbeat_age_seconds: 'max(time() - bloch_pos_heartbeat_unix)',
+
+  k8s_nodes: 'count(kube_node_info)',
+  k8s_pods_running: 'sum(kube_pod_status_phase{phase="Running"})',
+  k8s_pods_unhealthy: 'sum(kube_pod_status_phase{phase=~"Pending|Failed|Unknown"})',
+  k8s_container_restarts: 'sum(kube_pod_container_status_restarts_total)',
+  k8s_deployments_desired: 'sum(kube_deployment_spec_replicas)',
+  k8s_deployments_available: 'sum(kube_deployment_status_replicas_available)',
+  k8s_cpu_cores: 'sum(rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]))',
+  k8s_memory_bytes: 'sum(container_memory_working_set_bytes{container!="",image!=""})',
+});
+
+const GROUPS = Object.freeze({
+  prometheus: ['targets_total', 'targets_healthy', 'targets_unhealthy'],
+  bloch: [
+    'bloch_nodes', 'bloch_head_slot', 'bloch_finalized_epoch', 'bloch_worst_lag_slots',
+    'bloch_peers', 'bloch_mempool_transactions', 'bloch_blocks_per_minute',
+    'bloch_rejected_blocks_1h', 'bloch_heartbeat_age_seconds',
+  ],
+  kubernetes: [
+    'k8s_nodes', 'k8s_pods_running', 'k8s_pods_unhealthy', 'k8s_container_restarts',
+    'k8s_deployments_desired', 'k8s_deployments_available', 'k8s_cpu_cores',
+    'k8s_memory_bytes',
+  ],
+});
+
+function endpoint(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return null;
+    url.pathname = url.pathname.replace(/\/$/, '') + '/api/v1/query';
+    url.search = '';
+    url.hash = '';
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function basicAuth(user, password) {
+  const bytes = new TextEncoder().encode(`${user}:${password}`);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `Basic ${btoa(binary)}`;
+}
+
+function finiteSample(body) {
+  if (body?.status !== 'success' || body?.data?.resultType !== 'vector') return null;
+  const raw = body.data.result?.[0]?.value?.[1];
+  const value = typeof raw === 'string' ? Number(raw) : NaN;
+  return Number.isFinite(value) ? value : null;
+}
+
+async function queryPrometheus(base, auth, query, fetchImpl) {
+  const url = new URL(base);
+  url.searchParams.set('query', query);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), QUERY_TIMEOUT_MS);
+  try {
+    const response = await fetchImpl(url.toString(), {
+      method: 'GET',
+      headers: { accept: 'application/json', authorization: auth },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`prometheus_http_${response.status}`);
+    return finiteSample(await response.json());
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function hasAny(values, keys) {
+  return keys.some((key) => values[key] !== null);
+}
+
+/**
+ * Returns the same { status, body } envelope as edge/api.js so the Pages
+ * adapter can apply one response policy to chain and infrastructure reads.
+ */
+export async function handleObservability(env, runtime = {}) {
+  const sampledAt = (runtime.now ?? Date.now)();
+  const base = endpoint(env?.GRAFANA_PROM_URL);
+  const user = typeof env?.GRAFANA_PROM_USER === 'string' ? env.GRAFANA_PROM_USER.trim() : '';
+  const token = typeof env?.GRAFANA_PROM_TOKEN === 'string' ? env.GRAFANA_PROM_TOKEN : '';
+  if (!base || !user || !token) {
+    return {
+      status: 200,
+      body: {
+        data: null,
+        state: 'unconfigured',
+        sampled_at: sampledAt,
+        error: { reason: 'grafana_cloud_not_configured' },
+      },
+    };
+  }
+
+  const auth = basicAuth(user, token);
+  const fetchImpl = runtime.fetchImpl ?? fetch;
+  const entries = Object.entries(QUERIES);
+  const settled = await Promise.allSettled(
+    entries.map(([, promql]) => queryPrometheus(base, auth, promql, fetchImpl)),
+  );
+  const values = Object.fromEntries(entries.map(([name], index) => [
+    name,
+    settled[index].status === 'fulfilled' ? settled[index].value : null,
+  ]));
+  const failures = settled.filter((result) => result.status === 'rejected').length;
+  const successes = settled.length - failures;
+  const anyTelemetry = Object.values(values).some((value) => value !== null);
+  const state = successes === 0 ? 'unavailable' : failures > 0 ? 'partial' : anyTelemetry ? 'live' : 'awaiting_telemetry';
+
+  return {
+    status: successes === 0 ? 503 : 200,
+    body: {
+      data: {
+        provider: 'Grafana Cloud Prometheus',
+        state,
+        sampled_at: sampledAt,
+        coverage: {
+          prometheus: hasAny(values, GROUPS.prometheus),
+          bloch: hasAny(values, GROUPS.bloch),
+          kubernetes: hasAny(values, GROUPS.kubernetes),
+        },
+        prometheus: {
+          targets_total: values.targets_total,
+          targets_healthy: values.targets_healthy,
+          targets_unhealthy: values.targets_unhealthy,
+        },
+        bloch: {
+          nodes: values.bloch_nodes,
+          head_slot: values.bloch_head_slot,
+          finalized_epoch: values.bloch_finalized_epoch,
+          worst_lag_slots: values.bloch_worst_lag_slots,
+          peers: values.bloch_peers,
+          mempool_transactions: values.bloch_mempool_transactions,
+          blocks_per_minute: values.bloch_blocks_per_minute,
+          rejected_blocks_1h: values.bloch_rejected_blocks_1h,
+          heartbeat_age_seconds: values.bloch_heartbeat_age_seconds,
+        },
+        kubernetes: {
+          nodes: values.k8s_nodes,
+          pods_running: values.k8s_pods_running,
+          pods_unhealthy: values.k8s_pods_unhealthy,
+          container_restarts: values.k8s_container_restarts,
+          deployments_desired: values.k8s_deployments_desired,
+          deployments_available: values.k8s_deployments_available,
+          cpu_cores: values.k8s_cpu_cores,
+          memory_bytes: values.k8s_memory_bytes,
+        },
+      },
+      state,
+      sampled_at: sampledAt,
+      partial: failures > 0,
+      queries: { succeeded: successes, failed: failures, total: settled.length },
+      error: failures > 0 ? { reason: successes ? 'prometheus_partial_read' : 'prometheus_unavailable' } : null,
+    },
+  };
+}
+
+export const observabilityQueries = QUERIES;

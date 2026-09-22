@@ -48,6 +48,10 @@ pages_build_output_dir = "dist"
 # which tree is actually deployed.
 
 [vars]
+GRAFANA_PROM_URL = "https://prometheus-prod-40-prod-sa-east-1.grafana.net/api/prom"
+GRAFANA_PROM_USER = "3605138"
+# GRAFANA_PROM_TOKEN is a Cloudflare Pages secret. Never add it to this file.
+
 # ─────────────────────────────────────────────────────────────────────────────
 # THE TWO POOLS. They are not interchangeable; see edge/pool.js.
 # ─────────────────────────────────────────────────────────────────────────────

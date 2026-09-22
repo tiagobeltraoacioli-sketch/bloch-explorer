@@ -12,6 +12,7 @@
 
 import { handleApi } from '../../edge/api.js';
 import { buildOpts, runtimeFor } from '../../edge/core.js';
+import { handleObservability } from '../../edge/observability.js';
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -32,7 +33,9 @@ export async function onRequestGet(context) {
 
   let out;
   try {
-    out = await handleApi(url.pathname, url.searchParams, opts);
+    out = url.pathname === '/api/v1/observability'
+      ? await handleObservability(env, opts)
+      : await handleApi(url.pathname, url.searchParams, opts);
   } catch (e) {
     // An unhandled fault at the edge is an edge fault. Say so, rather than
     // letting a 500 read as a chain problem — which is exactly the confusion
@@ -50,12 +53,15 @@ export async function onRequestGet(context) {
   }
 
   const level = (out.body && out.body.corroboration && out.body.corroboration.level) || 'none';
+  const infrastructureRead = url.pathname === '/api/v1/observability';
   const headers = {
     'content-type': 'application/json',
     // Never at a shared cache. The corroboration and the cache age in the body
     // are computed per request; a CDN copy of them would be a stale statement
     // about staleness.
-    'cache-control': 'no-store',
+    'cache-control': infrastructureRead
+      ? 'public, max-age=10, s-maxage=20, stale-while-revalidate=60'
+      : 'no-store',
     'x-edge-corroboration': level,
     'x-edge-cache': (out.body && out.body.cache && out.body.cache.state) || 'bypass',
     ...CORS,

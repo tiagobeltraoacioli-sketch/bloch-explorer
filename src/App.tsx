@@ -28,6 +28,7 @@ const EpochPage = lazy(() => import("./pages/Epoch").then((m) => ({ default: m.E
 const TransactionsPage = lazy(() => import("./pages/Transactions").then((m) => ({ default: m.TransactionsPage })));
 const MempoolPage = lazy(() => import("./pages/Mempool").then((m) => ({ default: m.MempoolPage })));
 const NetworkPage = lazy(() => import("./pages/Network").then((m) => ({ default: m.NetworkPage })));
+const ObservabilityPage = lazy(() => import("./pages/Observability").then((m) => ({ default: m.ObservabilityPage })));
 const ValidatorGuidePage = lazy(() => import("./pages/ValidatorGuide").then((m) => ({ default: m.ValidatorGuidePage })));
 
 // Begin fetching a specialist view while the reader is already aiming at its
@@ -43,6 +44,7 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/supply": () => import("./pages/Supply"),
   "/mempool": () => import("./pages/Mempool"),
   "/network": () => import("./pages/Network"),
+  "/observability": () => import("./pages/Observability"),
   "/fees": () => import("./pages/Fees"),
   "/hash": () => import("./pages/Balance"),
   "/snapshot": () => import("./pages/Snapshot"),
@@ -104,6 +106,7 @@ const ROUTES: NavRoute[] = [
   { pattern: "/supply", nav: "Supply", group: "Economy", hint: "cap, issuance, concentration", render: () => <SupplyPage /> },
   { pattern: "/mempool", nav: "Mempool", group: "Economy", hint: "pending transactions, bytes and admission", render: () => <MempoolPage /> },
   { pattern: "/network", nav: "Network", group: "Network", hint: "RPC nodes, build identities and API", render: () => <NetworkPage /> },
+  { pattern: "/observability", desktop: false, nav: "Observability", group: "Network", hint: "Grafana, Prometheus and Kubernetes", render: () => <ObservabilityPage /> },
   { pattern: "/fees", desktop: false, nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
   // `/hash/<64 hex>` is the canonical name of an eUTXO-set entry, and every
   // other identifier a person can paste redirects into it. `/balance…` are the
