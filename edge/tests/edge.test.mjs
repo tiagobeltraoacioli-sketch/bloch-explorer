@@ -261,7 +261,7 @@ test('an unfinalised block expires quickly — the head is not immutable', async
 // 2. VIOLATION: A DELIBERATELY STALE NODE
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('a stale archival plane is refused, not served', async () => {
+test('an archival plane proven behind a fresh witness is refused, not served', async () => {
   reset();
   const now = clock();
   // Both archivals are forty slots — twenty minutes — behind the wall clock.
@@ -285,12 +285,26 @@ test('a stale archival plane is refused, not served', async () => {
   const bal = await handleRead(call('getbalance', ['ab'.repeat(32)]), o);
   assert.ok(bal.body.error, 'a balance from a node twenty minutes behind must not be served');
   assert.equal(bal.body.error.code, -32011);
-  assert.equal(bal.body.error.data.reason, 'stale');
+  assert.equal(bal.body.error.data.reason, 'behind_witness');
   assert.equal(bal.body.error.data.behind_by_slots, 40);
   assert.ok(
     /not currently following the chain/.test(bal.body.error.message),
     'the message must say what is wrong in a sentence a person can act on',
   );
+});
+
+test('network-wide empty slots do not falsely mark the archival plane stale', async () => {
+  reset();
+  const now = clock();
+  const paused = chainInfo({ behind_by_slots: 40, wall_slot: 54_632 });
+  const map = {};
+  for (const u of [...ARCHIVALS, ...FLEET]) map[u] = () => ({ result: paused });
+
+  const out = await handleRead(call('getchaininfo'), opts(fakeFetch(map), now, fakeCache()));
+  assert.ok(!out.body.error, 'empty slots across the network are not archival staleness');
+  assert.equal(out.body.result.height, paused.height);
+  assert.equal(out.corroboration.level, Level.Uncorroborated);
+  assert.equal(out.corroboration.witness.reason, 'stale_witness');
 });
 
 test('a slightly-behind plane is served but the answer says so', async () => {

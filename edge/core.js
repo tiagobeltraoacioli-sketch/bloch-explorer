@@ -349,7 +349,12 @@ export function adoptPlane(answers, opts) {
       agree_on_head: agreed,
       height: heights.length ? Math.max(...heights) : null,
       behind_by_slots: chains.length
-        ? Math.max(...chains.map((c) => Number(c.behind_by_slots) || 0))
+        ? worst && Number.isFinite(worst.behind_by_slots)
+          ? worst.behind_by_slots
+          : Math.max(...chains.map((c) => Number(c.behind_by_slots) || 0))
+        : null,
+      behind_by_blocks: worst && Number.isFinite(worst.behind_by_blocks)
+        ? worst.behind_by_blocks
         : null,
       witness_certified: !!(wit && wit.ok),
       reason: worst ? worst.reason : null,
@@ -959,6 +964,7 @@ export async function handleRead(payload, opts) {
         body: staleError(id, method, {
           reason: pv.reason,
           behind_by_slots: pv.behind_by_slots,
+          behind_by_blocks: pv.behind_by_blocks,
           detail: pv.detail,
         }),
         cacheState: 'bypass',

@@ -120,13 +120,14 @@ export const MAX_WITNESS_ATTEMPTS = 3;
 export const WITNESS_ATTEMPT_TIMEOUT_MS = 3_000;
 
 /**
- * How far behind the witness an archival may be and still be served.
+ * How far behind a fresh witness an archival may be and still be served.
  *
  * Four slots — two minutes. Above this the archival is not "a bit behind", it
  * has stopped following, and serving its head as the chain's head is how a
  * reader is shown a two-hour-old balance with no indication that it is old.
- * The node hands us `behind_by_slots` directly, so this needs no arithmetic on
- * wall clocks we do not control.
+ * This threshold is deliberately relative to the fleet witness. A chain can
+ * legitimately have empty slots, so wall-clock lag alone is not proof that an
+ * archival has fallen behind the chain.
  */
 export const STALE_SLOTS = 4;
 
@@ -476,12 +477,10 @@ export function witnessView(now) {
  *
  *  1. Does it contradict a checkpoint we know? If yes, this is not staleness,
  *     it is a different chain, and it must not be served as corroborated.
- *  2. Is it further behind than STALE_SLOTS? The node tells us directly with
- *     `behind_by_slots`, which is its own gap to wall-clock slot — the field
- *     exists for exactly this question.
- *  3. Is it behind the WITNESS by more than STALE_SLOTS of height? A node can
- *     have a current `behind_by_slots` and still be missing blocks if it is on
- *     a shorter branch.
+ *  2. Is it behind the WITNESS by more than STALE_SLOTS of slot or height? A
+ *     node can report a large wall-clock gap simply because the whole chain
+ *     had empty slots. Only a fresh fleet witness can prove that the archival,
+ *     rather than block production, fell behind.
  */
 export function certify(archivalChain, wit, nowSlotTolerance = STALE_SLOTS) {
   if (!archivalChain) return { ok: false, reason: 'no_answer' };
@@ -499,15 +498,19 @@ export function certify(archivalChain, wit, nowSlotTolerance = STALE_SLOTS) {
     }
   }
 
-  const behind = Number(archivalChain.behind_by_slots);
-  if (Number.isFinite(behind) && behind > nowSlotTolerance) {
-    return { ok: false, reason: 'stale', behind_by_slots: behind };
-  }
-
   if (wit && wit.ok && wit.chain) {
-    const gap = Number(wit.chain.height) - Number(archivalChain.height);
-    if (Number.isFinite(gap) && gap > nowSlotTolerance) {
-      return { ok: false, reason: 'behind_witness', behind_by_blocks: gap };
+    const slotGap = Number(wit.chain.slot) - Number(archivalChain.slot);
+    const blockGap = Number(wit.chain.height) - Number(archivalChain.height);
+    if (
+      (Number.isFinite(slotGap) && slotGap > nowSlotTolerance) ||
+      (Number.isFinite(blockGap) && blockGap > nowSlotTolerance)
+    ) {
+      return {
+        ok: false,
+        reason: 'behind_witness',
+        behind_by_slots: Number.isFinite(slotGap) ? Math.max(0, slotGap) : null,
+        behind_by_blocks: Number.isFinite(blockGap) ? Math.max(0, blockGap) : null,
+      };
     }
     return { ok: true, witnessed: true };
   }
