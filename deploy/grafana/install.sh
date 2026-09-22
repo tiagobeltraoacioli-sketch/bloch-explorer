@@ -10,7 +10,7 @@ if [[ -z "$helm_bin" && -x "$HOME/.local/bin/helm" ]]; then helm_bin="$HOME/.loc
 if [[ -z "$kubectl_bin" ]]; then kubectl_bin="$(command -v kubectl 2>/dev/null || true)"; fi
 if [[ -z "$kubectl_bin" && -x "$HOME/.local/bin/kubectl" ]]; then kubectl_bin="$HOME/.local/bin/kubectl"; fi
 
-: "${BLOCH_CLUSTER_NAME:?Set BLOCH_CLUSTER_NAME to the real Kubernetes cluster name}"
+BLOCH_CLUSTER_NAME="${BLOCH_CLUSTER_NAME:-postern}"
 : "${GRAFANA_CLOUD_TOKEN:?Set GRAFANA_CLOUD_TOKEN without placing it in shell history}"
 [[ "$GRAFANA_CLOUD_TOKEN" != *$'\n'* ]] || { echo "The token must be one line" >&2; exit 1; }
 

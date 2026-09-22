@@ -15,7 +15,7 @@ Prerequisites:
 Read the token without echoing it and run the guarded installer:
 
 ```sh
-export BLOCH_CLUSTER_NAME='the-real-cluster-name'
+export BLOCH_CLUSTER_NAME='postern'
 read -rs GRAFANA_CLOUD_TOKEN
 export GRAFANA_CLOUD_TOKEN
 deploy/grafana/install.sh
