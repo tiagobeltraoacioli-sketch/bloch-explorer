@@ -7,10 +7,13 @@
 
 const QUERY_TIMEOUT_MS = 6_000;
 const PEER_MAX_SAMPLE_AGE_SECONDS = 90;
+// The node updates heartbeat_unix and peer_count in the same metrics pass.
+// Prometheus timestamp() on an instant expression reflects evaluation time,
+// so use the node's heartbeat VALUE to reject old scraped observations.
 const FRESH_PEER_SERIES =
   'bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0) ' +
-  `and on(instance) (time() - timestamp(bloch_pos_peer_count) <= ${PEER_MAX_SAMPLE_AGE_SECONDS}) ` +
-  `and on(instance) (time() - timestamp(bloch_pos_head_slot) <= ${PEER_MAX_SAMPLE_AGE_SECONDS})`;
+  `and on(instance) (time() - bloch_pos_heartbeat_unix <= ${PEER_MAX_SAMPLE_AGE_SECONDS}) ` +
+  'and on(instance) (bloch_pos_heartbeat_unix <= time() + 5)';
 
 const QUERIES = Object.freeze({
   targets_total: 'count(up)',
@@ -27,7 +30,7 @@ const QUERIES = Object.freeze({
   // observers may be counted twice; this is not a unique-network-peer count.
   bloch_peers: `sum(${FRESH_PEER_SERIES})`,
   bloch_peer_reporting_nodes: `count(${FRESH_PEER_SERIES})`,
-  bloch_peer_oldest_sample_unix: `min(timestamp(${FRESH_PEER_SERIES}))`,
+  bloch_peer_oldest_heartbeat_unix: `min(bloch_pos_heartbeat_unix and on(instance) (${FRESH_PEER_SERIES}))`,
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
   bloch_mempool_sampled_nodes: 'count(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
   bloch_mempool_min_transactions: 'min(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
@@ -157,7 +160,7 @@ export async function handleObservability(env, runtime = {}) {
     name,
     settled[index].status === 'fulfilled' ? settled[index].value : null,
   ]));
-  const peerSampleSeconds = values.bloch_peer_oldest_sample_unix;
+  const peerSampleSeconds = values.bloch_peer_oldest_heartbeat_unix;
   const peerSampleMs = peerSampleSeconds === null ? null : Math.round(peerSampleSeconds * 1000);
   const peersFresh = Number.isSafeInteger(peerSampleMs) && peerSampleMs > 0 &&
     peerSampleMs <= sampledAt + 5_000 && sampledAt - peerSampleMs <= PEER_MAX_SAMPLE_AGE_SECONDS * 1000 &&

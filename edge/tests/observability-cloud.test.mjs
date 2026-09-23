@@ -24,6 +24,8 @@ test('observability is explicit when the server-side secret is absent', async ()
 });
 
 test('observability exposes aggregate values without credentials, labels or promql', async () => {
+  assert.match(observabilityQueries.bloch_peers, /bloch_pos_heartbeat_unix/);
+  assert.doesNotMatch(observabilityQueries.bloch_peers, /timestamp\(/);
   const seen = [];
   const values = new Map([
     [observabilityQueries.targets_total, '12'],
@@ -31,7 +33,7 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_head_slot, '70001'],
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
-    [observabilityQueries.bloch_peer_oldest_sample_unix, '1719999999'],
+    [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
     [observabilityQueries.bloch_mempool_sampled_nodes, '9'],
     [observabilityQueries.bloch_mempool_min_transactions, '0'],
     [observabilityQueries.bloch_mempool_max_transactions, '5'],
@@ -74,7 +76,7 @@ test('old peer samples cannot be represented as a current network reading', asyn
   const values = new Map([
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
-    [observabilityQueries.bloch_peer_oldest_sample_unix, '1719999800'],
+    [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999800'],
   ]);
   const out = await handleObservability(env, {
     now: () => 1720000000000,
