@@ -29,6 +29,8 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.targets_total, '12'],
     [observabilityQueries.targets_healthy, '11'],
     [observabilityQueries.bloch_head_slot, '70001'],
+    [observabilityQueries.bloch_peers, '4623'],
+    [observabilityQueries.bloch_peer_reporting_nodes, '44'],
     [observabilityQueries.bloch_mempool_sampled_nodes, '9'],
     [observabilityQueries.bloch_mempool_min_transactions, '0'],
     [observabilityQueries.bloch_mempool_max_transactions, '5'],
@@ -50,6 +52,8 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.state, 'live');
   assert.equal(out.body.data.prometheus.targets_total, 12);
   assert.equal(out.body.data.bloch.head_slot, 70001);
+  assert.equal(out.body.data.bloch.peers, 4623);
+  assert.equal(out.body.data.bloch.peer_reporting_nodes, 44);
   assert.equal(out.body.data.bloch.mempool_sampled_nodes, 9);
   assert.equal(out.body.data.bloch.mempool_min_transactions, 0);
   assert.equal(out.body.data.bloch.mempool_max_transactions, 5);
@@ -117,13 +121,13 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     state: 'live', sampled_at: 1720000000000,
     coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
     prometheus: { targets_healthy: 56, targets_total: 56 },
-    bloch: { nodes: 44, worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
+    bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
     host: { nodes: 7, memory_used_bytes: 50, memory_total_bytes: 100, root_disk_min_free_percent: 90 },
     kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0, deployments_available: 5, deployments_desired: 5 },
   } });
   assert.deepEqual(summary, {
     layers: 4, state: 'live', sampledAt: 1720000000000,
-    targetsHealthy: 56, targetsTotal: 56, blochNodes: 44,
+    targetsHealthy: 56, targetsTotal: 56, blochNodes: 44, peerConnections: 0, peerReportingNodes: 44,
     worstLagSlots: 0, blocksPerMinute: 2, rejectedBlocks1h: 0,
     hostNodes: 7, hostMemoryUsedBytes: 50, hostMemoryTotalBytes: 100,
     rootDiskMinFreePercent: 90, kubernetesNodes: 1,

@@ -10,6 +10,8 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   targetsHealthy: number | null;
   targetsTotal: number | null;
   blochNodes: number | null;
+  peerConnections: number | null;
+  peerReportingNodes: number | null;
   worstLagSlots: number | null;
   blocksPerMinute: number | null;
   rejectedBlocks1h: number | null;
@@ -44,6 +46,8 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     targetsHealthy: metric("prometheus", "targets_healthy"),
     targetsTotal: metric("prometheus", "targets_total"),
     blochNodes: metric("bloch", "nodes"),
+    peerConnections: metric("bloch", "peers"),
+    peerReportingNodes: metric("bloch", "peer_reporting_nodes"),
     worstLagSlots: metric("bloch", "worst_lag_slots"),
     blocksPerMinute: metric("bloch", "blocks_per_minute"),
     rejectedBlocks1h: metric("bloch", "rejected_blocks_1h"),

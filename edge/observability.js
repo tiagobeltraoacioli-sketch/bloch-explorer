@@ -18,7 +18,10 @@ const QUERIES = Object.freeze({
   bloch_head_slot: 'max(bloch_pos_head_slot)',
   bloch_finalized_epoch: 'max(bloch_pos_finalized_epoch)',
   bloch_worst_lag_slots: 'max(bloch_pos_behind_by_slots)',
-  bloch_peers: 'sum(bloch_pos_peer_count)',
+  // Connections seen by active monitored nodes. A peer shared by two
+  // observers may be counted twice; this is not a unique-network-peer count.
+  bloch_peers: 'sum(bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0))',
+  bloch_peer_reporting_nodes: 'count(bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0))',
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
   bloch_mempool_sampled_nodes: 'count(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
   bloch_mempool_min_transactions: 'min(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
@@ -51,7 +54,7 @@ const GROUPS = Object.freeze({
   prometheus: ['targets_total', 'targets_healthy', 'targets_unhealthy'],
   bloch: [
     'bloch_nodes', 'bloch_head_slot', 'bloch_finalized_epoch', 'bloch_worst_lag_slots',
-    'bloch_peers', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
+    'bloch_peers', 'bloch_peer_reporting_nodes', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
     'bloch_mempool_min_transactions', 'bloch_mempool_max_transactions', 'bloch_blocks_per_minute',
     'bloch_rejected_blocks_1h', 'bloch_heartbeat_age_seconds',
   ],
@@ -177,6 +180,7 @@ export async function handleObservability(env, runtime = {}) {
           finalized_epoch: values.bloch_finalized_epoch,
           worst_lag_slots: values.bloch_worst_lag_slots,
           peers: values.bloch_peers,
+          peer_reporting_nodes: values.bloch_peer_reporting_nodes,
           mempool_transactions: values.bloch_mempool_transactions,
           mempool_sampled_nodes: values.bloch_mempool_sampled_nodes,
           mempool_min_transactions: values.bloch_mempool_min_transactions,

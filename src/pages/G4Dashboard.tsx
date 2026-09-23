@@ -37,6 +37,7 @@ import { indexerHealth, type IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
 import { ValidatorGlobe } from "../components/ValidatorGlobe";
+import { PeerGlobe } from "../components/PeerGlobe";
 import { observabilitySummary, type ObservabilitySummary } from "../lib/observabilityCloud";
 import { Loading, Copyable } from "../components/ui";
 import { gradeStall, CONSENSUS } from "../lib/finality";
@@ -132,7 +133,7 @@ export function G4Dashboard() {
         if (!stopped) setObservability(observabilitySummary(body));
       } catch { /* Infrastructure telemetry is optional on the chain page. */ }
     };
-    const teardown = pollWhileVisible(tick, 60_000);
+    const teardown = pollWhileVisible(tick, 30_000);
     return () => { stopped = true; teardown(); };
   }, []);
 
@@ -278,6 +279,21 @@ export function G4Dashboard() {
           <p className="validator-globe-help">Drag your attention across the globe: hover or tap a point. Keyboard users can focus it, move with arrow keys and press Enter.</p>
         </div>
         <ValidatorGlobe total={vals?.total ?? head.validators?.total ?? 140} active={vals?.active ?? head.validators?.active ?? null} />
+      </section>
+      <section className="card validator-constellation peer-constellation" aria-labelledby="peer-constellation-title">
+        <PeerGlobe connections={observability?.peerConnections ?? null} />
+        <div className="validator-constellation-copy">
+          <span className="eyebrow">LIVE NETWORK TELEMETRY</span>
+          <h2 id="peer-constellation-title">The network, connection by connection.</h2>
+          <p>The globe follows the peer connections reported by active Genesis-4 nodes monitored in Prometheus. The measured total updates every 30 seconds while this page is visible.</p>
+          <div className="validator-constellation-stats peer-constellation-stats" aria-live="polite" aria-atomic="true">
+            <div><strong>{observability?.peerConnections === null || observability?.peerConnections === undefined ? "—" : fmtInt(observability.peerConnections)}</strong><span>reported connections</span></div>
+            <div><strong>{observability?.peerReportingNodes === null || observability?.peerReportingNodes === undefined ? "—" : fmtInt(observability.peerReportingNodes)}</strong><span>reporting nodes</span></div>
+            <div><strong>{observability?.sampledAt && now - observability.sampledAt < 90_000 ? "LIVE" : "—"}</strong><span>{observability?.sampledAt ? `last read ${new Date(observability.sampledAt).toLocaleTimeString()}` : "awaiting telemetry"}</span></div>
+          </div>
+          <div className="validator-constellation-actions"><Link className="btn" to="/observability">Explore network telemetry →</Link></div>
+          <p className="validator-globe-help">Each dot represents one reported connection when the count is at most 6,000; above that, the globe samples the dots while the displayed total stays exact. This is an abstract map, not a geographic location map. A peer seen by multiple nodes can appear more than once, so the number is not a count of unique machines.</p>
+        </div>
       </section>
       {/* ── the hero: head, finality, the clock ─────────────────────────── */}
       <section className="hero-card dash-hero">
