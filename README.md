@@ -42,6 +42,17 @@ The data expansion adds dedicated **mempool** (`/mempool`) and **network/RPC**
 `gettxstatus` reads. See [data sources, RPC configuration and limits](docs/observatory-expansion.md)
 for the endpoint contracts and the data still requiring an indexer.
 
+Exchange systems can read `GET /api/v1/transactions/{txid}` for an indexed
+Genesis-4 transaction. The response includes canonical receipt inputs and
+outputs (`value_sat` decimal strings), block height and slot, inclusive
+confirmations, and a finality flag based on a fresh corroborated chain head.
+A 404 means the transaction is absent from the archival index; it does not
+establish that a recently submitted transfer failed. A 503 means finality
+cannot be established safely and deposit crediting should pause.
+The matching JavaScript SDK is available at
+`/releases/genesis4-js/blochprotocol-genesis4-sdk-0.1.0.tgz` with SHA-256
+`078e07fa51e0bfe363f72711761102fd779a184a4cb78880f70feb9bbfdfeab1`.
+
 ```sh
 npm ci
 npm run dev        # Vite dev server
