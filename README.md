@@ -34,6 +34,8 @@ bundle served in production byte for byte.
   limit. Prometheus samples older than 90 seconds are excluded, and the globe
   clears when its latest reading expires. P2P and devnet subtotals appear only
   when both transport gauges cover every reporting node and sum to the total.
+  The observability view also shows minimum, median and maximum connections
+  per reporting node; all are subject to the same freshness check.
   Connections can be counted by more than one observer; this is not the number
   of unique network nodes.
 

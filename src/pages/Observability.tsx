@@ -19,6 +19,7 @@ interface ObservabilityData {
     nodes: Metric; head_slot: Metric; finalized_epoch: Metric; worst_lag_slots: Metric;
     peers: Metric; peer_reporting_nodes: Metric; peer_sampled_at: Metric;
     peer_p2p_connections: Metric; peer_devnet_connections: Metric;
+    peer_min_per_node: Metric; peer_median_per_node: Metric; peer_max_per_node: Metric;
     mempool_transactions: Metric; blocks_per_minute: Metric;
     rejected_blocks_1h: Metric; heartbeat_age_seconds: Metric;
   };
@@ -150,10 +151,14 @@ export function ObservabilityPage() {
           <div><span>Peer connections</span><strong>{integer(peersFresh ? bloch?.peers ?? null : null)}</strong><small>{peersFresh && bloch?.peers !== null && bloch?.peers !== undefined ? `${integer(bloch.peer_reporting_nodes)} reporting nodes · samples ≤90s` : "awaiting fresh samples"}</small></div>
           <div><span>P2P connections</span><strong>{integer(peersFresh ? bloch?.peer_p2p_connections ?? null : null)}</strong><small>complete transport coverage required</small></div>
           <div><span>Devnet connections</span><strong>{integer(peersFresh ? bloch?.peer_devnet_connections ?? null : null)}</strong><small>complete transport coverage required</small></div>
+          <div><span>Fewest connections</span><strong>{integer(peersFresh ? bloch?.peer_min_per_node ?? null : null)}</strong><small>one reporting node</small></div>
+          <div><span>Median connections</span><strong>{decimal(peersFresh ? bloch?.peer_median_per_node ?? null : null, 1)}</strong><small>per reporting node</small></div>
+          <div><span>Most connections</span><strong>{integer(peersFresh ? bloch?.peer_max_per_node ?? null : null)}</strong><small>one reporting node</small></div>
           <div><span>Mempool</span><strong>{integer(bloch?.mempool_transactions ?? null)}</strong><small>transactions observed</small></div>
           <div><span>Block pace</span><strong>{decimal(bloch?.blocks_per_minute ?? null)}</strong><small>applied per minute · 5m rate</small></div>
           <div><span>Heartbeat age</span><strong>{age(bloch?.heartbeat_age_seconds ?? null)}</strong><small>oldest exported heartbeat</small></div>
         </div>
+        <p className="lookup-hint">The transport split and per-node distribution describe observed connections. A peer connected to several observers appears in several counts; these figures cannot establish the number of unique network peers. “Devnet” names a network transport, not the Genesis-4 chain stage.</p>
         <div className="obs-alert-line"><span>Rejected blocks · last hour</span><strong>{integer(bloch?.rejected_blocks_1h ?? null)}</strong></div>
       </section>
 

@@ -34,6 +34,9 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
     [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
+    [observabilityQueries.bloch_peer_min_per_node, '104'],
+    [observabilityQueries.bloch_peer_median_per_node, '105.5'],
+    [observabilityQueries.bloch_peer_max_per_node, '108'],
     [observabilityQueries.bloch_peer_p2p_connections, '4600'],
     [observabilityQueries.bloch_peer_devnet_connections, '23'],
     [observabilityQueries.bloch_peer_transport_reporting_nodes, '44'],
@@ -61,6 +64,9 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.data.bloch.peers, 4623);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, 44);
   assert.equal(out.body.data.bloch.peer_sampled_at, 1719999999000);
+  assert.equal(out.body.data.bloch.peer_min_per_node, 104);
+  assert.equal(out.body.data.bloch.peer_median_per_node, 105.5);
+  assert.equal(out.body.data.bloch.peer_max_per_node, 108);
   assert.equal(out.body.data.bloch.peer_p2p_connections, 4600);
   assert.equal(out.body.data.bloch.peer_devnet_connections, 23);
   assert.equal(out.body.data.bloch.mempool_sampled_nodes, 9);
@@ -94,6 +100,9 @@ test('old peer samples cannot be represented as a current network reading', asyn
   assert.equal(out.body.data.bloch.peers, null);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, null);
   assert.equal(out.body.data.bloch.peer_sampled_at, null);
+  assert.equal(out.body.data.bloch.peer_min_per_node, null);
+  assert.equal(out.body.data.bloch.peer_median_per_node, null);
+  assert.equal(out.body.data.bloch.peer_max_per_node, null);
   assert.equal(out.body.data.bloch.peer_p2p_connections, null);
   assert.equal(out.body.data.bloch.peer_devnet_connections, null);
 });
@@ -120,6 +129,29 @@ test('transport breakdown requires full reporter coverage and an exact total', a
     assert.equal(out.body.data.bloch.peer_p2p_connections, null);
     assert.equal(out.body.data.bloch.peer_devnet_connections, null);
   }
+});
+
+test('impossible peer distribution is withheld while the fresh total remains available', async () => {
+  const values = new Map([
+    [observabilityQueries.bloch_peers, '10'],
+    [observabilityQueries.bloch_peer_reporting_nodes, '2'],
+    [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
+    [observabilityQueries.bloch_peer_min_per_node, '8'],
+    [observabilityQueries.bloch_peer_median_per_node, '7'],
+    [observabilityQueries.bloch_peer_max_per_node, '9'],
+  ]);
+  const out = await handleObservability(env, {
+    now: () => 1720000000000,
+    fetchImpl: async input => {
+      const value = values.get(new URL(input).searchParams.get('query'));
+      return Response.json({ status: 'success', data: { resultType: 'vector',
+        result: value === undefined ? [] : [{ value: [1720000000, value] }] } });
+    },
+  });
+  assert.equal(out.body.data.bloch.peers, 10);
+  assert.equal(out.body.data.bloch.peer_min_per_node, null);
+  assert.equal(out.body.data.bloch.peer_median_per_node, null);
+  assert.equal(out.body.data.bloch.peer_max_per_node, null);
 });
 
 test('an empty but successful tenant is awaiting telemetry, not down', async () => {
