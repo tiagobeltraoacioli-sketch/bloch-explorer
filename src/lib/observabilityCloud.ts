@@ -11,10 +11,17 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   targetsTotal: number | null;
   blochNodes: number | null;
   worstLagSlots: number | null;
+  blocksPerMinute: number | null;
+  rejectedBlocks1h: number | null;
   hostNodes: number | null;
+  hostMemoryUsedBytes: number | null;
+  hostMemoryTotalBytes: number | null;
+  rootDiskMinFreePercent: number | null;
   kubernetesNodes: number | null;
   podsRunning: number | null;
   podsUnhealthy: number | null;
+  deploymentsAvailable: number | null;
+  deploymentsDesired: number | null;
 }
 
 function finiteMetric(value: unknown): number | null {
@@ -38,10 +45,17 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     targetsTotal: metric("prometheus", "targets_total"),
     blochNodes: metric("bloch", "nodes"),
     worstLagSlots: metric("bloch", "worst_lag_slots"),
+    blocksPerMinute: metric("bloch", "blocks_per_minute"),
+    rejectedBlocks1h: metric("bloch", "rejected_blocks_1h"),
     hostNodes: metric("host", "nodes"),
+    hostMemoryUsedBytes: metric("host", "memory_used_bytes"),
+    hostMemoryTotalBytes: metric("host", "memory_total_bytes"),
+    rootDiskMinFreePercent: metric("host", "root_disk_min_free_percent"),
     kubernetesNodes: metric("kubernetes", "nodes"),
     podsRunning: metric("kubernetes", "pods_running"),
     podsUnhealthy: metric("kubernetes", "pods_unhealthy"),
+    deploymentsAvailable: metric("kubernetes", "deployments_available"),
+    deploymentsDesired: metric("kubernetes", "deployments_desired"),
   };
 }
 

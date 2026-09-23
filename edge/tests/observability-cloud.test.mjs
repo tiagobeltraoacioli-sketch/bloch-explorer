@@ -111,15 +111,17 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     state: 'live', sampled_at: 1720000000000,
     coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
     prometheus: { targets_healthy: 56, targets_total: 56 },
-    bloch: { nodes: 44, worst_lag_slots: 0 },
-    host: { nodes: 7 },
-    kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0 },
+    bloch: { nodes: 44, worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
+    host: { nodes: 7, memory_used_bytes: 50, memory_total_bytes: 100, root_disk_min_free_percent: 90 },
+    kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0, deployments_available: 5, deployments_desired: 5 },
   } });
   assert.deepEqual(summary, {
     layers: 4, state: 'live', sampledAt: 1720000000000,
     targetsHealthy: 56, targetsTotal: 56, blochNodes: 44,
-    worstLagSlots: 0, hostNodes: 7, kubernetesNodes: 1,
-    podsRunning: 6, podsUnhealthy: 0,
+    worstLagSlots: 0, blocksPerMinute: 2, rejectedBlocks1h: 0,
+    hostNodes: 7, hostMemoryUsedBytes: 50, hostMemoryTotalBytes: 100,
+    rootDiskMinFreePercent: 90, kubernetesNodes: 1,
+    podsRunning: 6, podsUnhealthy: 0, deploymentsAvailable: 5, deploymentsDesired: 5,
   });
   assert.equal(observabilitySummary({ data: { state: 'awaiting_telemetry', coverage: { prometheus: false } } }), null);
 });

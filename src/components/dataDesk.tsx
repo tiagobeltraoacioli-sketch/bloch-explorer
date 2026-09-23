@@ -7,6 +7,10 @@ function count(value: number | null | undefined): string {
   return value == null ? "—" : fmtInt(Math.round(value));
 }
 
+function percent(value: number | null | undefined): string {
+  return value == null ? "—" : `${Math.round(value)}%`;
+}
+
 export function DataDesk({ summary }: { summary: ObservabilitySummary | null }) {
   const sampled = summary?.sampledAt;
   return <section className="data-desk" aria-labelledby="data-desk-title">
@@ -29,19 +33,19 @@ export function DataDesk({ summary }: { summary: ObservabilitySummary | null }) 
         <span className="data-desk-index">02 / PROTOCOL</span>
         <strong>{count(summary?.blochNodes)}</strong>
         <span className="data-desk-label">Bloch nodes observed</span>
-        <span className="data-desk-detail">Worst observed head lag: {count(summary?.worstLagSlots)} {summary?.worstLagSlots === 1 ? "slot" : "slots"}</span>
+        <span className="data-desk-detail">{summary?.blocksPerMinute == null ? "—" : summary.blocksPerMinute.toFixed(1)} blocks/min · worst head lag {count(summary?.worstLagSlots)} {summary?.worstLagSlots === 1 ? "slot" : "slots"} · {count(summary?.rejectedBlocks1h)} rejected blocks in 1h</span>
       </Link>
       <Link to="/observability" className="data-desk-card">
         <span className="data-desk-index">03 / HOSTS</span>
         <strong>{count(summary?.hostNodes)}</strong>
         <span className="data-desk-label">hosts sending metrics</span>
-        <span className="data-desk-detail">CPU, memory and disk from the instrumented hosts</span>
+        <span className="data-desk-detail">{summary?.hostMemoryUsedBytes != null && summary.hostMemoryTotalBytes ? percent(summary.hostMemoryUsedBytes / summary.hostMemoryTotalBytes * 100) : "—"} memory used · lowest root disk free {percent(summary?.rootDiskMinFreePercent)}</span>
       </Link>
       <Link to="/observability" className="data-desk-card">
         <span className="data-desk-index">04 / KUBERNETES</span>
         <strong>{count(summary?.kubernetesNodes)}</strong>
         <span className="data-desk-label">cluster nodes observed</span>
-        <span className="data-desk-detail">{count(summary?.podsRunning)} running pods · {count(summary?.podsUnhealthy)} unhealthy</span>
+        <span className="data-desk-detail">{count(summary?.podsRunning)} running pods · {count(summary?.podsUnhealthy)} unhealthy · {count(summary?.deploymentsAvailable)}/{count(summary?.deploymentsDesired)} deployments available</span>
       </Link>
     </div>
     <div className="data-desk-foot">
