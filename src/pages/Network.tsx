@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
+import { freshPeerReading, observabilitySummary } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -38,6 +39,27 @@ function support(method: RpcMethod, nodes: Observer[], now: number): string {
   if (yes) return `Observed on ${yes} ${yes === 1 ? "node" : "nodes"}`;
   if (samples.some(s => s.supported === false)) return "Not supported in sampled responses";
   return "Not recently observed";
+}
+
+function NetworkConnections() {
+  const live = useLiveRead<unknown>("/api/v1/observability", 30_000);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(timer);
+  }, []);
+  const reading = freshPeerReading(observabilitySummary(live.data), now);
+  const measured = (value: number | null | undefined) => value == null ? "—" : fmtInt(value);
+  return <section className="card" aria-labelledby="network-connections-heading">
+    <div className="section-heading"><div><span className="eyebrow">PROMETHEUS / GENESIS-4 NODES</span><h2 id="network-connections-heading">Network connections</h2><p>Fresh samples from monitored chain nodes, separate from the explorer’s RPC observer pool.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
+    <div className="edge-counter-grid" aria-live="polite">
+      <div className="card"><span className="eyebrow">REPORTED CONNECTIONS</span><strong>{measured(reading?.connections)}</strong><small>{reading ? `${measured(reading.reportingNodes)} nodes · oldest sample ${new Date(reading.sampledAt).toLocaleTimeString()}` : "Awaiting samples no older than 90 seconds"}</small></div>
+      <div className="card"><span className="eyebrow">P2P / DEVNET TRANSPORT</span><strong>{reading?.p2pConnections == null || reading.devnetConnections == null ? "—" : `${measured(reading.p2pConnections)} / ${measured(reading.devnetConnections)}`}</strong><small>Shown when both gauges cover every reporting node</small></div>
+      <div className="card"><span className="eyebrow">CONNECTIONS PER NODE</span><strong>{reading?.minPerNode == null || reading.maxPerNode == null ? "—" : `${measured(reading.minPerNode)}–${measured(reading.maxPerNode)}`}</strong><small>Fewest to most · median {reading?.medianPerNode == null ? "—" : reading.medianPerNode.toLocaleString(undefined, { maximumFractionDigits: 1 })}</small></div>
+      <div className="card"><span className="eyebrow">SAMPLE STATUS</span><strong>{reading ? "Live" : "Waiting"}</strong><small>{live.error ?? (reading ? "Refreshes every 30 seconds" : "No fresh network reading")}</small></div>
+    </div>
+    <p className="lookup-hint">A peer may connect to several monitored nodes, so these are connection reports, not unique network peers. “Devnet” is a transport name, not the chain stage. Prometheus coverage and RPC observer health measure different node sets.</p>
+  </section>;
 }
 
 export function NetworkPage() {
@@ -79,6 +101,7 @@ export function NetworkPage() {
     </div>
     <div className="telemetry-tabs" role="tablist" aria-label="Network views">{TABS.map(({ id, label }, index) => <button key={id} id={`network-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls={`network-panel-${id}`} tabIndex={tab === id ? 0 : -1} className={tab === id ? "active" : ""} onClick={() => setTab(id)} onKeyDown={(event) => { if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return; event.preventDefault(); const next = (index + (event.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length; setTab(TABS[next].id); (event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next])?.focus(); }}>{label}</button>)}</div>
     {tab === "nodes" && <div role="tabpanel" id="network-panel-nodes" aria-labelledby="network-tab-nodes">
+      <NetworkConnections />
       <div className="edge-counter-grid" aria-label="Current observer diagnostics">
         <section className="card"><span className="eyebrow">FRESH OBSERVERS</span><strong>{data ? `${freshObservers.length} / ${observers.length}` : "—"}</strong><small>{data ? `${staleObservers.length} need attention or a fresh sample` : "No observer snapshot yet"}</small></section>
         <section className="card"><span className="eyebrow">HEAD AGREEMENT</span><strong>{!data || !planeFresh ? "—" : data.plane.agree_on_head === true ? "Agree" : data.plane.agree_on_head === false ? "Differ" : "Unknown"}</strong><small>{data?.plane.responding !== undefined && data?.plane.of !== undefined ? `${data.plane.responding} of ${data.plane.of} observers represented` : "Requires a current lineage sample"}</small></section>

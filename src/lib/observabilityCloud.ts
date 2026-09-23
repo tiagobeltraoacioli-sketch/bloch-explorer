@@ -15,6 +15,9 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   peerSampledAt: number | null;
   peerP2pConnections: number | null;
   peerDevnetConnections: number | null;
+  peerMinPerNode: number | null;
+  peerMedianPerNode: number | null;
+  peerMaxPerNode: number | null;
   worstLagSlots: number | null;
   blocksPerMinute: number | null;
   rejectedBlocks1h: number | null;
@@ -58,6 +61,9 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     peerSampledAt: countMetric(metric("bloch", "peer_sampled_at")),
     peerP2pConnections: countMetric(metric("bloch", "peer_p2p_connections")),
     peerDevnetConnections: countMetric(metric("bloch", "peer_devnet_connections")),
+    peerMinPerNode: countMetric(metric("bloch", "peer_min_per_node")),
+    peerMedianPerNode: metric("bloch", "peer_median_per_node"),
+    peerMaxPerNode: countMetric(metric("bloch", "peer_max_per_node")),
     worstLagSlots: metric("bloch", "worst_lag_slots"),
     blocksPerMinute: metric("bloch", "blocks_per_minute"),
     rejectedBlocks1h: metric("bloch", "rejected_blocks_1h"),
@@ -80,11 +86,14 @@ export function peerSampleFresh(sampledAt: number | null, now: number): boolean 
 
 /** A browser-visible peer reading expires with its oldest underlying scrape. */
 export function freshPeerReading(summary: ObservabilitySummary | null, now: number) {
+  const sampledAt = summary?.peerSampledAt ?? null;
   if (!summary || summary.peerConnections === null || summary.peerReportingNodes === null ||
-      summary.peerReportingNodes < 1 || !peerSampleFresh(summary.peerSampledAt, now)) return null;
+      summary.peerReportingNodes < 1 || sampledAt === null || !peerSampleFresh(sampledAt, now)) return null;
   return { connections: summary.peerConnections, reportingNodes: summary.peerReportingNodes,
     p2pConnections: summary.peerP2pConnections, devnetConnections: summary.peerDevnetConnections,
-    sampledAt: summary.peerSampledAt };
+    minPerNode: summary.peerMinPerNode, medianPerNode: summary.peerMedianPerNode,
+    maxPerNode: summary.peerMaxPerNode,
+    sampledAt };
 }
 
 /** The homepage must advertise infrastructure telemetry only after at least

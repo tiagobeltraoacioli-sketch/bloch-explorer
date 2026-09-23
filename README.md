@@ -38,6 +38,9 @@ bundle served in production byte for byte.
   per reporting node; all are subject to the same freshness check.
   Connections can be counted by more than one observer; this is not the number
   of unique network nodes.
+- The **network page** pairs fresh Prometheus connection aggregates with the
+  separate RPC observer diagnostics. The connection panel expires with its
+  oldest peer sample and polls only while the RPC nodes tab is open.
 
 ## Develop
 

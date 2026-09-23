@@ -209,6 +209,7 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     prometheus: { targets_healthy: 56, targets_total: 56 },
     bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, peer_sampled_at: 1720000000000,
       peer_p2p_connections: 0, peer_devnet_connections: 0,
+      peer_min_per_node: 0, peer_median_per_node: 0, peer_max_per_node: 0,
       worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
     host: { nodes: 7, memory_used_bytes: 50, memory_total_bytes: 100, root_disk_min_free_percent: 90 },
     kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0, deployments_available: 5, deployments_desired: 5 },
@@ -218,6 +219,7 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     targetsHealthy: 56, targetsTotal: 56, blochNodes: 44, peerConnections: 0, peerReportingNodes: 44,
     peerSampledAt: 1720000000000,
     peerP2pConnections: 0, peerDevnetConnections: 0,
+    peerMinPerNode: 0, peerMedianPerNode: 0, peerMaxPerNode: 0,
     worstLagSlots: 0, blocksPerMinute: 2, rejectedBlocks1h: 0,
     hostNodes: 7, hostMemoryUsedBytes: 50, hostMemoryTotalBytes: 100,
     rootDiskMinFreePercent: 90, kubernetesNodes: 1,
@@ -225,6 +227,7 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
   });
   assert.deepEqual(freshPeerReading(summary, 1720000089999), {
     connections: 0, reportingNodes: 44, p2pConnections: 0, devnetConnections: 0,
+    minPerNode: 0, medianPerNode: 0, maxPerNode: 0,
     sampledAt: 1720000000000,
   });
   assert.equal(freshPeerReading(summary, 1720000090001), null);
