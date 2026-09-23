@@ -16,10 +16,20 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Reviewed on September 15, 2026. Release and qualification records are timestamped observations.</p>
+      <p className="guide-date">Reviewed on September 22, 2026. Release and qualification records are timestamped observations.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
+    <section className="guide-section" aria-label="Validator upgrade release">
+      <h2>September 22 validator upgrade</h2>
+      <p>Existing synchronized Genesis-4 validators can upgrade to the signed Linux x86-64 binary built from commit <code>dade5a330181a7dd136cab1f6f173f31dbd70966</code>. Preserve the current command-line arguments, validator key environment, chain data and slashing-protection records. This package does not contain keys or a current bootstrap checkpoint.</p>
+      <div className="guide-actions"><a href="/releases/2026-09-22/bloch-pos" download>Download signed binary</a><a href="/releases/2026-09-22/README.md">Upgrade and verification instructions</a></div>
+      <ul>
+        <li><a href="/releases/2026-09-22/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-09-22/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-09-22/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-09-22/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-09-22/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/main/releases/bloch-pos-2026-09-22">Repository copy</a></li>
+      </ul>
+      <p>Expected SHA-256: <code>1962c4a26c526e362e128a1b4ce45c20eded2c009e48f5d9eaea17741b9f5041</code>.</p>
+    </section>
     <section className="guide-section" aria-label="Start a new validator">
       <h2>Start a new validator</h2>
       <p>Download the verified Linux release, synchronize an observer, prepare your identity offline, then submit a reviewed deposit through your own node. You need at least 25,000 BLCH plus fees in eligible native outputs.</p>
