@@ -1,0 +1,300 @@
+{
+  "number": 2,
+  "date": "2026-09-23",
+  "published_at": "2026-09-23T03:33:59.319Z",
+  "kind": "reviewed-development-report",
+  "manifest": {
+    "schema": 1,
+    "reviewed_on": "2026-09-23",
+    "title": "A signed validator upgrade and a more observable network.",
+    "summary": "This week brought a signed Genesis-4 validator upgrade, richer explorer and infrastructure telemetry, and stricter readiness checks across the L2, DEX, bridge and wallet. The latter integrations remain gated; source activity is not evidence of public activation.",
+    "published_node": {
+      "label": "Genesis-4 validator upgrade · 22 September 2026",
+      "commit": "dade5a330181a7dd136cab1f6f173f31dbd70966",
+      "url": "https://blochl1.com/releases/2026-09-22/release.json"
+    },
+    "highlights": [
+      "A signed Linux x86-64 validator upgrade and verification files were published on 22 September for existing synchronized Genesis-4 nodes.",
+      "Bloch Explorer now exposes transaction flows, epoch and validator views, observability telemetry, and a live count of peer connections reported by monitored nodes.",
+      "L2, DEX, bridge and wallet work added fail-closed evidence and activation gates; public native settlement, pools and bridge operations remain unqualified."
+    ],
+    "tracks": [
+      {
+        "id": "node",
+        "name": "Node & consensus",
+        "status": "Validation pending",
+        "current": "A signed Linux x86-64 upgrade binary from source commit dade5a33 was published on 22 September for existing synchronized Genesis-4 nodes. It is an upgrade artifact, not a fresh-bootstrap bundle.",
+        "next": "Document rollout and mixed-version evidence, preserve prior binaries for rollback, and publish a fresh independently verified checkpoint and bootstrap bundle before new-node installation guidance is advanced.",
+        "evidence": "The public release includes a signed SHA-256 manifest, build provenance and upgrade instructions. The release record does not by itself establish fleet-wide rollout or a recovery SLA.",
+        "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow"
+      },
+      {
+        "id": "explorer",
+        "name": "Explorer & indexer",
+        "status": "Published",
+        "current": "The live explorer adds navigable transaction flows, epoch timelines, validator activity, mempool observer comparisons, and Grafana-backed chain, host and Kubernetes telemetry. A second globe visualizes reported peer connections.",
+        "next": "Extend historical indexer coverage and distinguish unique network peers from repeated connection reports; retain source-freshness and corroboration labels.",
+        "evidence": "The explorer deployment and public observability endpoint were checked on 23 September. Peer totals sum connections reported by active monitored nodes, not unique machines.",
+        "url": "https://blochl1.com"
+      },
+      {
+        "id": "evm",
+        "name": "EVM execution",
+        "status": "In development",
+        "current": "The experimental EVM gained a fail-closed production-entrypoint contract, lifecycle receipts, provenance checks and an offline frozen-genesis ceremony workflow for chain 700771.",
+        "next": "Complete a real production node build, independently approve and freeze genesis, then qualify settlement, finality and state restoration end to end.",
+        "evidence": "Reviewed the L2 README and 22 September source history. Its production delivery remains incomplete; synthetic entrypoint checks are not a launched L2.",
+        "url": "https://posternlabs.com/build#devkit"
+      },
+      {
+        "id": "dex",
+        "name": "DEX & native pools",
+        "status": "In development",
+        "current": "PosternDEX retains its external-EVM interface. New pilot pool caps, semantic launch evidence and aggregate readiness checks are observation-only; native pool activation remains hard gated.",
+        "next": "Authenticate a finalized deployment snapshot and custody roles, finish restart and reorg qualification, and obtain independent review before enabling native pools.",
+        "evidence": "Reviewed the DEX README and 20–22 September commits. The repository makes no production network, router or native-pool activation claim.",
+        "url": "https://blochdex.com"
+      },
+      {
+        "id": "bridge",
+        "name": "Bridge & stablecoins",
+        "status": "In development",
+        "current": "The bridge added offline authority ceremony tooling, detached-signature handling, anchored reviewer trust inputs and durable observation checkpoints. These checks do not authorize minting or release.",
+        "next": "Complete independent authority approval, production finality and custody qualification, and reconciliation of backing and redemptions before public native deposits.",
+        "evidence": "Reviewed the bridge README and 21–22 September commits. Its readiness composer remains non-authorizing and no public native bridge service is claimed.",
+        "url": "https://blochbridge.com"
+      },
+      {
+        "id": "aggregator",
+        "name": "Wallet & aggregator",
+        "status": "Integration testing",
+        "current": "The published wallet continues to support its existing external-EVM routes. Product release logic now orders authenticated L2, bridge and DEX component gates and fails closed when evidence is missing.",
+        "next": "Qualify the intended route and asset matrix, receipt-bound recovery, and authenticated component releases before enabling native Bloch aggregation.",
+        "evidence": "Reviewed the wallet README and 22 September release-gate commits. The new gates are source work, not proof that native Bloch execution is live.",
+        "url": "https://posternlabs.com/apps/multichain/"
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Qualify the signed validator upgrade rollout",
+        "detail": "Collect mixed-version, canary, rollback and recovery evidence for the 22 September upgrade; keep new-node bootstrap separate.",
+        "state": "In progress",
+        "kind": "Node release"
+      },
+      {
+        "title": "Renew trusted bootstrap guidance",
+        "detail": "Publish and independently verify a current checkpoint and complete bundle, then measure Linux cold sync and restart resource limits.",
+        "state": "Pending",
+        "kind": "Node release"
+      },
+      {
+        "title": "Connect EVM execution to native settlement",
+        "detail": "Freeze chain 700771 genesis with independent approval, build the production node and qualify authenticated state/finality beyond local execution.",
+        "state": "In progress",
+        "kind": "Protocol integration"
+      },
+      {
+        "title": "Complete native DEX and bridge integration",
+        "detail": "Keep activation gates closed until custody, reserve/liability accounting, replay protection, finality, reorg recovery and independent approval are verified.",
+        "state": "In progress",
+        "kind": "Protocol integration"
+      },
+      {
+        "title": "Qualify wallet and aggregator delivery",
+        "detail": "Verify supported networks and assets, quote execution, rejection paths, receipt-based recovery and authenticated component gates.",
+        "state": "In progress",
+        "kind": "Application release"
+      },
+      {
+        "title": "Maintain signed artifacts and operator evidence",
+        "detail": "Preserve the signed upgrade, publish dated rollout evidence and rollback instructions, and coordinate independent validators.",
+        "state": "In progress",
+        "kind": "Operations"
+      }
+    ],
+    "sources": [
+      {
+        "label": "Genesis-4 node",
+        "repo": "tiagobeltraoacioli-sketch/bloch-sis-pow",
+        "ref": "main"
+      },
+      {
+        "label": "Native integration",
+        "repo": "tiagobeltraoacioli-sketch/bloch-sis-pow",
+        "ref": "codex/native-wallet-integration"
+      },
+      {
+        "label": "EVM",
+        "repo": "tiagobeltraoacioli-sketch/bloch-l2-evm",
+        "ref": "main"
+      },
+      {
+        "label": "Bridge",
+        "repo": "tiagobeltraoacioli-sketch/bloch-l2-bridge",
+        "ref": "main"
+      },
+      {
+        "label": "DEX",
+        "repo": "tiagobeltraoacioli-sketch/postern-dex",
+        "ref": "main"
+      },
+      {
+        "label": "Wallet / aggregator",
+        "repo": "tiagobeltraoacioli-sketch/postern-wallet",
+        "ref": "main"
+      },
+      {
+        "label": "Explorer",
+        "repo": "tiagobeltraoacioli-sketch/bloch-explorer",
+        "ref": "main"
+      }
+    ]
+  },
+  "activity": [
+    {
+      "label": "Genesis-4 node",
+      "repo": "tiagobeltraoacioli-sketch/bloch-sis-pow",
+      "ref": "main",
+      "available": true,
+      "count": 100,
+      "truncated": true,
+      "commits": [
+        {
+          "sha": "2124992093072b57d82f4fec5ed95005cf2ba81d",
+          "title": "release: publish signed validator binary dade5a33",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/2124992093072b57d82f4fec5ed95005cf2ba81d"
+        },
+        {
+          "sha": "dade5a330181a7dd136cab1f6f173f31dbd70966",
+          "title": "Merge pull request #25 from tiagobeltraoacioli-sketch/fix/release-ci-lock-inheritance-20260922",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/dade5a330181a7dd136cab1f6f173f31dbd70966"
+        },
+        {
+          "sha": "fa8fade433028af63c834004cf4b1b22dfe28c68",
+          "title": "fix(pos): tolerate inherited self lock during restart",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/fa8fade433028af63c834004cf4b1b22dfe28c68"
+        },
+        {
+          "sha": "a151607bd84e40d44425ee623bf9620d04b2380e",
+          "title": "Merge pull request #24 from tiagobeltraoacioli-sketch/fix/internal-audit-20260917",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/a151607bd84e40d44425ee623bf9620d04b2380e"
+        },
+        {
+          "sha": "6bea501c4aa7e5ae85db5f42e36e2d75022d8ff5",
+          "title": "ci: normalize report-only geiger exit",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/6bea501c4aa7e5ae85db5f42e36e2d75022d8ff5"
+        },
+        {
+          "sha": "0f7c1d0b465ff8035a0b5b1318f31f0ec59b1fbe",
+          "title": "ci: isolate node-only genesis tests from indexer",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/0f7c1d0b465ff8035a0b5b1318f31f0ec59b1fbe"
+        },
+        {
+          "sha": "58d6656b78c0456fa6e9d8fe829f6fc67bdc2f68",
+          "title": "Merge remote-tracking branch 'refs/remotes/github-pr/fix-internal-audit-20260917' into fix/internal-audit-20260917",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/58d6656b78c0456fa6e9d8fe829f6fc67bdc2f68"
+        },
+        {
+          "sha": "9abe7e2a3c585132175cf5e930fae5dd5e4a815a",
+          "title": "fix: accept cargo-linked build outputs",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/9abe7e2a3c585132175cf5e930fae5dd5e4a815a"
+        }
+      ]
+    },
+    {
+      "label": "Native integration",
+      "repo": "tiagobeltraoacioli-sketch/bloch-sis-pow",
+      "ref": "codex/native-wallet-integration",
+      "available": true,
+      "count": 21,
+      "truncated": false,
+      "commits": [
+        {
+          "sha": "8fa9ee1991fccf587ebdc63b08fb9e8ff0469d11",
+          "title": "Harden native release qualification evidence",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/8fa9ee1991fccf587ebdc63b08fb9e8ff0469d11"
+        },
+        {
+          "sha": "bd0bbb85d80069cd8d82706d359af639e399b57a",
+          "title": "Require coordinated native gates and qualified exits in activation plans",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/bd0bbb85d80069cd8d82706d359af639e399b57a"
+        },
+        {
+          "sha": "a5cd6389f6ab888fb9860fe74c1fdfa1a3090ccb",
+          "title": "Expose canonical manifest identity independently of native activation",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/a5cd6389f6ab888fb9860fe74c1fdfa1a3090ccb"
+        },
+        {
+          "sha": "eadc305fac2539bd06f07528226ecfe54e281a71",
+          "title": "Classify transaction finality against canonical checkpoint slots",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/eadc305fac2539bd06f07528226ecfe54e281a71"
+        },
+        {
+          "sha": "df1116113a486e12d24c6a29eb7568c4434a467c",
+          "title": "Document unapproved phased native custody migration review",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/df1116113a486e12d24c6a29eb7568c4434a467c"
+        },
+        {
+          "sha": "fa7fe5960e49e86df6144ffee96a892272e08f39",
+          "title": "Gate official native wallet RPC and admission on canonical activation",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/fa7fe5960e49e86df6144ffee96a892272e08f39"
+        },
+        {
+          "sha": "f839693861b2d13e9ebffdd9f702928034593e7c",
+          "title": "Import existing native accounts with exact identity-bound typed signing",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/f839693861b2d13e9ebffdd9f702928034593e7c"
+        },
+        {
+          "sha": "98611041d994f1ebbea3c843241ca9e6a79bba5a",
+          "title": "Refresh canonical native integration status after completed laboratory execution",
+          "url": "https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/commit/98611041d994f1ebbea3c843241ca9e6a79bba5a"
+        }
+      ]
+    },
+    {
+      "label": "EVM",
+      "repo": "tiagobeltraoacioli-sketch/bloch-l2-evm",
+      "ref": "main",
+      "available": false,
+      "error": "HTTP 404",
+      "commits": []
+    },
+    {
+      "label": "Bridge",
+      "repo": "tiagobeltraoacioli-sketch/bloch-l2-bridge",
+      "ref": "main",
+      "available": false,
+      "error": "HTTP 404",
+      "commits": []
+    },
+    {
+      "label": "DEX",
+      "repo": "tiagobeltraoacioli-sketch/postern-dex",
+      "ref": "main",
+      "available": false,
+      "error": "HTTP 404",
+      "commits": []
+    },
+    {
+      "label": "Wallet / aggregator",
+      "repo": "tiagobeltraoacioli-sketch/postern-wallet",
+      "ref": "main",
+      "available": false,
+      "error": "HTTP 404",
+      "commits": []
+    },
+    {
+      "label": "Explorer",
+      "repo": "tiagobeltraoacioli-sketch/bloch-explorer",
+      "ref": "main",
+      "available": false,
+      "error": "HTTP 404",
+      "commits": []
+    }
+  ],
+  "activity_period": {
+    "since": "2026-09-16T20:08:59.984Z",
+    "until": "2026-09-23T03:33:59.319Z"
+  },
+  "activity_note": "Public GitHub activity was collected since Release 1. The dated engineering review also uses local source and deployment records; local or private commits are not included in public activity counts. Unavailable sources are not zero-commit sources."
+}

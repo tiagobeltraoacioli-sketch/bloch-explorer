@@ -8,6 +8,10 @@ The same English journal is served at:
 Release 1 is dated September 16, 2026. `/releases/1` and `/releases/1.json`
 are its permanent HTML and JSON records. The development edition number is
 independent of the node binary version. No node is upgraded by this service.
+Release 2 was editorially reviewed and published early on September 23, 2026.
+The archived `release-2.json` records the real publication time and the public
+GitHub window beginning at Release 1. The scheduled job will find the edition
+already archived and leave it unchanged.
 
 ## Weekly publication
 
@@ -55,6 +59,13 @@ A schedule can publish a source-activity report without a fresh editorial review
 it cannot inspect an agent's uncommitted local work or certify roadmap completion.
 To keep all workstreams current, maintain this handoff as part of each agent's
 completion criteria.
+
+When an explicitly requested reviewed edition is published before the weekly
+cron, generate it with `node collect-reviewed.mjs`, inspect and test the resulting
+`release-2.json`, then upload the roadmap and archive to the remote `RELEASES`
+KV namespace. Move `latest` only after both `/releases/2.json` routes serve the
+archived record. The public worker has no write route. Do not regenerate or
+overwrite an archived edition after the pointer moves.
 
 ## Implementation and validation
 

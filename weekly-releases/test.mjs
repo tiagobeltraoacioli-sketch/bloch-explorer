@@ -5,6 +5,7 @@ import { validateManifest, editionAt, collectActivity, publishWeek } from './mod
 import { render } from './render.mjs';
 const first = JSON.parse(await readFile(new URL('./release-1.json', import.meta.url)));
 const manifest = validateManifest(first.manifest);
+const second = JSON.parse(await readFile(new URL('./release-2.json', import.meta.url)));
 function memory() { const data = new Map([['roadmap:current', JSON.stringify(manifest)]]); return { data, async get(k, type) { const v = data.get(k); return type === 'json' && v ? JSON.parse(v) : v || null; }, async put(k,v) { data.set(k,v); } }; }
 const good = async () => Response.json([{ sha: 'a'.repeat(40), commit: { message: 'Implement a bounded transition\nDetails' } }]);
 test('weekly dates start with Release 2 on the following Wednesday at 21 UTC', () => {
@@ -46,6 +47,13 @@ test('archive preserves dates and escapes untrusted commit titles and references
 test('old latest edition is visibly overdue, not silently dated today', () => {
  const html=render(first,[{number:1,date:first.date}],Date.parse('2026-10-10'));
  assert.match(html,/overdue/);assert.match(html,/datetime="2026-09-16"/);
+});
+test('reviewed second edition shows its own editorial headline and summary', () => {
+ validateManifest(second.manifest);
+ const html=render(second,[{number:1,date:first.date},{number:2,date:second.date}],Date.parse('2026-09-23'));
+ assert.match(html,/A signed validator upgrade and a more observable network\./);
+ assert.match(html,/stricter readiness checks across the L2, DEX, bridge and wallet/);
+ assert.match(html,/Release 2/);
 });
 test('100-commit sample is marked as truncated', async () => {
  const r=await collectActivity(manifest.sources[0],'a','b',async()=>Response.json(Array.from({length:100},()=>({sha:'c'.repeat(40),commit:{message:'Update'}}))));
