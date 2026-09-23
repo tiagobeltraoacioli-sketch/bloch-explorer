@@ -20,6 +20,9 @@ const QUERIES = Object.freeze({
   bloch_worst_lag_slots: 'max(bloch_pos_behind_by_slots)',
   bloch_peers: 'sum(bloch_pos_peer_count)',
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
+  bloch_mempool_sampled_nodes: 'count(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
+  bloch_mempool_min_transactions: 'min(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
+  bloch_mempool_max_transactions: 'max(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
   // Every validator applies the same canonical blocks, so summing multiplies
   // chain throughput by the number of exporters. Select one synchronized
   // observer's rate instead.
@@ -48,7 +51,8 @@ const GROUPS = Object.freeze({
   prometheus: ['targets_total', 'targets_healthy', 'targets_unhealthy'],
   bloch: [
     'bloch_nodes', 'bloch_head_slot', 'bloch_finalized_epoch', 'bloch_worst_lag_slots',
-    'bloch_peers', 'bloch_mempool_transactions', 'bloch_blocks_per_minute',
+    'bloch_peers', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
+    'bloch_mempool_min_transactions', 'bloch_mempool_max_transactions', 'bloch_blocks_per_minute',
     'bloch_rejected_blocks_1h', 'bloch_heartbeat_age_seconds',
   ],
   host: [
@@ -174,6 +178,9 @@ export async function handleObservability(env, runtime = {}) {
           worst_lag_slots: values.bloch_worst_lag_slots,
           peers: values.bloch_peers,
           mempool_transactions: values.bloch_mempool_transactions,
+          mempool_sampled_nodes: values.bloch_mempool_sampled_nodes,
+          mempool_min_transactions: values.bloch_mempool_min_transactions,
+          mempool_max_transactions: values.bloch_mempool_max_transactions,
           blocks_per_minute: values.bloch_blocks_per_minute,
           rejected_blocks_1h: values.bloch_rejected_blocks_1h,
           heartbeat_age_seconds: values.bloch_heartbeat_age_seconds,

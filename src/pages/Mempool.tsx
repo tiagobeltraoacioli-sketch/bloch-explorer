@@ -6,14 +6,35 @@ import { fmtBytes, fmtInt, fmtNum } from "../lib/format";
 import { Link } from "../lib/router";
 import { ReadToolbar, RawData, TxStatusLookup } from "../components/telemetry";
 
+interface FleetMempoolReading {
+  data: {
+    state: string;
+    sampled_at: number;
+    bloch: {
+      mempool_sampled_nodes: number | null;
+      mempool_min_transactions: number | null;
+      mempool_max_transactions: number | null;
+    };
+  } | null;
+}
+
+function measured(value: number | null | undefined): string {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? fmtInt(Math.round(value)) : "—";
+}
+
 export function MempoolPage() {
   const live = useLiveRead<ApiReading<MempoolInfo>>("/api/v1/mempool");
+  const fleet = useLiveRead<FleetMempoolReading>("/api/v1/observability", 60_000);
   const [history, setHistory] = useState<PoolSample[]>([]);
   const reading = live.data;
   const pool = reading?.data;
   const metrics = mempoolMetrics(pool);
   const source = reading?.corroboration?.source_node ?? null;
   const stale = !!live.error || reading?.cache.state === "stale" || !!reading?.error;
+  const fleetPool = fleet.data?.data?.bloch;
+  const fleetMin = fleetPool?.mempool_min_transactions;
+  const fleetMax = fleetPool?.mempool_max_transactions;
+  const fleetSpread = typeof fleetMin === "number" && typeof fleetMax === "number" && fleetMax >= fleetMin ? fleetMax - fleetMin : null;
   useEffect(() => {
     if (!reading || stale || !live.updatedAt || !source) return;
     const size = mempoolMetrics(reading.data).size;
@@ -59,6 +80,16 @@ export function MempoolPage() {
         <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Observed at</th><th>Entries</th><th>Bytes</th><th>Observer</th></tr></thead><tbody>{[...history].reverse().map(p => <tr key={p.at}><td>{new Date(p.at).toLocaleTimeString()}</td><td>{fmtInt(p.size)}</td><td>{p.bytes === null ? "—" : fmtInt(p.bytes)}</td><td>{p.source}</td></tr>)}</tbody></table></div></details>
       </>}
       <p className="lookup-hint">A new observer, a reorg or a gap over one minute starts a new series. A falling count can reflect inclusion, expiration or eviction.</p>
+    </section>
+    <section className="card pool-fleet" aria-labelledby="pool-fleet-heading">
+      <div className="section-heading"><div><span className="eyebrow">GRAFANA CLOUD / MULTIPLE OBSERVERS</span><h2 id="pool-fleet-heading">Mempool variation across nodes</h2><p>The latest Prometheus samples from Bloch nodes with an active head.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
+      <div className="pool-fleet-grid">
+        <div><span>Nodes sampled</span><strong>{measured(fleetPool?.mempool_sampled_nodes)}</strong></div>
+        <div><span>Smallest local pool</span><strong>{measured(fleetMin)}</strong><small>transactions</small></div>
+        <div><span>Largest local pool</span><strong>{measured(fleetMax)}</strong><small>transactions</small></div>
+        <div><span>Range</span><strong>{measured(fleetSpread)}</strong><small>transactions apart</small></div>
+      </div>
+      <p className="lookup-hint">Each node holds its own pending set. These aggregates do not reveal which transaction reached which node, its arrival order or a guaranteed inclusion time. {fleet.data?.data?.sampled_at ? `Read ${new Date(fleet.data.data.sampled_at).toLocaleTimeString()}.` : "Waiting for telemetry."}</p>
     </section>
     <div className="telemetry-metrics">{counters.map(([label, value, note]) => <section key={label} className="card metric-panel"><span className="eyebrow">{label}</span><strong>{decimal(value) ?? "—"}</strong><span>{decimal(value) === null ? "Not reported by this node version" : note}</span></section>)}</div>
     <section className="card coverage-note"><h2>What this view can tell you</h2><p>Local entry count, bytes, next base fee and any rejection counters the observer provides. Per-transaction fees, queue ordering and inclusion estimates require additional node data; the current RPC does not expose them.</p><Link to="/transactions">Explore indexed transactions ↗</Link><RawData data={reading} label="Inspect mempool response and provenance" /></section>

@@ -29,6 +29,9 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.targets_total, '12'],
     [observabilityQueries.targets_healthy, '11'],
     [observabilityQueries.bloch_head_slot, '70001'],
+    [observabilityQueries.bloch_mempool_sampled_nodes, '9'],
+    [observabilityQueries.bloch_mempool_min_transactions, '0'],
+    [observabilityQueries.bloch_mempool_max_transactions, '5'],
     [observabilityQueries.host_nodes, '8'],
     [observabilityQueries.host_root_disk_min_free_percent, '12.5'],
     [observabilityQueries.k8s_nodes, '3'],
@@ -47,6 +50,9 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.state, 'live');
   assert.equal(out.body.data.prometheus.targets_total, 12);
   assert.equal(out.body.data.bloch.head_slot, 70001);
+  assert.equal(out.body.data.bloch.mempool_sampled_nodes, 9);
+  assert.equal(out.body.data.bloch.mempool_min_transactions, 0);
+  assert.equal(out.body.data.bloch.mempool_max_transactions, 5);
   assert.equal(out.body.data.host.nodes, 8);
   assert.equal(out.body.data.host.root_disk_min_free_percent, 12.5);
   assert.equal(out.body.data.kubernetes.nodes, 3);
