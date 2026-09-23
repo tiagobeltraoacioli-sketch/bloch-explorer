@@ -40,7 +40,9 @@ bundle served in production byte for byte.
   of unique network nodes.
 - The **network page** pairs fresh Prometheus connection aggregates with the
   separate RPC observer diagnostics. The connection panel expires with its
-  oldest peer sample and polls only while the RPC nodes tab is open.
+  oldest peer sample and polls only while the RPC nodes tab is open. Its trend
+  chart contains session observations only and restarts when reporter coverage
+  changes or the sampling gap exceeds 75 seconds.
 
 ## Develop
 

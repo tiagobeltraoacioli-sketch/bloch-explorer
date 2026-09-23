@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { freshPeerReading, observabilitySummary } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, type PeerHistorySample } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -44,12 +44,31 @@ function support(method: RpcMethod, nodes: Observer[], now: number): string {
 function NetworkConnections() {
   const live = useLiveRead<unknown>("/api/v1/observability", 30_000);
   const [now, setNow] = useState(() => Date.now());
+  const [history, setHistory] = useState<PeerHistorySample[]>([]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
   }, []);
-  const reading = freshPeerReading(observabilitySummary(live.data), now);
+  const summary = observabilitySummary(live.data);
+  const reading = freshPeerReading(summary, now);
+  useEffect(() => {
+    if (live.error || !reading || summary?.sampledAt == null ||
+        !Number.isSafeInteger(summary.sampledAt) || summary.sampledAt > now + 5_000 ||
+        now - summary.sampledAt > 90_000) return;
+    setHistory(previous => appendPeerHistory(previous, {
+      at: summary.sampledAt as number,
+      connections: reading.connections,
+      reportingNodes: reading.reportingNodes,
+    }));
+  }, [live.updatedAt, live.error, summary?.sampledAt, reading?.connections, reading?.reportingNodes]);
   const measured = (value: number | null | undefined) => value == null ? "—" : fmtInt(value);
+  const first = history[0], last = history.at(-1);
+  const low = history.length ? Math.min(...history.map(sample => sample.connections)) : 0;
+  const high = history.length ? Math.max(...history.map(sample => sample.connections)) : 0;
+  const span = Math.max(1, high - low);
+  const duration = first && last ? Math.max(1, last.at - first.at) : 1;
+  const points = history.map(sample => `${20 + (sample.at - first.at) / duration * 560},${high === low ? 80 : 140 - (sample.connections - low) / span * 120}`).join(" ");
+  const change = first && last ? last.connections - first.connections : 0;
   return <section className="card" aria-labelledby="network-connections-heading">
     <div className="section-heading"><div><span className="eyebrow">PROMETHEUS / GENESIS-4 NODES</span><h2 id="network-connections-heading">Network connections</h2><p>Fresh samples from monitored chain nodes, separate from the explorer’s RPC observer pool.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
     <div className="edge-counter-grid" aria-live="polite">
@@ -58,6 +77,14 @@ function NetworkConnections() {
       <div className="card"><span className="eyebrow">CONNECTIONS PER NODE</span><strong>{reading?.minPerNode == null || reading.maxPerNode == null ? "—" : `${measured(reading.minPerNode)}–${measured(reading.maxPerNode)}`}</strong><small>Fewest to most · median {reading?.medianPerNode == null ? "—" : reading.medianPerNode.toLocaleString(undefined, { maximumFractionDigits: 1 })}</small></div>
       <div className="card"><span className="eyebrow">SAMPLE STATUS</span><strong>{reading ? "Live" : "Waiting"}</strong><small>{live.error ?? (reading ? "Refreshes every 30 seconds" : "No fresh network reading")}</small></div>
     </div>
+    <div className="peer-history-heading"><h3>Connection trend</h3><span>{history.length} session samples · {last ? `${change >= 0 ? "+" : ""}${fmtInt(change)} since first sample` : "waiting"}</span></div>
+    {history.length < 2 ? <div className="telemetry-empty">The session chart starts after two fresh readings with the same reporter count.</div> : <>
+      <div className="peer-history-chart" role="img" aria-label={`Reported connections ranged from ${low} to ${high} across ${history.length} session samples from ${history[0].reportingNodes} nodes.`}>
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"><path d="M20 140H580" className="peer-history-baseline" /><polyline points={points} /></svg>
+      </div>
+      <div className="peer-history-axis"><span>{new Date(first.at).toLocaleTimeString()}</span><span>{fmtInt(low)}–{fmtInt(high)} connections</span><span>{new Date(last?.at ?? first.at).toLocaleTimeString()}</span></div>
+    </>}
+    <p className="lookup-hint">This chart contains only samples observed while this tab is open. Its vertical scale follows the observed range. It restarts if the reporting-node count changes or a reading gap exceeds 75 seconds; it is not a Prometheus historical series.</p>
     <p className="lookup-hint">A peer may connect to several monitored nodes, so these are connection reports, not unique network peers. “Devnet” is a transport name, not the chain stage. Prometheus coverage and RPC observer health measure different node sets.</p>
   </section>;
 }

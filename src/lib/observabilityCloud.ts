@@ -96,6 +96,20 @@ export function freshPeerReading(summary: ObservabilitySummary | null, now: numb
     sampledAt };
 }
 
+export interface PeerHistorySample { at: number; connections: number; reportingNodes: number }
+
+/** Session observations are comparable only while reporter coverage is steady. */
+export function appendPeerHistory(history: PeerHistorySample[], sample: PeerHistorySample): PeerHistorySample[] {
+  if (!Number.isSafeInteger(sample.at) || sample.at <= 0 ||
+      !Number.isSafeInteger(sample.connections) || sample.connections < 0 ||
+      !Number.isSafeInteger(sample.reportingNodes) || sample.reportingNodes < 1) return history;
+  const previous = history.at(-1);
+  if (!previous) return [sample];
+  if (sample.at <= previous.at) return history;
+  if (sample.reportingNodes !== previous.reportingNodes || sample.at - previous.at > 75_000) return [sample];
+  return [...history, sample].slice(-120);
+}
+
 /** The homepage must advertise infrastructure telemetry only after at least
  * one real metric family is present. Connectivity alone is not data. */
 export function observabilityPromotion(value: unknown): ObservabilityPromotion | null {

@@ -185,6 +185,14 @@ nav.mainnav a { font-family: var(--font-ui); font-size: .875rem; padding: 10px; 
 .edge-counter-grid .card { display: flex; flex-direction: column; gap: 7px; padding: 18px; }
 .edge-counter-grid strong { color: var(--fg); font: 500 1.45rem/1.2 var(--font-mono); }
 .edge-counter-grid small { color: var(--muted); font-size: .75rem; }
+.peer-history-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; margin: 20px 0 10px; }
+.peer-history-heading h3 { margin: 0; font-size: 1rem; }
+.peer-history-heading span, .peer-history-axis { color: var(--muted); font: .72rem var(--font-mono); }
+.peer-history-chart { height: 180px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg0); overflow: hidden; }
+.peer-history-chart svg { display: block; width: 100%; height: 100%; }
+.peer-history-chart polyline { fill: none; stroke: var(--brass-bright); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.peer-history-chart .peer-history-baseline { fill: none; stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.peer-history-axis { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
 @media (max-width: 1200px) { nav.mainnav { display: none; } .nav-toggle { display: inline-flex; } }
 @media (max-width: 1050px) { .network-tape { grid-template-columns: repeat(3, minmax(0, 1fr)); } .network-tape a:nth-child(4) { border-left: 0; } .network-tape a:nth-child(n+4) { border-top: 1px solid var(--line); } .consensus-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .consensus-rail::before { display: none; } .rail-stop { padding-top: 42px; } .overview-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } .overview-instrument:nth-child(odd) { border-left: 0; } .overview-instrument:nth-child(n+3) { border-top: 1px solid var(--line); } .overview-instrument:last-child { grid-column: 1 / -1; } .telemetry-metrics, .edge-counter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mempool-layout { grid-template-columns: 1fr; } .pool-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {

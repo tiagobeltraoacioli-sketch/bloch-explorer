@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, observabilityQueries } from '../observability.js';
-import { freshPeerReading, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { appendPeerHistory, freshPeerReading, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -234,4 +234,23 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
   assert.equal(peerSampleFresh(1720000000000, 1720000090001), false);
   assert.equal(freshPeerReading({ ...summary, peerSampledAt: null }, 1720000000000), null);
   assert.equal(observabilitySummary({ data: { state: 'awaiting_telemetry', coverage: { prometheus: false } } }), null);
+});
+
+test('peer session history rejects repeats and separates coverage changes or sampling gaps', () => {
+  const first = { at: 1720000000000, connections: 5500, reportingNodes: 44 };
+  assert.deepEqual(appendPeerHistory([], first), [first]);
+  assert.deepEqual(appendPeerHistory([first], first), [first]);
+  assert.deepEqual(appendPeerHistory([first], { ...first, at: first.at - 1 }), [first]);
+  assert.deepEqual(appendPeerHistory([first], { ...first, at: first.at + 30_000, connections: 5505 }),
+    [first, { ...first, at: first.at + 30_000, connections: 5505 }]);
+  assert.deepEqual(appendPeerHistory([first], { ...first, at: first.at + 30_000, reportingNodes: 43 }),
+    [{ ...first, at: first.at + 30_000, reportingNodes: 43 }]);
+  assert.deepEqual(appendPeerHistory([first], { ...first, at: first.at + 75_001 }),
+    [{ ...first, at: first.at + 75_001 }]);
+  assert.deepEqual(appendPeerHistory([first], { ...first, at: first.at + 30_000, connections: -1 }), [first]);
+  let history = [first];
+  for (let i = 1; i <= 140; i++) history = appendPeerHistory(history,
+    { ...first, at: first.at + i * 30_000, connections: 5500 + i });
+  assert.equal(history.length, 120);
+  assert.equal(history[0].connections, 5521);
 });
