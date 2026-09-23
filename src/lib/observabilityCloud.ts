@@ -13,6 +13,8 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   peerConnections: number | null;
   peerReportingNodes: number | null;
   peerSampledAt: number | null;
+  peerP2pConnections: number | null;
+  peerDevnetConnections: number | null;
   worstLagSlots: number | null;
   blocksPerMinute: number | null;
   rejectedBlocks1h: number | null;
@@ -54,6 +56,8 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     peerConnections: countMetric(metric("bloch", "peers")),
     peerReportingNodes: countMetric(metric("bloch", "peer_reporting_nodes")),
     peerSampledAt: countMetric(metric("bloch", "peer_sampled_at")),
+    peerP2pConnections: countMetric(metric("bloch", "peer_p2p_connections")),
+    peerDevnetConnections: countMetric(metric("bloch", "peer_devnet_connections")),
     worstLagSlots: metric("bloch", "worst_lag_slots"),
     blocksPerMinute: metric("bloch", "blocks_per_minute"),
     rejectedBlocks1h: metric("bloch", "rejected_blocks_1h"),
@@ -79,6 +83,7 @@ export function freshPeerReading(summary: ObservabilitySummary | null, now: numb
   if (!summary || summary.peerConnections === null || summary.peerReportingNodes === null ||
       summary.peerReportingNodes < 1 || !peerSampleFresh(summary.peerSampledAt, now)) return null;
   return { connections: summary.peerConnections, reportingNodes: summary.peerReportingNodes,
+    p2pConnections: summary.peerP2pConnections, devnetConnections: summary.peerDevnetConnections,
     sampledAt: summary.peerSampledAt };
 }
 

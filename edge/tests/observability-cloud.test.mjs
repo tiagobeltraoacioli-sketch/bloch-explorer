@@ -34,6 +34,9 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
     [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
+    [observabilityQueries.bloch_peer_p2p_connections, '4600'],
+    [observabilityQueries.bloch_peer_devnet_connections, '23'],
+    [observabilityQueries.bloch_peer_transport_reporting_nodes, '44'],
     [observabilityQueries.bloch_mempool_sampled_nodes, '9'],
     [observabilityQueries.bloch_mempool_min_transactions, '0'],
     [observabilityQueries.bloch_mempool_max_transactions, '5'],
@@ -58,6 +61,8 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.data.bloch.peers, 4623);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, 44);
   assert.equal(out.body.data.bloch.peer_sampled_at, 1719999999000);
+  assert.equal(out.body.data.bloch.peer_p2p_connections, 4600);
+  assert.equal(out.body.data.bloch.peer_devnet_connections, 23);
   assert.equal(out.body.data.bloch.mempool_sampled_nodes, 9);
   assert.equal(out.body.data.bloch.mempool_min_transactions, 0);
   assert.equal(out.body.data.bloch.mempool_max_transactions, 5);
@@ -89,6 +94,32 @@ test('old peer samples cannot be represented as a current network reading', asyn
   assert.equal(out.body.data.bloch.peers, null);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, null);
   assert.equal(out.body.data.bloch.peer_sampled_at, null);
+  assert.equal(out.body.data.bloch.peer_p2p_connections, null);
+  assert.equal(out.body.data.bloch.peer_devnet_connections, null);
+});
+
+test('transport breakdown requires full reporter coverage and an exact total', async () => {
+  for (const [reporters, p2p] of [['43', '4600'], ['44', '4599']]) {
+    const values = new Map([
+      [observabilityQueries.bloch_peers, '4623'],
+      [observabilityQueries.bloch_peer_reporting_nodes, '44'],
+      [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
+      [observabilityQueries.bloch_peer_p2p_connections, p2p],
+      [observabilityQueries.bloch_peer_devnet_connections, '23'],
+      [observabilityQueries.bloch_peer_transport_reporting_nodes, reporters],
+    ]);
+    const out = await handleObservability(env, {
+      now: () => 1720000000000,
+      fetchImpl: async input => {
+        const value = values.get(new URL(input).searchParams.get('query'));
+        return Response.json({ status: 'success', data: { resultType: 'vector',
+          result: value === undefined ? [] : [{ value: [1720000000, value] }] } });
+      },
+    });
+    assert.equal(out.body.data.bloch.peers, 4623);
+    assert.equal(out.body.data.bloch.peer_p2p_connections, null);
+    assert.equal(out.body.data.bloch.peer_devnet_connections, null);
+  }
 });
 
 test('an empty but successful tenant is awaiting telemetry, not down', async () => {
@@ -145,6 +176,7 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
     prometheus: { targets_healthy: 56, targets_total: 56 },
     bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, peer_sampled_at: 1720000000000,
+      peer_p2p_connections: 0, peer_devnet_connections: 0,
       worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
     host: { nodes: 7, memory_used_bytes: 50, memory_total_bytes: 100, root_disk_min_free_percent: 90 },
     kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0, deployments_available: 5, deployments_desired: 5 },
@@ -153,13 +185,15 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     layers: 4, state: 'live', sampledAt: 1720000000000,
     targetsHealthy: 56, targetsTotal: 56, blochNodes: 44, peerConnections: 0, peerReportingNodes: 44,
     peerSampledAt: 1720000000000,
+    peerP2pConnections: 0, peerDevnetConnections: 0,
     worstLagSlots: 0, blocksPerMinute: 2, rejectedBlocks1h: 0,
     hostNodes: 7, hostMemoryUsedBytes: 50, hostMemoryTotalBytes: 100,
     rootDiskMinFreePercent: 90, kubernetesNodes: 1,
     podsRunning: 6, podsUnhealthy: 0, deploymentsAvailable: 5, deploymentsDesired: 5,
   });
   assert.deepEqual(freshPeerReading(summary, 1720000089999), {
-    connections: 0, reportingNodes: 44, sampledAt: 1720000000000,
+    connections: 0, reportingNodes: 44, p2pConnections: 0, devnetConnections: 0,
+    sampledAt: 1720000000000,
   });
   assert.equal(freshPeerReading(summary, 1720000090001), null);
   assert.equal(peerSampleFresh(1720000000000, 1720000090001), false);

@@ -31,6 +31,9 @@ const QUERIES = Object.freeze({
   bloch_peers: `sum(${FRESH_PEER_SERIES})`,
   bloch_peer_reporting_nodes: `count(${FRESH_PEER_SERIES})`,
   bloch_peer_oldest_heartbeat_unix: `min(bloch_pos_heartbeat_unix and on(instance) (${FRESH_PEER_SERIES}))`,
+  bloch_peer_p2p_connections: `sum(bloch_pos_peer_count_p2p and on(instance) (${FRESH_PEER_SERIES}))`,
+  bloch_peer_devnet_connections: `sum(bloch_pos_peer_count_devnet and on(instance) (${FRESH_PEER_SERIES}))`,
+  bloch_peer_transport_reporting_nodes: `count(bloch_pos_peer_count_p2p and on(instance) (bloch_pos_peer_count_devnet) and on(instance) (${FRESH_PEER_SERIES}))`,
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
   bloch_mempool_sampled_nodes: 'count(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
   bloch_mempool_min_transactions: 'min(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
@@ -63,7 +66,8 @@ const GROUPS = Object.freeze({
   prometheus: ['targets_total', 'targets_healthy', 'targets_unhealthy'],
   bloch: [
     'bloch_nodes', 'bloch_head_slot', 'bloch_finalized_epoch', 'bloch_worst_lag_slots',
-    'bloch_peers', 'bloch_peer_reporting_nodes', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
+    'bloch_peers', 'bloch_peer_reporting_nodes', 'bloch_peer_p2p_connections',
+    'bloch_peer_devnet_connections', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
     'bloch_mempool_min_transactions', 'bloch_mempool_max_transactions', 'bloch_blocks_per_minute',
     'bloch_rejected_blocks_1h', 'bloch_heartbeat_age_seconds',
   ],
@@ -170,6 +174,13 @@ export async function handleObservability(env, runtime = {}) {
     values.bloch_peers = null;
     values.bloch_peer_reporting_nodes = null;
   }
+  // Older node builds may export the total without the transport gauges.
+  // Show a breakdown only when both gauges cover every node in the total.
+  const peerTransportComplete = peersFresh &&
+    Number.isSafeInteger(values.bloch_peer_p2p_connections) && values.bloch_peer_p2p_connections >= 0 &&
+    Number.isSafeInteger(values.bloch_peer_devnet_connections) && values.bloch_peer_devnet_connections >= 0 &&
+    values.bloch_peer_transport_reporting_nodes === values.bloch_peer_reporting_nodes &&
+    values.bloch_peer_p2p_connections + values.bloch_peer_devnet_connections === values.bloch_peers;
   const failures = settled.filter((result) => result.status === 'rejected').length;
   const successes = settled.length - failures;
   const anyTelemetry = Object.values(values).some((value) => value !== null);
@@ -201,6 +212,8 @@ export async function handleObservability(env, runtime = {}) {
           peers: values.bloch_peers,
           peer_reporting_nodes: values.bloch_peer_reporting_nodes,
           peer_sampled_at: peersFresh ? peerSampleMs : null,
+          peer_p2p_connections: peerTransportComplete ? values.bloch_peer_p2p_connections : null,
+          peer_devnet_connections: peerTransportComplete ? values.bloch_peer_devnet_connections : null,
           mempool_transactions: values.bloch_mempool_transactions,
           mempool_sampled_nodes: values.bloch_mempool_sampled_nodes,
           mempool_min_transactions: values.bloch_mempool_min_transactions,

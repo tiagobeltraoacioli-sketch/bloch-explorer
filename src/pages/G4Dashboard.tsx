@@ -293,6 +293,8 @@ export function G4Dashboard() {
             <div><strong>{peerReading ? fmtInt(peerReading.reportingNodes) : "—"}</strong><span>reporting nodes</span></div>
             <div><strong>{peerReading ? "LIVE" : peerSampleAt === null ? "—" : "STALE"}</strong><span>{peerSampleAt === null ? "awaiting peer samples" : `oldest peer sample ${new Date(peerSampleAt).toLocaleTimeString()}`}</span></div>
           </div>
+          {peerReading && peerReading.p2pConnections !== null && peerReading.devnetConnections !== null &&
+            <p className="peer-transport-breakdown">P2P <strong>{fmtInt(peerReading.p2pConnections)}</strong><span aria-hidden="true"> · </span>Devnet <strong>{fmtInt(peerReading.devnetConnections)}</strong></p>}
           <div className="validator-constellation-actions"><Link className="btn" to="/observability">Explore network telemetry →</Link></div>
           <p className="validator-globe-help">Each dot represents one reported connection when the count is at most 6,000; above that, the globe samples the dots while the displayed total stays exact. This is an abstract map, not a geographic location map. A peer seen by multiple nodes can appear more than once, so the number is not a count of unique machines.</p>
         </div>

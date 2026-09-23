@@ -32,8 +32,10 @@ bundle served in production byte for byte.
 - The dashboard's **peer globe** counts connections reported by monitored
   Genesis-4 nodes, with one dot per reported connection up to its rendering
   limit. Prometheus samples older than 90 seconds are excluded, and the globe
-  clears when its latest reading expires. Connections can be counted by more
-  than one observer; this is not the number of unique network nodes.
+  clears when its latest reading expires. P2P and devnet subtotals appear only
+  when both transport gauges cover every reporting node and sum to the total.
+  Connections can be counted by more than one observer; this is not the number
+  of unique network nodes.
 
 ## Develop
 
