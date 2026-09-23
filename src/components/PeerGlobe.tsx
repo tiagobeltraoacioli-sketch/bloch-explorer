@@ -127,7 +127,7 @@ export function PeerGlobe({ connections }: { connections: number | null }) {
     <div className="peer-globe-core" aria-hidden="true">
       <span>PEER CONNECTIONS</span>
       <strong>{count === null ? "—" : new Intl.NumberFormat("en-US").format(count)}</strong>
-      <span>REPORTED NOW</span>
+      <span>{count === null ? "AWAITING FRESH SAMPLE" : "REPORTED NOW"}</span>
     </div>
   </div>;
 }

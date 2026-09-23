@@ -38,7 +38,7 @@ import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "..
 import { Link } from "../lib/router";
 import { ValidatorGlobe } from "../components/ValidatorGlobe";
 import { PeerGlobe } from "../components/PeerGlobe";
-import { observabilitySummary, type ObservabilitySummary } from "../lib/observabilityCloud";
+import { freshPeerReading, observabilitySummary, type ObservabilitySummary } from "../lib/observabilityCloud";
 import { Loading, Copyable } from "../components/ui";
 import { gradeStall, CONSENSUS } from "../lib/finality";
 import { PARAMS } from "../lib/g4params";
@@ -261,6 +261,8 @@ export function G4Dashboard() {
   const leakPct = duty && consensus && duty > 0n ? Number(((duty - consensus) * 10_000n) / duty) / 100 : null;
 
   const newest = [...ordered].reverse().slice(0, RECENT);
+  const peerSampleAt = observability?.peerSampledAt ?? null;
+  const peerReading = freshPeerReading(observability, now);
   return (
     <div className="container">
       <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} corroboration={corro} indexer={indexer} observability={observability} />
@@ -281,15 +283,15 @@ export function G4Dashboard() {
         <ValidatorGlobe total={vals?.total ?? head.validators?.total ?? 140} active={vals?.active ?? head.validators?.active ?? null} />
       </section>
       <section className="card validator-constellation peer-constellation" aria-labelledby="peer-constellation-title">
-        <PeerGlobe connections={observability?.peerConnections ?? null} />
+        <PeerGlobe connections={peerReading?.connections ?? null} />
         <div className="validator-constellation-copy">
           <span className="eyebrow">LIVE NETWORK TELEMETRY</span>
           <h2 id="peer-constellation-title">The network, connection by connection.</h2>
-          <p>The globe follows the peer connections reported by active Genesis-4 nodes monitored in Prometheus. The measured total updates every 30 seconds while this page is visible.</p>
+          <p>The globe follows peer connections reported by active Genesis-4 nodes monitored in Prometheus. Only samples no older than 90 seconds are displayed; the reading refreshes every 30 seconds while this page is visible.</p>
           <div className="validator-constellation-stats peer-constellation-stats" aria-live="polite" aria-atomic="true">
-            <div><strong>{observability?.peerConnections === null || observability?.peerConnections === undefined ? "—" : fmtInt(observability.peerConnections)}</strong><span>reported connections</span></div>
-            <div><strong>{observability?.peerReportingNodes === null || observability?.peerReportingNodes === undefined ? "—" : fmtInt(observability.peerReportingNodes)}</strong><span>reporting nodes</span></div>
-            <div><strong>{observability?.sampledAt && now - observability.sampledAt < 90_000 ? "LIVE" : "—"}</strong><span>{observability?.sampledAt ? `last read ${new Date(observability.sampledAt).toLocaleTimeString()}` : "awaiting telemetry"}</span></div>
+            <div><strong>{peerReading ? fmtInt(peerReading.connections) : "—"}</strong><span>reported connections</span></div>
+            <div><strong>{peerReading ? fmtInt(peerReading.reportingNodes) : "—"}</strong><span>reporting nodes</span></div>
+            <div><strong>{peerReading ? "LIVE" : peerSampleAt === null ? "—" : "STALE"}</strong><span>{peerSampleAt === null ? "awaiting peer samples" : `oldest peer sample ${new Date(peerSampleAt).toLocaleTimeString()}`}</span></div>
           </div>
           <div className="validator-constellation-actions"><Link className="btn" to="/observability">Explore network telemetry →</Link></div>
           <p className="validator-globe-help">Each dot represents one reported connection when the count is at most 6,000; above that, the globe samples the dots while the displayed total stays exact. This is an abstract map, not a geographic location map. A peer seen by multiple nodes can appear more than once, so the number is not a count of unique machines.</p>

@@ -12,6 +12,7 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   blochNodes: number | null;
   peerConnections: number | null;
   peerReportingNodes: number | null;
+  peerSampledAt: number | null;
   worstLagSlots: number | null;
   blocksPerMinute: number | null;
   rejectedBlocks1h: number | null;
@@ -30,6 +31,10 @@ function finiteMetric(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+function countMetric(value: unknown): number | null {
+  return Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : null;
+}
+
 /** A small, validated read model for the homepage's infrastructure data desk. */
 export function observabilitySummary(value: unknown): ObservabilitySummary | null {
   const promotion = observabilityPromotion(value);
@@ -46,8 +51,9 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     targetsHealthy: metric("prometheus", "targets_healthy"),
     targetsTotal: metric("prometheus", "targets_total"),
     blochNodes: metric("bloch", "nodes"),
-    peerConnections: metric("bloch", "peers"),
-    peerReportingNodes: metric("bloch", "peer_reporting_nodes"),
+    peerConnections: countMetric(metric("bloch", "peers")),
+    peerReportingNodes: countMetric(metric("bloch", "peer_reporting_nodes")),
+    peerSampledAt: countMetric(metric("bloch", "peer_sampled_at")),
     worstLagSlots: metric("bloch", "worst_lag_slots"),
     blocksPerMinute: metric("bloch", "blocks_per_minute"),
     rejectedBlocks1h: metric("bloch", "rejected_blocks_1h"),
@@ -61,6 +67,19 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     deploymentsAvailable: metric("kubernetes", "deployments_available"),
     deploymentsDesired: metric("kubernetes", "deployments_desired"),
   };
+}
+
+export function peerSampleFresh(sampledAt: number | null, now: number): boolean {
+  return sampledAt !== null && Number.isSafeInteger(sampledAt) && Number.isSafeInteger(now) &&
+    sampledAt > 0 && sampledAt <= now + 5_000 && now - sampledAt <= 90_000;
+}
+
+/** A browser-visible peer reading expires with its oldest underlying scrape. */
+export function freshPeerReading(summary: ObservabilitySummary | null, now: number) {
+  if (!summary || summary.peerConnections === null || summary.peerReportingNodes === null ||
+      summary.peerReportingNodes < 1 || !peerSampleFresh(summary.peerSampledAt, now)) return null;
+  return { connections: summary.peerConnections, reportingNodes: summary.peerReportingNodes,
+    sampledAt: summary.peerSampledAt };
 }
 
 /** The homepage must advertise infrastructure telemetry only after at least

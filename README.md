@@ -29,6 +29,11 @@ bundle served in production byte for byte.
 - A **frozen RPC namespace** (`edge/surface.js`): every method the edge exposes
   is a written-out golden list, checked in both directions against the node's
   own `rpc.rs` so the edge cannot drift from the chain again.
+- The dashboard's **peer globe** counts connections reported by monitored
+  Genesis-4 nodes, with one dot per reported connection up to its rendering
+  limit. Prometheus samples older than 90 seconds are excluded, and the globe
+  clears when its latest reading expires. Connections can be counted by more
+  than one observer; this is not the number of unique network nodes.
 
 ## Develop
 
@@ -49,9 +54,10 @@ confirmations, and a finality flag based on a fresh corroborated chain head.
 A 404 means the transaction is absent from the archival index; it does not
 establish that a recently submitted transfer failed. A 503 means finality
 cannot be established safely and deposit crediting should pause.
-The matching JavaScript SDK is available at
-`/releases/genesis4-js/blochprotocol-genesis4-sdk-0.1.1.tgz` with SHA-256
-`3af00b9e56326c78614a6434794380a2767b52bd876647bf06e2f373060e0edb`.
+The current JavaScript SDK is available at
+`https://ops-blochinc.xyz/wallets/downloads/blochprotocol-genesis4-sdk-0.1.13.tgz`
+with SHA-256 `fe1d4178b47baa628f7a2fc629f2a5536d580d0f8863206eed7bc88209f63b4b`.
+The older `/releases/genesis4-js/` archive remains a historical artifact.
 
 ```sh
 npm ci

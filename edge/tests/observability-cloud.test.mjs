@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, observabilityQueries } from '../observability.js';
-import { observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { freshPeerReading, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -31,6 +31,7 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_head_slot, '70001'],
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
+    [observabilityQueries.bloch_peer_oldest_sample_unix, '1719999999'],
     [observabilityQueries.bloch_mempool_sampled_nodes, '9'],
     [observabilityQueries.bloch_mempool_min_transactions, '0'],
     [observabilityQueries.bloch_mempool_max_transactions, '5'],
@@ -47,13 +48,14 @@ test('observability exposes aggregate values without credentials, labels or prom
       data: { resultType: 'vector', result: value === undefined ? [] : [{ metric: { private_pod: 'must-not-leak' }, value: [1, value] }] },
     });
   };
-  const out = await handleObservability(env, { now: () => 456, fetchImpl });
+  const out = await handleObservability(env, { now: () => 1720000000000, fetchImpl });
   assert.equal(out.status, 200);
   assert.equal(out.body.state, 'live');
   assert.equal(out.body.data.prometheus.targets_total, 12);
   assert.equal(out.body.data.bloch.head_slot, 70001);
   assert.equal(out.body.data.bloch.peers, 4623);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, 44);
+  assert.equal(out.body.data.bloch.peer_sampled_at, 1719999999000);
   assert.equal(out.body.data.bloch.mempool_sampled_nodes, 9);
   assert.equal(out.body.data.bloch.mempool_min_transactions, 0);
   assert.equal(out.body.data.bloch.mempool_max_transactions, 5);
@@ -66,6 +68,25 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.ok(seen.every(({ authorization }) => authorization === 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu'));
   const publicBody = JSON.stringify(out.body);
   for (const secret of ['secret-token', 'tenant-1', 'private_pod', 'must-not-leak', 'count(up)']) assert.ok(!publicBody.includes(secret));
+});
+
+test('old peer samples cannot be represented as a current network reading', async () => {
+  const values = new Map([
+    [observabilityQueries.bloch_peers, '4623'],
+    [observabilityQueries.bloch_peer_reporting_nodes, '44'],
+    [observabilityQueries.bloch_peer_oldest_sample_unix, '1719999800'],
+  ]);
+  const out = await handleObservability(env, {
+    now: () => 1720000000000,
+    fetchImpl: async input => {
+      const value = values.get(new URL(input).searchParams.get('query'));
+      return Response.json({ status: 'success', data: { resultType: 'vector',
+        result: value === undefined ? [] : [{ value: [1720000000, value] }] } });
+    },
+  });
+  assert.equal(out.body.data.bloch.peers, null);
+  assert.equal(out.body.data.bloch.peer_reporting_nodes, null);
+  assert.equal(out.body.data.bloch.peer_sampled_at, null);
 });
 
 test('an empty but successful tenant is awaiting telemetry, not down', async () => {
@@ -121,17 +142,25 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     state: 'live', sampled_at: 1720000000000,
     coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
     prometheus: { targets_healthy: 56, targets_total: 56 },
-    bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
+    bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, peer_sampled_at: 1720000000000,
+      worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
     host: { nodes: 7, memory_used_bytes: 50, memory_total_bytes: 100, root_disk_min_free_percent: 90 },
     kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0, deployments_available: 5, deployments_desired: 5 },
   } });
   assert.deepEqual(summary, {
     layers: 4, state: 'live', sampledAt: 1720000000000,
     targetsHealthy: 56, targetsTotal: 56, blochNodes: 44, peerConnections: 0, peerReportingNodes: 44,
+    peerSampledAt: 1720000000000,
     worstLagSlots: 0, blocksPerMinute: 2, rejectedBlocks1h: 0,
     hostNodes: 7, hostMemoryUsedBytes: 50, hostMemoryTotalBytes: 100,
     rootDiskMinFreePercent: 90, kubernetesNodes: 1,
     podsRunning: 6, podsUnhealthy: 0, deploymentsAvailable: 5, deploymentsDesired: 5,
   });
+  assert.deepEqual(freshPeerReading(summary, 1720000089999), {
+    connections: 0, reportingNodes: 44, sampledAt: 1720000000000,
+  });
+  assert.equal(freshPeerReading(summary, 1720000090001), null);
+  assert.equal(peerSampleFresh(1720000000000, 1720000090001), false);
+  assert.equal(freshPeerReading({ ...summary, peerSampledAt: null }, 1720000000000), null);
   assert.equal(observabilitySummary({ data: { state: 'awaiting_telemetry', coverage: { prometheus: false } } }), null);
 });

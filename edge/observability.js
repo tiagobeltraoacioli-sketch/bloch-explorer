@@ -6,6 +6,11 @@
 // cluster inventory on the server side.
 
 const QUERY_TIMEOUT_MS = 6_000;
+const PEER_MAX_SAMPLE_AGE_SECONDS = 90;
+const FRESH_PEER_SERIES =
+  'bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0) ' +
+  `and on(instance) (time() - timestamp(bloch_pos_peer_count) <= ${PEER_MAX_SAMPLE_AGE_SECONDS}) ` +
+  `and on(instance) (time() - timestamp(bloch_pos_head_slot) <= ${PEER_MAX_SAMPLE_AGE_SECONDS})`;
 
 const QUERIES = Object.freeze({
   targets_total: 'count(up)',
@@ -20,8 +25,9 @@ const QUERIES = Object.freeze({
   bloch_worst_lag_slots: 'max(bloch_pos_behind_by_slots)',
   // Connections seen by active monitored nodes. A peer shared by two
   // observers may be counted twice; this is not a unique-network-peer count.
-  bloch_peers: 'sum(bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0))',
-  bloch_peer_reporting_nodes: 'count(bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0))',
+  bloch_peers: `sum(${FRESH_PEER_SERIES})`,
+  bloch_peer_reporting_nodes: `count(${FRESH_PEER_SERIES})`,
+  bloch_peer_oldest_sample_unix: `min(timestamp(${FRESH_PEER_SERIES}))`,
   bloch_mempool_transactions: 'sum(bloch_pos_mempool_size)',
   bloch_mempool_sampled_nodes: 'count(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
   bloch_mempool_min_transactions: 'min(bloch_pos_mempool_size and on(instance) (bloch_pos_head_slot > 0))',
@@ -151,6 +157,16 @@ export async function handleObservability(env, runtime = {}) {
     name,
     settled[index].status === 'fulfilled' ? settled[index].value : null,
   ]));
+  const peerSampleSeconds = values.bloch_peer_oldest_sample_unix;
+  const peerSampleMs = peerSampleSeconds === null ? null : Math.round(peerSampleSeconds * 1000);
+  const peersFresh = Number.isSafeInteger(peerSampleMs) && peerSampleMs > 0 &&
+    peerSampleMs <= sampledAt + 5_000 && sampledAt - peerSampleMs <= PEER_MAX_SAMPLE_AGE_SECONDS * 1000 &&
+    Number.isSafeInteger(values.bloch_peers) && values.bloch_peers >= 0 &&
+    Number.isSafeInteger(values.bloch_peer_reporting_nodes) && values.bloch_peer_reporting_nodes > 0;
+  if (!peersFresh) {
+    values.bloch_peers = null;
+    values.bloch_peer_reporting_nodes = null;
+  }
   const failures = settled.filter((result) => result.status === 'rejected').length;
   const successes = settled.length - failures;
   const anyTelemetry = Object.values(values).some((value) => value !== null);
@@ -181,6 +197,7 @@ export async function handleObservability(env, runtime = {}) {
           worst_lag_slots: values.bloch_worst_lag_slots,
           peers: values.bloch_peers,
           peer_reporting_nodes: values.bloch_peer_reporting_nodes,
+          peer_sampled_at: peersFresh ? peerSampleMs : null,
           mempool_transactions: values.bloch_mempool_transactions,
           mempool_sampled_nodes: values.bloch_mempool_sampled_nodes,
           mempool_min_transactions: values.bloch_mempool_min_transactions,

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
+import { peerSampleFresh } from "../lib/observabilityCloud";
 import { fmtInt } from "../lib/format";
 import { RawData, ReadToolbar } from "../components/telemetry";
 import { Link } from "../lib/router";
@@ -15,7 +17,8 @@ interface ObservabilityData {
   prometheus: { targets_total: Metric; targets_healthy: Metric; targets_unhealthy: Metric };
   bloch: {
     nodes: Metric; head_slot: Metric; finalized_epoch: Metric; worst_lag_slots: Metric;
-    peers: Metric; mempool_transactions: Metric; blocks_per_minute: Metric;
+    peers: Metric; peer_reporting_nodes: Metric; peer_sampled_at: Metric;
+    mempool_transactions: Metric; blocks_per_minute: Metric;
     rejected_blocks_1h: Metric; heartbeat_age_seconds: Metric;
   };
   host: {
@@ -81,12 +84,18 @@ function Coverage({ active, title, note }: { active: boolean; title: string; not
 }
 
 export function ObservabilityPage() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(timer);
+  }, []);
   const live = useLiveRead<ObservabilityResponse>("/api/v1/observability", 30_000);
   const response = live.data;
   const data = response?.data;
   const state = data?.state ?? response?.state ?? (live.error ? "unavailable" : "awaiting_telemetry");
   const prom = data?.prometheus;
   const bloch = data?.bloch;
+  const peersFresh = peerSampleFresh(bloch?.peer_sampled_at ?? null, now);
   const host = data?.host;
   const k8s = data?.kubernetes;
   const targets = prom?.targets_total ?? null;
@@ -137,7 +146,7 @@ export function ObservabilityPage() {
           <div><span>Head slot</span><strong>{integer(bloch?.head_slot ?? null)}</strong><small>highest exported slot</small></div>
           <div><span>Finalized epoch</span><strong>{integer(bloch?.finalized_epoch ?? null)}</strong><small>highest exported finality</small></div>
           <div><span>Worst lag</span><strong>{integer(bloch?.worst_lag_slots ?? null)}</strong><small>slots behind</small></div>
-          <div><span>Peers</span><strong>{integer(bloch?.peers ?? null)}</strong><small>summed peer observations</small></div>
+          <div><span>Peer connections</span><strong>{integer(peersFresh ? bloch?.peers ?? null : null)}</strong><small>{peersFresh && bloch?.peers !== null && bloch?.peers !== undefined ? `${integer(bloch.peer_reporting_nodes)} reporting nodes · samples ≤90s` : "awaiting fresh samples"}</small></div>
           <div><span>Mempool</span><strong>{integer(bloch?.mempool_transactions ?? null)}</strong><small>transactions observed</small></div>
           <div><span>Block pace</span><strong>{decimal(bloch?.blocks_per_minute ?? null)}</strong><small>applied per minute · 5m rate</small></div>
           <div><span>Heartbeat age</span><strong>{age(bloch?.heartbeat_age_seconds ?? null)}</strong><small>oldest exported heartbeat</small></div>
