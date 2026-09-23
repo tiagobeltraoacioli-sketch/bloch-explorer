@@ -60,8 +60,8 @@ it cannot inspect an agent's uncommitted local work or certify roadmap completio
 To keep all workstreams current, maintain this handoff as part of each agent's
 completion criteria.
 
-When an explicitly requested reviewed edition is published before the weekly
-cron, generate it with `node collect-reviewed.mjs`, inspect and test the resulting
+For the explicitly requested Release 2 publication before the weekly cron,
+generate it with the one-off `node collect-reviewed.mjs`, inspect and test the resulting
 `release-2.json`, then upload the roadmap and archive to the remote `RELEASES`
 KV namespace. Move `latest` only after both `/releases/2.json` routes serve the
 archived record. The public worker has no write route. Do not regenerate or

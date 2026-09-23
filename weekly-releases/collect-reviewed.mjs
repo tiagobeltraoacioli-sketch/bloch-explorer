@@ -1,5 +1,4 @@
-// Create a dated editorial edition before the weekly cron when publication is
-// explicitly requested. Upload the JSON archive before moving the KV pointer.
+// One-off Release 2 collector. Upload the archive before moving the KV pointer.
 import { readFile, writeFile } from 'node:fs/promises';
 import { collectActivity, validateManifest } from './model.mjs';
 
