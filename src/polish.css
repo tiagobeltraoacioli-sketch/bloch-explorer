@@ -69,6 +69,12 @@ header.topbar {
   min-height: 70px;
 }
 
+.observability-link.active {
+  background: var(--brass-dim);
+  border-color: var(--brass-line);
+  color: var(--brass);
+}
+
 .brand .logo {
   filter: drop-shadow(0 0 14px color-mix(in srgb, var(--brass) 28%, transparent));
   transition: filter var(--dur) var(--ease), transform var(--dur) var(--ease);

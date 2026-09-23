@@ -535,6 +535,21 @@ export function App() {
             <G4Search />
             <div className="topbar-tools">
               <HeadChip p={pulse} />
+              <Link
+                to="/observability"
+                className={"icon-btn observability-link" + (isActive("/observability") ? " active" : "")}
+                aria-label="Observability"
+                aria-current={isActive("/observability") ? "page" : undefined}
+                title="Observability"
+                onMouseEnter={() => void preloadRoute("/observability")}
+                onFocus={() => void preloadRoute("/observability")}
+                onPointerDown={() => void preloadRoute("/observability")}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12h3l2.2-4 3.1 8 2.6-5 1.5 2H21" />
+                  <circle cx="12" cy="12" r="9.5" strokeWidth="1.2" opacity=".55" />
+                </svg>
+              </Link>
               <ThemeToggle />
             </div>
           </div>
