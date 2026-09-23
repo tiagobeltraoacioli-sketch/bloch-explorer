@@ -32,11 +32,12 @@ import { SlotTable } from "../components/blockstream";
 import { Kpi, SlotStrip, StripLegend } from "../components/kit";
 import { TxLandings } from "../components/txBits";
 import { ChainOverview } from "../components/chainOverview";
+import { DataDesk } from "../components/dataDesk";
 import { indexerHealth, type IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
 import { ValidatorGlobe } from "../components/ValidatorGlobe";
-import { observabilityPromotion, type ObservabilityPromotion } from "../lib/observabilityCloud";
+import { observabilitySummary, type ObservabilitySummary } from "../lib/observabilityCloud";
 import { Loading, Copyable } from "../components/ui";
 import { gradeStall, CONSENSUS } from "../lib/finality";
 import { PARAMS } from "../lib/g4params";
@@ -115,7 +116,7 @@ export function G4Dashboard() {
   const [cells, setCells] = useState<Map<number, SlotCell>>(() => new Map());
   const [err, setErr] = useState<string | null>(null);
   const [readAt, setReadAt] = useState<number | null>(null);
-  const [observability, setObservability] = useState<ObservabilityPromotion | null>(null);
+  const [observability, setObservability] = useState<ObservabilitySummary | null>(null);
   const now = useNow();
 
   // Promotion is data-gated. The Observability tab appears on the front page
@@ -128,7 +129,7 @@ export function G4Dashboard() {
         const response = await fetch("/api/v1/observability", { headers: { accept: "application/json" } });
         if (!response.ok) return;
         const body = await response.json();
-        if (!stopped) setObservability(observabilityPromotion(body));
+        if (!stopped) setObservability(observabilitySummary(body));
       } catch { /* Infrastructure telemetry is optional on the chain page. */ }
     };
     const teardown = pollWhileVisible(tick, 60_000);
@@ -262,6 +263,7 @@ export function G4Dashboard() {
   return (
     <div className="container">
       <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} corroboration={corro} indexer={indexer} observability={observability} />
+      <DataDesk summary={observability} />
       <section className="card validator-constellation" aria-labelledby="validator-constellation-title">
         <div className="validator-constellation-copy">
           <span className="eyebrow">LIVE VALIDATOR REGISTRY</span>

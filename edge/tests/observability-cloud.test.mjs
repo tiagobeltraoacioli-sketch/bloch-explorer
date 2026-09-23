@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, observabilityQueries } from '../observability.js';
-import { observabilityPromotion } from '../../src/lib/observabilityCloud.ts';
+import { observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -104,4 +104,22 @@ test('homepage promotion requires real telemetry, not configuration or connectiv
   ]) assert.equal(observabilityPromotion(value), null);
   assert.deepEqual(observabilityPromotion({ data: { state: 'live', coverage: { prometheus: true, bloch: false, host: true, kubernetes: false } } }), { layers: 2, state: 'live' });
   assert.deepEqual(observabilityPromotion({ data: { state: 'partial', coverage: { prometheus: true } } }), { layers: 1, state: 'partial' });
+});
+
+test('homepage summary preserves measured zeros and rejects invalid metrics', () => {
+  const summary = observabilitySummary({ data: {
+    state: 'live', sampled_at: 1720000000000,
+    coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
+    prometheus: { targets_healthy: 56, targets_total: 56 },
+    bloch: { nodes: 44, worst_lag_slots: 0 },
+    host: { nodes: 7 },
+    kubernetes: { nodes: 1, pods_running: 6, pods_unhealthy: 0 },
+  } });
+  assert.deepEqual(summary, {
+    layers: 4, state: 'live', sampledAt: 1720000000000,
+    targetsHealthy: 56, targetsTotal: 56, blochNodes: 44,
+    worstLagSlots: 0, hostNodes: 7, kubernetesNodes: 1,
+    podsRunning: 6, podsUnhealthy: 0,
+  });
+  assert.equal(observabilitySummary({ data: { state: 'awaiting_telemetry', coverage: { prometheus: false } } }), null);
 });

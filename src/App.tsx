@@ -581,24 +581,24 @@ export function App() {
               <Wordmark />
             </span>
             <span className="foot-tagline">
-              by <a href="https://posternlabs.com" rel="noopener">postern · labs</a> · nothing here is
-              investment advice
+              by <a href="https://blochinc.xyz/" rel="noopener">Bloch Inc.</a> · A matter of data.
             </span>
           </div>
           <div className="foot-body">
-            Independent reference explorer for <strong>Bloch Genesis-4</strong> — a post-quantum
+            Bloch Explorer by Bloch Inc. is a read-only reference for <strong>Bloch Genesis-4</strong> — a post-quantum
             proof-of-stake chain, 64 genesis validators, 30-second slots, finality by epoch. It
             opened carrying every balance from Genesis-3, the proof-of-work era that ended at height
             39,918; that handover is published in full on the <Link to="/snapshot">snapshot</Link>.
-            Not an official service; Bloch is ownerless/neutral. Integer satoshis are the source of
+            The Explorer observes the network; it does not control consensus. Integer satoshis are the source of
             truth (1 BLOCH = 1e8 sat); “bloch” values are display-only. BLCH is neutral native gas,
-            never a value or investment claim.
+            never a value or investment claim. This site is informational, not investment advice.
           </div>
           <div className="foot-links">
             {NAV.map((n) => (
               <Link key={n.to} to={n.to}>{n.label}</Link>
             ))}
             <a href="/api/v1/capabilities" rel="noopener">REST API</a>
+            <a href="https://blochinc.xyz/" rel="noopener">Bloch Inc. ↗</a>
             <a href="https://posternlabs.com" rel="noopener">posternlabs.com ↗</a>
           </div>
           <RpcStatus p={pulse} />

@@ -29,8 +29,8 @@ export function ChainOverview({ head, cells, mempool, stale, corroboration, inde
   const trustTone = trusted ? "ok" : "warn";
   return <section className="chain-overview" aria-label="Chain activity overview">
     <div className="overview-heading">
-      <div><span className="eyebrow">GENESIS 4 / EXPLORER</span><h1>The chain, at a glance.</h1></div>
-      <div className="overview-tools"><span className={"pill " + (stale ? "warn" : "quiet")}>{stale ? "Last available reading" : "Auto-refresh · 15s"}</span>{observability && <Link to="/observability" className="pill-tab observability-tab"><i aria-hidden="true" />Observability <small>{observability.layers}/3</small></Link>}<Link to="/network" className="pill-tab">Network & RPCs ↗</Link></div>
+      <div><span className="eyebrow">BLOCH EXPLORER BY BLOCH INC. / GENESIS 4</span><h1>A matter of data.</h1><p className="overview-subtitle">Consensus, transactions, validators and infrastructure — measured at their source.</p></div>
+      <div className="overview-tools"><span className={"pill " + (stale ? "warn" : "quiet")}>{stale ? "Last available reading" : "Auto-refresh · 15s"}</span>{observability && <Link to="/observability" className="pill-tab observability-tab"><i aria-hidden="true" />Observability <small>{observability.layers}/4</small></Link>}<Link to="/network" className="pill-tab">Network & RPCs ↗</Link></div>
     </div>
     <div className="network-tape" role="list" aria-label="Live chain tape">
       <Link to={`/slot/${head.slot}`} role="listitem"><span>Head slot</span><strong>{fmtInt(head.slot)}</strong></Link>
