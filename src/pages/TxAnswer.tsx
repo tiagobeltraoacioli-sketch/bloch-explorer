@@ -12,6 +12,7 @@ import { slotStartMs } from "../lib/slots";
 import { OutpointCheck } from "../components/txBits";
 import { TransactionStatus } from "../components/transactionStatus";
 import { TxStatusLookup } from "../components/telemetry";
+import { TxFlow } from "../components/TxFlow";
 import "../dashboard.css";
 
 function TxDetail({ tx }: { tx: IndexedTx }) {
@@ -72,6 +73,7 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
         <ProportionBars rows={allocations} />
         <p className="lookup-hint">Outputs {fmtBloch(outSum!, 8)} + stake {fmtBloch(stake, 8)} + fee {fmtBloch(fee!, 8)} = inputs {fmtBloch(inSum!, 8)} BLOCH. Percentages are truncated to four decimal places.</p>
       </ChartCard>}
+      <TxFlow tx={tx} />
       <div className="tx-io">
         <section className="card" style={{ margin: 0 }}>
           <h2 className="snap-h2">Inputs — {fmtInt(tx.inputs.length)}</h2>

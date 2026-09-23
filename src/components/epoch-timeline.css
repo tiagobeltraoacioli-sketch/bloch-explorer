@@ -1,0 +1,43 @@
+.et-shell { margin-bottom: 14px; }
+.et-heading, .et-controls, .et-meta, .et-axis, .et-detail-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.et-heading { align-items: flex-start; }
+.et-heading .snap-h2 { margin: 4px 0 0; }
+.et-heading .lookup-hint { margin: 6px 0 0; }
+.et-controls { justify-content: flex-start; flex-wrap: wrap; margin: 22px 0 14px; }
+.et-controls > strong { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.et-jump { display: flex; gap: 7px; align-items: center; margin-left: auto; }
+.et-jump label { color: var(--muted); font-size: 12px; }
+.et-jump input { width: 90px; padding: 7px 8px; color: var(--fg); background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r-sm); font-family: var(--font-mono); }
+.et-meta { flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.et-meta a { margin-left: auto; }
+.et-track { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); gap: 3px; }
+.et-slot { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; min-height: 58px; padding: 7px 1px; border: 1px solid var(--brass-line); border-radius: 4px; background: var(--brass-dim); color: var(--fg); cursor: pointer; transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.et-slot:hover { transform: translateY(-3px); border-color: var(--brass); }
+.et-slot.et-selected { outline: 2px solid var(--fg); outline-offset: 2px; }
+.et-slot-n { color: var(--muted); font-family: var(--font-mono); font-size: 9px; }
+.et-slot-mark { color: var(--brass); font-size: 18px; line-height: 1; }
+.et-slot.et-tx { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--bg3)); }
+.et-slot.et-tx .et-slot-mark { color: var(--ok); }
+.et-slot.et-empty { border-color: var(--line); border-style: dashed; background: var(--bg3); }
+.et-slot.et-empty .et-slot-mark { color: var(--muted); }
+.et-slot.et-unknown { border-color: var(--unknown); border-style: dotted; background: var(--unknown-dim); }
+.et-slot.et-unknown .et-slot-mark { color: var(--unknown); }
+.et-slot.et-pending, .et-slot.et-reading { border-color: var(--line); border-style: dashed; background: transparent; }
+.et-slot.et-pending { opacity: .48; }
+.et-slot.et-pending .et-slot-mark, .et-slot.et-reading .et-slot-mark { color: var(--muted); }
+.et-axis { color: var(--faint); font-family: var(--font-mono); font-size: 10px; margin-top: 8px; }
+.et-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 11px; margin: 12px 0 0; }
+.et-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.et-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--brass); }
+.et-key-tx { background: var(--ok); }.et-key-empty { border: 1px dashed var(--muted); background: transparent; }.et-key-unknown { background: var(--unknown); }.et-key-pending { border: 1px dashed var(--line-strong); background: transparent; }
+.et-detail { margin-top: 20px; padding: 18px; background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r-md); }
+.et-detail-title { align-items: flex-end; }
+.et-detail-title h3 { margin: 3px 0 0; font-family: var(--font-mono); font-size: 18px; }
+.et-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.et-facts > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.et-facts span { color: var(--muted); font-size: 11px; }
+.et-facts strong, .et-facts a { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 12px; }
+.et-outcome { margin: 14px 0; }
+.et-detail .lookup-hint { margin-bottom: 0; }
+@media (max-width: 900px) { .et-track { grid-template-columns: repeat(16, minmax(0, 1fr)); } .et-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .et-track { grid-template-columns: repeat(8, minmax(0, 1fr)); } .et-jump { width: 100%; margin-left: 0; } .et-meta a { margin-left: 0; } .et-facts { grid-template-columns: 1fr 1fr; } }

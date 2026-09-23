@@ -23,6 +23,7 @@ import { g4rpc, G4, G4Head, G4Error } from "../lib/g4";
 import { EpochSummary, loadEpoch, tierOf, intervalBuckets, epochStartMs } from "../lib/epochs";
 import { Kpi, SlotStrip, StripLegend, ProposerBars, TierPill } from "../components/kit";
 import { ChartCard, BarChart } from "../components/charts";
+import { EpochTimeline } from "../components/EpochTimeline";
 import { Loading } from "../components/ui";
 import { Link } from "../lib/router";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, timeAgo, fmtTime } from "../lib/format";
@@ -243,6 +244,8 @@ export function AnalyticsPage() {
           </div>
         </div>
       </section>
+
+      <EpochTimeline head={head} epochs={epochs} />
 
       {/* ── epoch history ────────────────────────────────────────────────── */}
       <section className="card">

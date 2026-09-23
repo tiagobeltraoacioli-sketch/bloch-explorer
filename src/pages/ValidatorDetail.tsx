@@ -19,15 +19,15 @@ import { leakedSat, leakedFraction, fetchValidatorSet, stakeShares } from "../li
 import {
   recentWindow,
   proposalRecord,
-  proposalIndex,
   SlotWindow,
   ProposalRecord,
 } from "../lib/participation";
-import { PARAMS, epochStartMs } from "../lib/g4params";
+import { epochStartMs } from "../lib/g4params";
 import { fmtBloch, fmtInt, fmtNum, fmtTime, timeAgo } from "../lib/format";
 import { Link } from "../lib/router";
 import { Loading } from "../components/ui";
 import { StateBadge, StakeBar, CorroborationLine } from "../components/validatorBits";
+import { ValidatorActivity } from "../components/ValidatorActivity";
 
 /** Two epochs. Enough for the record to mean something, small enough to cache. */
 const WINDOW_SLOTS = 64;
@@ -46,6 +46,7 @@ interface Loaded {
 export function ValidatorDetailPage({ index }: { index: number }) {
   const [d, setD] = useState<Loaded | null>(null);
   const [win, setWin] = useState<SlotWindow | null>(null);
+  const [windowErr, setWindowErr] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,8 +85,12 @@ export function ValidatorDetailPage({ index }: { index: number }) {
           generatedAt: set.generatedAt,
           corroboration: set.corroboration,
         });
-        const w = await recentWindow(WINDOW_SLOTS);
-        if (!stop) setWin(w);
+        try {
+          const w = await recentWindow(WINDOW_SLOTS);
+          if (!stop) setWin(w);
+        } catch (e: any) {
+          if (!stop) setWindowErr(String(e?.message ?? e));
+        }
       } catch (e: any) {
         if (!stop) setErr(String(e?.message ?? e));
       }
@@ -120,8 +125,13 @@ export function ValidatorDetailPage({ index }: { index: number }) {
 
   const rec: ProposalRecord | null = win ? proposalRecord(win) : null;
   const mine = rec?.byProposer.get(index) ?? 0;
-  const pIndex = rec ? proposalIndex(mine, rec, d.counts.active) : 0;
   const mySlots = win?.slots.filter((s) => s.present && s.proposer_index === index) ?? [];
+  const lifecycle = [
+    { label: "Activated", epoch: v.activation_epoch, detail: v.activation_epoch === null ? "Not scheduled" : "Registry activation epoch" },
+    { label: "Current head", epoch: d.head.epoch, detail: `State reported as ${v.state}` },
+    { label: "Exit", epoch: v.exit_epoch, detail: v.exit_epoch === null ? "No exit scheduled" : "Registry exit epoch" },
+    { label: "Withdrawable", epoch: v.withdrawable_epoch, detail: v.withdrawable_epoch === null ? "No withdrawal scheduled" : "Registry withdrawal epoch" },
+  ];
 
   return (
     <div className="container">
@@ -183,6 +193,21 @@ export function ValidatorDetailPage({ index }: { index: number }) {
       </div>
 
       <section className="card">
+        <h2 className="snap-h2">Validator lifecycle</h2>
+        <p className="lookup-hint">Epochs come from the validator registry and the head read with it. Dates are scheduled boundaries derived from the protocol genesis time and slot duration.</p>
+        <ol className="validator-lifecycle">
+          {lifecycle.map((step) => (
+            <li key={step.label}>
+              <span className="g4-k">{step.label}</span>
+              <strong>{step.epoch === null ? "—" : `Epoch ${fmtInt(step.epoch)}`}</strong>
+              <span className="g4-dim">{step.detail}</span>
+              {step.epoch !== null && <time className="g4-dim" dateTime={new Date(epochStartMs(step.epoch)).toISOString()}>{fmtTime(epochStartMs(step.epoch) / 1000)}</time>}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="card">
         <h2 className="snap-h2">Bond against weight</h2>
         <StakeBar own={own} effective={eff} max={own} />
         <p className="lookup-hint">
@@ -197,7 +222,9 @@ export function ValidatorDetailPage({ index }: { index: number }) {
       {/* ── Participation, and the honest hole in it ───────────────────── */}
       <section className="card">
         <h2 className="snap-h2">Proposals in the last {fmtInt(WINDOW_SLOTS)} slots</h2>
-        {!win || !rec ? (
+        {windowErr ? (
+          <div className="errbox">Recent slot history could not be read ({windowErr}). The registry figures above are still available.</div>
+        ) : !win || !rec ? (
           <Loading label="Reading the recent window…" />
         ) : (
           <>
@@ -208,9 +235,9 @@ export function ValidatorDetailPage({ index }: { index: number }) {
                 <span className="g4-dim">of {fmtInt(rec.filled)} blocks in the window</span>
               </div>
               <div className="g4-stat">
-                <span className="g4-k">Against an equal share</span>
-                <span className="g4-v">{fmtNum(pIndex, 2)}×</span>
-                <span className="g4-dim">1.00× is exactly its turn</span>
+                <span className="g4-k">Share of observed blocks</span>
+                <span className="g4-v">{rec.filled ? `${fmtNum((mine / rec.filled) * 100, 1)}%` : "—"}</span>
+                <span className="g4-dim">descriptive, not a duty or uptime rate</span>
               </div>
               <div className="g4-stat">
                 <span className="g4-k">Window</span>
@@ -222,6 +249,8 @@ export function ValidatorDetailPage({ index }: { index: number }) {
                 </span>
               </div>
             </div>
+
+            <ValidatorActivity win={win} index={index} />
 
             {mySlots.length > 0 && (
               <div className="table-wrap">
