@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { appendPeerHistory, freshPeerReading, observabilitySummary, type PeerHistorySample } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, peerRangeHistory, type PeerHistorySample, type PeerRangePoint } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -43,8 +43,10 @@ function support(method: RpcMethod, nodes: Observer[], now: number): string {
 
 function NetworkConnections() {
   const live = useLiveRead<unknown>("/api/v1/observability", 30_000);
+  const rangeLive = useLiveRead<unknown>("/api/v1/observability/peer-history", 300_000);
   const [now, setNow] = useState(() => Date.now());
   const [history, setHistory] = useState<PeerHistorySample[]>([]);
+  const [chartMode, setChartMode] = useState<"six-hours" | "session">("six-hours");
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
@@ -62,13 +64,28 @@ function NetworkConnections() {
     }));
   }, [live.updatedAt, live.error, summary?.sampledAt, reading?.connections, reading?.reportingNodes]);
   const measured = (value: number | null | undefined) => value == null ? "—" : fmtInt(value);
-  const first = history[0], last = history.at(-1);
-  const low = history.length ? Math.min(...history.map(sample => sample.connections)) : 0;
-  const high = history.length ? Math.max(...history.map(sample => sample.connections)) : 0;
+  const range = peerRangeHistory(rangeLive.data);
+  const trend: PeerRangePoint[] = chartMode === "six-hours" ? range ?? [] : history.map(sample => ({
+    at: sample.at, connections: sample.connections, reportingNodes: sample.reportingNodes,
+  }));
+  const valid = trend.filter((point): point is PeerRangePoint & { connections: number; reportingNodes: number } =>
+    point.connections !== null && point.reportingNodes !== null);
+  const first = trend[0], last = trend.at(-1);
+  const low = valid.length ? Math.min(...valid.map(sample => sample.connections)) : 0;
+  const high = valid.length ? Math.max(...valid.map(sample => sample.connections)) : 0;
   const span = Math.max(1, high - low);
   const duration = first && last ? Math.max(1, last.at - first.at) : 1;
-  const points = history.map(sample => `${20 + (sample.at - first.at) / duration * 560},${high === low ? 80 : 140 - (sample.connections - low) / span * 120}`).join(" ");
-  const change = first && last ? last.connections - first.connections : 0;
+  const x = (sample: PeerRangePoint) => 20 + (sample.at - first.at) / duration * 560;
+  const y = (connections: number) => high === low ? 80 : 140 - (connections - low) / span * 120;
+  const segments: (PeerRangePoint & { connections: number; reportingNodes: number })[][] = [];
+  for (const point of trend) {
+    if (point.connections === null || point.reportingNodes === null) continue;
+    const previous = segments.at(-1)?.at(-1);
+    const prior = trend[trend.indexOf(point) - 1];
+    if (!previous || prior !== previous || previous.reportingNodes !== point.reportingNodes) segments.push([]);
+    segments.at(-1)!.push(point as PeerRangePoint & { connections: number; reportingNodes: number });
+  }
+  const sessionChange = history.length > 1 ? history.at(-1)!.connections - history[0].connections : 0;
   return <section className="card" aria-labelledby="network-connections-heading">
     <div className="section-heading"><div><span className="eyebrow">PROMETHEUS / GENESIS-4 NODES</span><h2 id="network-connections-heading">Network connections</h2><p>Fresh samples from monitored chain nodes, separate from the explorer’s RPC observer pool.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
     <div className="edge-counter-grid" aria-live="polite">
@@ -77,14 +94,18 @@ function NetworkConnections() {
       <div className="card"><span className="eyebrow">CONNECTIONS PER NODE</span><strong>{reading?.minPerNode == null || reading.maxPerNode == null ? "—" : `${measured(reading.minPerNode)}–${measured(reading.maxPerNode)}`}</strong><small>Fewest to most · median {reading?.medianPerNode == null ? "—" : reading.medianPerNode.toLocaleString(undefined, { maximumFractionDigits: 1 })}</small></div>
       <div className="card"><span className="eyebrow">SAMPLE STATUS</span><strong>{reading ? "Live" : "Waiting"}</strong><small>{live.error ?? (reading ? "Refreshes every 30 seconds" : "No fresh network reading")}</small></div>
     </div>
-    <div className="peer-history-heading"><h3>Connection trend</h3><span>{history.length} session samples · {last ? `${change >= 0 ? "+" : ""}${fmtInt(change)} since first sample` : "waiting"}</span></div>
-    {history.length < 2 ? <div className="telemetry-empty">The session chart starts after two fresh readings with the same reporter count.</div> : <>
-      <div className="peer-history-chart" role="img" aria-label={`Reported connections ranged from ${low} to ${high} across ${history.length} session samples from ${history[0].reportingNodes} nodes.`}>
-        <svg viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"><path d="M20 140H580" className="peer-history-baseline" /><polyline points={points} /></svg>
+    <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode === "six-hours" ? `${valid.length} / ${trend.length || 73} five-minute samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
+    <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period"><button type="button" className={chartMode === "six-hours" ? "active" : ""} aria-pressed={chartMode === "six-hours"} onClick={() => setChartMode("six-hours")}>Last 6 hours</button><button type="button" className={chartMode === "session" ? "active" : ""} aria-pressed={chartMode === "session"} onClick={() => setChartMode("session")}>This session</button></div>
+    {valid.length < 2 ? <div className="telemetry-empty">{chartMode === "six-hours" ? rangeLive.error ?? "Waiting for historical samples from Prometheus." : "The session chart starts after two fresh readings with the same reporter count."}</div> : <>
+      <div className="peer-history-chart" role="img" aria-label={`Reported connections ranged from ${low} to ${high} across ${valid.length} measured points. Gaps or changes in reporting-node count interrupt the line.`}>
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"><path d="M20 140H580" className="peer-history-baseline" />{segments.map((segment, index) => segment.length > 1
+          ? <polyline key={index} points={segment.map(point => `${x(point)},${y(point.connections)}`).join(" ")} />
+          : <circle key={index} cx={x(segment[0])} cy={y(segment[0].connections)} r="3" />)}</svg>
       </div>
       <div className="peer-history-axis"><span>{new Date(first.at).toLocaleTimeString()}</span><span>{fmtInt(low)}–{fmtInt(high)} connections</span><span>{new Date(last?.at ?? first.at).toLocaleTimeString()}</span></div>
+      <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Sampled at</th><th>Connections</th><th>Reporting nodes</th></tr></thead><tbody>{[...trend].reverse().map(point => <tr key={point.at}><td>{new Date(point.at).toLocaleString()}</td><td>{measured(point.connections)}</td><td>{measured(point.reportingNodes)}</td></tr>)}</tbody></table></div></details>
     </>}
-    <p className="lookup-hint">This chart contains only samples observed while this tab is open. Its vertical scale follows the observed range. It restarts if the reporting-node count changes or a reading gap exceeds 75 seconds; it is not a Prometheus historical series.</p>
+    <p className="lookup-hint">The six-hour view uses fixed five-minute Prometheus samples. Missing readings and changes in reporter coverage break the line. The session view starts when this tab opens and restarts after a 75-second gap or coverage change. Both charts scale vertically to their observed range.</p>
     <p className="lookup-hint">A peer may connect to several monitored nodes, so these are connection reports, not unique network peers. “Devnet” is a transport name, not the chain stage. Prometheus coverage and RPC observer health measure different node sets.</p>
   </section>;
 }

@@ -208,6 +208,8 @@ function notFound(detail) {
         'GET /api/v1/outpoint/<txid-hex>/<vout>',
         'GET /api/v1/mempool',
         'GET /api/v1/edge',
+        'GET /api/v1/observability',
+        'GET /api/v1/observability/peer-history',
       ],
     },
   };

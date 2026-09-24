@@ -110,6 +110,33 @@ export function appendPeerHistory(history: PeerHistorySample[], sample: PeerHist
   return [...history, sample].slice(-120);
 }
 
+export interface PeerRangePoint { at: number; connections: number | null; reportingNodes: number | null }
+
+/** Keep missing five-minute buckets missing; never turn them into zero peers. */
+export function peerRangeHistory(value: unknown): PeerRangePoint[] | null {
+  if (!value || typeof value !== "object") return null;
+  const data = (value as { data?: unknown }).data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const source = data as { points?: unknown; start_at?: unknown; end_at?: unknown; step_seconds?: unknown };
+  if (source.step_seconds !== 300 || !Number.isSafeInteger(source.start_at) ||
+      !Number.isSafeInteger(source.end_at) || !Array.isArray(source.points) ||
+      source.points.length !== 73 || (source.end_at as number) - (source.start_at as number) !== 72 * 300_000) return null;
+  const points: PeerRangePoint[] = [];
+  for (const [index, item] of source.points.entries()) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const point = item as { at?: unknown; connections?: unknown; reporting_nodes?: unknown };
+    if (point.at !== (source.start_at as number) + index * 300_000) return null;
+    const connections = countMetric(point.connections);
+    const reportingNodes = countMetric(point.reporting_nodes);
+    if ((point.connections !== null || point.reporting_nodes !== null) &&
+        (connections === null || reportingNodes === null || reportingNodes < 1)) return null;
+    points.push({ at: point.at as number,
+      connections: point.connections === null ? null : connections,
+      reportingNodes: point.reporting_nodes === null ? null : reportingNodes });
+  }
+  return points;
+}
+
 /** The homepage must advertise infrastructure telemetry only after at least
  * one real metric family is present. Connectivity alone is not data. */
 export function observabilityPromotion(value: unknown): ObservabilityPromotion | null {

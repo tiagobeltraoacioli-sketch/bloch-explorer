@@ -7,6 +7,8 @@
 
 const QUERY_TIMEOUT_MS = 6_000;
 const PEER_MAX_SAMPLE_AGE_SECONDS = 90;
+const PEER_HISTORY_STEP_SECONDS = 300;
+const PEER_HISTORY_STEPS = 72;
 // The node updates heartbeat_unix and peer_count in the same metrics pass.
 // Prometheus timestamp() on an instant expression reflects evaluation time,
 // so use the node's heartbeat VALUE to reject old scraped observations.
@@ -130,6 +132,74 @@ async function queryPrometheus(base, auth, query, fetchImpl) {
     return finiteSample(await response.json());
   } finally {
     clearTimeout(timer);
+  }
+}
+
+function rangeSamples(body, start, end) {
+  if (body?.status !== 'success' || body?.data?.resultType !== 'matrix') throw new Error('prometheus_invalid_matrix');
+  const result = body.data.result;
+  if (!Array.isArray(result) || result.length > 1) throw new Error('prometheus_invalid_matrix');
+  const samples = new Map();
+  for (const pair of result[0]?.values ?? []) {
+    const seconds = pair?.[0];
+    const value = typeof pair?.[1] === 'string' ? Number(pair[1]) : NaN;
+    if (!Number.isSafeInteger(seconds) || seconds < start || seconds > end ||
+        (seconds - start) % PEER_HISTORY_STEP_SECONDS !== 0 ||
+        !Number.isSafeInteger(value) || value < 0) continue;
+    samples.set(seconds, value);
+  }
+  return samples;
+}
+
+async function queryPeerRange(base, auth, query, start, end, fetchImpl) {
+  const url = new URL(base);
+  url.pathname = url.pathname.replace(/\/query$/, '/query_range');
+  url.searchParams.set('query', query);
+  url.searchParams.set('start', String(start));
+  url.searchParams.set('end', String(end));
+  url.searchParams.set('step', String(PEER_HISTORY_STEP_SECONDS));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), QUERY_TIMEOUT_MS);
+  try {
+    const response = await fetchImpl(url.toString(), {
+      method: 'GET', headers: { accept: 'application/json', authorization: auth }, signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`prometheus_http_${response.status}`);
+    return rangeSamples(await response.json(), start, end);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** A fixed, bounded public history with no PromQL or infrastructure labels. */
+export async function handlePeerHistory(env, runtime = {}) {
+  const sampledAt = (runtime.now ?? Date.now)();
+  const base = endpoint(env?.GRAFANA_PROM_URL);
+  const user = typeof env?.GRAFANA_PROM_USER === 'string' ? env.GRAFANA_PROM_USER.trim() : '';
+  const token = typeof env?.GRAFANA_PROM_TOKEN === 'string' ? env.GRAFANA_PROM_TOKEN : '';
+  if (!base || !user || !token) return { status: 200, body: { data: null, state: 'unconfigured', sampled_at: sampledAt } };
+  const end = Math.floor(sampledAt / (PEER_HISTORY_STEP_SECONDS * 1000)) * PEER_HISTORY_STEP_SECONDS;
+  const start = end - PEER_HISTORY_STEPS * PEER_HISTORY_STEP_SECONDS;
+  const auth = basicAuth(user, token);
+  try {
+    const [connections, reporters] = await Promise.all([
+      queryPeerRange(base, auth, QUERIES.bloch_peers, start, end, runtime.fetchImpl ?? fetch),
+      queryPeerRange(base, auth, QUERIES.bloch_peer_reporting_nodes, start, end, runtime.fetchImpl ?? fetch),
+    ]);
+    const points = Array.from({ length: PEER_HISTORY_STEPS + 1 }, (_, index) => {
+      const seconds = start + index * PEER_HISTORY_STEP_SECONDS;
+      const count = connections.get(seconds), nodes = reporters.get(seconds);
+      return { at: seconds * 1000,
+        connections: count !== undefined && nodes !== undefined && nodes > 0 ? count : null,
+        reporting_nodes: count !== undefined && nodes !== undefined && nodes > 0 ? nodes : null };
+    });
+    const validPoints = points.filter(point => point.connections !== null).length;
+    return { status: 200, body: { data: { points, step_seconds: PEER_HISTORY_STEP_SECONDS,
+      start_at: start * 1000, end_at: end * 1000, valid_points: validPoints },
+      state: validPoints ? 'live' : 'awaiting_telemetry', sampled_at: sampledAt } };
+  } catch {
+    return { status: 503, body: { data: null, state: 'unavailable', sampled_at: sampledAt,
+      error: { reason: 'prometheus_history_unavailable' } } };
   }
 }
 

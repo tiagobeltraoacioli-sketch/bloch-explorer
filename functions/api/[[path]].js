@@ -12,7 +12,7 @@
 
 import { handleApi } from '../../edge/api.js';
 import { buildOpts, runtimeFor } from '../../edge/core.js';
-import { handleObservability } from '../../edge/observability.js';
+import { handleObservability, handlePeerHistory } from '../../edge/observability.js';
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -35,7 +35,9 @@ export async function onRequestGet(context) {
   try {
     out = url.pathname === '/api/v1/observability'
       ? await handleObservability(env, opts)
-      : await handleApi(url.pathname, url.searchParams, opts);
+      : url.pathname === '/api/v1/observability/peer-history'
+        ? await handlePeerHistory(env, opts)
+        : await handleApi(url.pathname, url.searchParams, opts);
   } catch (e) {
     // An unhandled fault at the edge is an edge fault. Say so, rather than
     // letting a 500 read as a chain problem — which is exactly the confusion
@@ -53,7 +55,8 @@ export async function onRequestGet(context) {
   }
 
   const level = (out.body && out.body.corroboration && out.body.corroboration.level) || 'none';
-  const infrastructureRead = url.pathname === '/api/v1/observability';
+  const infrastructureRead = url.pathname === '/api/v1/observability' ||
+    url.pathname === '/api/v1/observability/peer-history';
   const headers = {
     'content-type': 'application/json',
     // Never at a shared cache. The corroboration and the cache age in the body

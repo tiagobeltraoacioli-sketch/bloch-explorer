@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleObservability, observabilityQueries } from '../observability.js';
-import { appendPeerHistory, freshPeerReading, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { handleObservability, handlePeerHistory, observabilityQueries } from '../observability.js';
+import { appendPeerHistory, freshPeerReading, peerRangeHistory, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -253,4 +253,61 @@ test('peer session history rejects repeats and separates coverage changes or sam
     { ...first, at: first.at + i * 30_000, connections: 5500 + i });
   assert.equal(history.length, 120);
   assert.equal(history[0].connections, 5521);
+});
+
+test('fixed six-hour peer history preserves gaps and hides Prometheus labels', async () => {
+  const now = 1720000000000;
+  const end = Math.floor(now / 300_000) * 300;
+  const start = end - 72 * 300;
+  const seen = [];
+  const out = await handlePeerHistory(env, {
+    now: () => now,
+    fetchImpl: async (input, init) => {
+      const url = new URL(input);
+      seen.push({ url, auth: init.headers.authorization });
+      const query = url.searchParams.get('query');
+      const values = query === observabilityQueries.bloch_peers
+        ? [[start, '0'], [start + 300, '5300'], [end, '5500']]
+        : query === observabilityQueries.bloch_peer_reporting_nodes
+          ? [[start, '44'], [end, '44']] : [];
+      return Response.json({ status: 'success', data: { resultType: 'matrix',
+        result: [{ metric: { private_host: 'must-not-leak' }, values }] } });
+    },
+  });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.state, 'live');
+  assert.equal(out.body.data.points.length, 73);
+  assert.equal(out.body.data.valid_points, 2);
+  assert.deepEqual(out.body.data.points[0], { at: start * 1000, connections: 0, reporting_nodes: 44 });
+  assert.deepEqual(out.body.data.points[1], { at: (start + 300) * 1000, connections: null, reporting_nodes: null });
+  assert.deepEqual(out.body.data.points[72], { at: end * 1000, connections: 5500, reporting_nodes: 44 });
+  assert.equal(peerRangeHistory(out.body)?.length, 73);
+  assert.equal(seen.length, 2);
+  assert.ok(seen.every(({ url, auth }) => url.pathname === '/api/prom/api/v1/query_range' &&
+    url.searchParams.get('start') === String(start) && url.searchParams.get('end') === String(end) &&
+    url.searchParams.get('step') === '300' && auth === 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu'));
+  assert.ok(!JSON.stringify(out.body).includes('private_host'));
+  assert.ok(!JSON.stringify(out.body).includes('must-not-leak'));
+  assert.ok(!JSON.stringify(out.body).includes('secret-token'));
+  assert.ok(!JSON.stringify(out.body).includes('bloch_pos_peer_count'));
+});
+
+test('peer history rejects invalid matrix responses and malformed browser data', async () => {
+  const out = await handlePeerHistory(env, {
+    now: () => 1720000000000,
+    fetchImpl: async () => Response.json({ status: 'success', data: { resultType: 'vector', result: [] } }),
+  });
+  assert.equal(out.status, 503);
+  assert.equal(out.body.error.reason, 'prometheus_history_unavailable');
+  const unconfigured = await handlePeerHistory({ ...env, GRAFANA_PROM_TOKEN: '' }, {
+    fetchImpl: async () => { throw new Error('must not fetch'); },
+  });
+  assert.equal(unconfigured.body.state, 'unconfigured');
+  const start = 1720000000000;
+  const points = Array.from({ length: 73 }, (_, index) =>
+    ({ at: start + index * 300_000, connections: 5, reporting_nodes: 2 }));
+  const good = { data: { start_at: start, end_at: start + 72 * 300_000, step_seconds: 300, points } };
+  assert.equal(peerRangeHistory(good)?.length, 73);
+  assert.equal(peerRangeHistory({ data: { ...good.data, points: points.slice(1) } }), null);
+  assert.equal(peerRangeHistory({ data: { ...good.data, points: [{ ...points[0], reporting_nodes: 0 }, ...points.slice(1)] } }), null);
 });
