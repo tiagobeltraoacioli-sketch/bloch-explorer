@@ -34,6 +34,7 @@ export function GraphusPanel() {
       </div>
       <div className="graphus-actions">
         <Link className="btn" to="/graphus/constellation">Open Bloch constellation →</Link>
+        <Link className="btn" to="/system-map">Open System Map →</Link>
         {record && <Link to={`/tx/${record.txid}`}>Inspect transaction receipt ↗</Link>}
       </div>
       <small>{error ?? (record ? `Latest indexed transaction ${record.txid.slice(0, 12)}… · slot ${fmtInt(record.slot)} · snapshot ${fmtInt(asOfSlot ?? 0)}.` : "Waiting for an indexed Bloch transaction.")} The diagram shows record types; an input outpoint alone does not identify a sender or owner.</small>

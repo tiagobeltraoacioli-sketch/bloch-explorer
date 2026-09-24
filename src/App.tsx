@@ -30,6 +30,7 @@ const TransactionsPage = lazy(() => import("./pages/Transactions").then((m) => (
 const MempoolPage = lazy(() => import("./pages/Mempool").then((m) => ({ default: m.MempoolPage })));
 const NetworkPage = lazy(() => import("./pages/Network").then((m) => ({ default: m.NetworkPage })));
 const ObservabilityPage = lazy(() => import("./pages/Observability").then((m) => ({ default: m.ObservabilityPage })));
+const SystemMapPage = lazy(() => import("./pages/SystemMap").then(m => ({default:m.SystemMapPage})));
 const GraphusConstellationPage = lazy(() => import("./pages/GraphusConstellation").then((m) => ({ default: m.GraphusConstellationPage })));
 const ValidatorGuidePage = lazy(() => import("./pages/ValidatorGuide").then((m) => ({ default: m.ValidatorGuidePage })));
 
@@ -48,6 +49,7 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/mempool": () => import("./pages/Mempool"),
   "/network": () => import("./pages/Network"),
   "/observability": () => import("./pages/Observability"),
+  "/system-map": () => import("./pages/SystemMap"),
   "/graphus/constellation": () => import("./pages/GraphusConstellation"),
   "/fees": () => import("./pages/Fees"),
   "/hash": () => import("./pages/Balance"),
@@ -112,6 +114,7 @@ const ROUTES: NavRoute[] = [
   { pattern: "/mempool", nav: "Mempool", group: "Economy", hint: "pending transactions, bytes and admission", render: () => <MempoolPage /> },
   { pattern: "/network", nav: "Network", group: "Network", hint: "RPC nodes, build identities and API", render: () => <NetworkPage /> },
   { pattern: "/observability", desktop: false, nav: "Observability", group: "Network", hint: "Grafana, Prometheus, hosts and Kubernetes", render: () => <ObservabilityPage /> },
+  { pattern: "/system-map", nav: "System Map", desktop: false, group: "Lookup", hint: "Graphus modules and public evidence APIs", render: () => <SystemMapPage /> },
   { pattern: "/graphus/constellation", desktop: false, nav: "Graphus", group: "Lookup", hint: "Bloch transaction and eUTXO constellation", render: () => <GraphusConstellationPage /> },
   { pattern: "/fees", desktop: false, nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
   // `/hash/<64 hex>` is the canonical name of an eUTXO-set entry, and every

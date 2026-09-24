@@ -30,7 +30,7 @@ export function parseReceiptSample(value: unknown): ReceiptSample | null {
   return { transactions: transactions as GraphusTransaction[], asOfSlot: Number(d.as_of_slot), source: d.source, truncated: !!d.next_cursor };
 }
 
-export interface GraphNode { id: string; label: string; kind: 'transaction' | 'script' | 'outpoint' | 'block' | 'validator'; href: string; detail: string; weight: number }
+export interface GraphNode { id: string; label: string; kind: 'transaction' | 'script' | 'outpoint' | 'block' | 'validator' | 'address'; href: string; detail: string; weight: number }
 export interface GraphEdge { source: string; target: string; kind: string }
 export interface EvidenceGraph { nodes: GraphNode[]; edges: GraphEdge[]; omitted: number }
 const short = (s: string) => `${s.slice(0, 8)}…${s.slice(-4)}`;

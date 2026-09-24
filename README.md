@@ -11,6 +11,12 @@ bundle served in production byte for byte.
 
 ## What it is
 
+- The native **[System Map](https://blochl1.com/system-map)** integrates the Graphus
+  module and public-chain APIs. Browse module dependencies, collect BTC, Ethereum,
+  token and Bloch samples, inspect reference graphs, filter exact records and
+  export full/filtered evidence with source anchors and dataset digests.
+  See [API contracts, source boundaries and verification](docs/system-map-integration.md).
+
 - The **graph intelligence atlas** is the homepage: four interactive relation and
   balance maps, six quantitative panels, source records and CSV/JSON exports.
   It connects Bloch Space telemetry to the canonical Bloch indexer, with evaluated
@@ -54,7 +60,7 @@ bundle served in production byte for byte.
   can also trace created and spent output events for one script hash or carried
   Bloch address through the indexer's bounded history API. The constellation
   does not infer wallet ownership, direct value paths, risk, or AML scores.
-  Graphus's separate public research preview has no live transaction API.
+  The System Map additionally uses Graphus's bounded public transaction APIs.
 - The **network page** pairs fresh Prometheus connection aggregates with the
   separate RPC observer diagnostics. The connection panel expires with its
   oldest peer sample and polls only while the RPC nodes tab is open. Its trend
