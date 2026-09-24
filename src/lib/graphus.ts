@@ -57,6 +57,36 @@ export interface GraphusHistory {
   asOfSlot: number; source: string; verification: string | null;
 }
 
+/** Script references that occur in the same sampled transactions as the focus.
+ * Co-occurrence is evidence of a shared transaction, never proof of ownership
+ * or a payment from one script reference to another. */
+export interface GraphusNeighbor {
+  scriptHash: string; transactions: number; inputSat: string; outputSat: string;
+  inputCount: number; outputCount: number; txids: string[];
+}
+
+export function graphusNeighbors(focus: string, transactions: GraphusTransaction[]): GraphusNeighbor[] {
+  if (!hash(focus)) return [];
+  const neighbors = new Map<string, { txids: Set<string>; inputSat: bigint; outputSat: bigint; inputCount: number; outputCount: number }>();
+  for (const tx of transactions) {
+    if (![...tx.inputs, ...tx.outputs].some(io => io.scriptHash === focus)) continue;
+    for (const [side, entries] of [["input", tx.inputs], ["output", tx.outputs]] as const) {
+      for (const io of entries) {
+        if (io.scriptHash === focus) continue;
+        const node = neighbors.get(io.scriptHash) ?? { txids: new Set<string>(), inputSat: 0n, outputSat: 0n, inputCount: 0, outputCount: 0 };
+        node.txids.add(tx.txid);
+        if (side === "input") { node.inputSat += BigInt(io.valueSat); node.inputCount++; }
+        else { node.outputSat += BigInt(io.valueSat); node.outputCount++; }
+        neighbors.set(io.scriptHash, node);
+      }
+    }
+  }
+  return [...neighbors].map(([scriptHash, node]) => ({ scriptHash, transactions: node.txids.size,
+    inputSat: node.inputSat.toString(), outputSat: node.outputSat.toString(),
+    inputCount: node.inputCount, outputCount: node.outputCount, txids: [...node.txids] }))
+    .sort((a, b) => b.transactions - a.transactions || a.scriptHash.localeCompare(b.scriptHash));
+}
+
 export function graphusHistory(value: unknown, expectedScriptHash: string): GraphusHistory | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const page = value as Record<string, unknown>;

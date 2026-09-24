@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "../lib/router";
 import { IndexedTxAmbiguity, indexedHistory, indexedTransaction, indexedTransactions } from "../lib/indexer";
-import { graphusHistory, graphusPage, graphusTransaction, type GraphusHistory, type GraphusIo, type GraphusTransaction } from "../lib/graphus";
+import { graphusHistory, graphusNeighbors, graphusPage, graphusTransaction, type GraphusHistory, type GraphusIo, type GraphusTransaction } from "../lib/graphus";
 import { classify } from "../lib/scriptHash";
 import { pollWhileVisible } from "../lib/polling";
 import { fmtInt } from "../lib/format";
@@ -16,19 +16,18 @@ const amount = (value: string) => `${BigInt(value).toLocaleString()} sat`;
 function Graph({ tx }: { tx: GraphusTransaction }) {
   const inputs = tx.inputs.slice(0, 4), outputs = tx.outputs.slice(0, 4);
   const y = (index: number, total: number) => 60 + (index + 1) * 260 / (total + 1);
-  return <div className="graphus-map" role="img" aria-label={`Transaction ${tx.txid} consumes ${tx.inputs.length} input outpoints and creates ${tx.outputs.length} outputs. Lines show transaction structure, not address ownership or direct value paths.`}>
+  return <div className="graphus-map" role="group" aria-label={`Transaction ${tx.txid} consumes ${tx.inputs.length} input outpoints and creates ${tx.outputs.length} outputs. Each point opens its outpoint. Lines show transaction structure, not address ownership or direct value paths.`}>
     <div className="graphus-map-head"><span>INPUT OUTPOINTS</span><span>TRANSACTION / S{fmtInt(tx.slot)}</span><span>CREATED OUTPUTS</span></div>
-    <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
       <g className="graphus-map-links">
         {inputs.map((_, index) => <path key={`i-${index}`} d={`M145 ${y(index, inputs.length)}L400 190`} />)}
         {outputs.map((_, index) => <path key={`o-${index}`} d={`M400 190L655 ${y(index, outputs.length)}`} />)}
       </g>
       <g className="graphus-map-nodes">
-        {inputs.map((io, index) => <g key={`i-${index}`}><circle cx="145" cy={y(index, inputs.length)} r="20" /><text x="145" y={y(index, inputs.length) + 5} textAnchor="middle">I{index + 1}</text></g>)}
-        {outputs.map((io, index) => <g key={`o-${index}`}><circle cx="655" cy={y(index, outputs.length)} r="20" /><text x="655" y={y(index, outputs.length) + 5} textAnchor="middle">O{index + 1}</text></g>)}
+        {inputs.map((io, index) => io.txid && <a key={`i-${index}`} href={`/outpoint/${io.txid}/${io.vout}`} aria-label={`Open input ${index + 1} outpoint ${io.txid}:${io.vout}`}><circle cx="145" cy={y(index, inputs.length)} r="20" /><text x="145" y={y(index, inputs.length) + 5} textAnchor="middle">I{index + 1}</text></a>)}
+        {outputs.map((io, index) => <a key={`o-${index}`} href={`/outpoint/${tx.txid}/${io.vout}`} aria-label={`Open output ${io.vout} outpoint ${tx.txid}:${io.vout}`}><circle cx="655" cy={y(index, outputs.length)} r="20" /><text x="655" y={y(index, outputs.length) + 5} textAnchor="middle">O{index + 1}</text></a>)}
       </g>
-      <circle className="graphus-map-core" cx="400" cy="190" r="43" />
-      <text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">TX</text>
+      <a href={`/tx/${tx.txid}`} aria-label={`Open transaction ${tx.txid}`}><circle className="graphus-map-core" cx="400" cy="190" r="43" /><text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">TX</text></a>
       <text className="graphus-map-caption" x="400" y="265" textAnchor="middle">{short(tx.txid)}</text>
       {tx.inputs.length > 4 && <text className="graphus-map-extra" x="145" y="360" textAnchor="middle">+{tx.inputs.length - 4} more inputs</text>}
       {tx.outputs.length > 4 && <text className="graphus-map-extra" x="655" y="360" textAnchor="middle">+{tx.outputs.length - 4} more outputs</text>}
@@ -74,6 +73,8 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
   const [history, setHistory] = useState<GraphusHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sampled, setSampled] = useState<GraphusTransaction[]>([]);
+  const [sampleBusy, setSampleBusy] = useState(false);
   const generation = useRef(0);
   const load = async (input: string) => {
     const reference = classify(input);
@@ -86,13 +87,33 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
     try {
       const result = graphusHistory(await indexedHistory(reference.scriptHash, null, 16), reference.scriptHash);
       if (!result) throw new Error("The historical index returned an invalid script history.");
-      if (current === generation.current) { setHistory(result); setQuery(input); }
+      if (current === generation.current) { setHistory(result); setQuery(input); setSampled([]); setSampleBusy(true); }
+      const seen = new Set<string>();
+      const sampleEvents = result.events.filter(event => {
+        const id = event.transactionId ?? (event.kind === "created" ? event.txid : null);
+        const key = `${id}:${event.slot}`;
+        if (!id || seen.has(key)) return false;
+        seen.add(key); return true;
+      }).slice(0, 4);
+      const receipts = await Promise.allSettled(sampleEvents.map(async event => {
+        const id = event.transactionId ?? event.txid;
+        try { return graphusTransaction(await indexedTransaction(id)); }
+        catch (cause) {
+          if (cause instanceof IndexedTxAmbiguity) return cause.matches.map(graphusTransaction).find(record => record?.slot === event.slot && record.height === event.height) ?? null;
+          throw cause;
+        }
+      }));
+      if (current === generation.current) {
+        setSampled(receipts.flatMap((receipt, index) => receipt.status === "fulfilled" && receipt.value?.slot === sampleEvents[index].slot && receipt.value.height === sampleEvents[index].height ? [receipt.value] : []));
+        setSampleBusy(false);
+      }
     } catch (cause) {
-      if (current === generation.current) setError(cause instanceof Error ? cause.message : "Script history is unavailable.");
+      if (current === generation.current) { setError(cause instanceof Error ? cause.message : "Script history is unavailable."); setSampleBusy(false); }
     } finally { if (current === generation.current) setBusy(false); }
   };
   useEffect(() => { if (initialScript) void load(initialScript); }, [initialScript]);
   const events = history?.events.slice(0, 12) ?? [];
+  const neighbors = history ? graphusNeighbors(history.scriptHash, sampled).slice(0, 8) : [];
   return <section className="graphus-script-section" id="graphus-script" aria-labelledby="graphus-script-title">
     <div className="graphus-recent-head"><div><span className="eyebrow">SCRIPT REFERENCE / EVENT FAN</span><h2 id="graphus-script-title">Constellation of recorded events.</h2></div><span>Created and spent eUTXOs · one script hash</span></div>
     <p className="lookup-hint">A script hash groups indexed output records. It does not identify a person, a wallet owner, or an input-to-output value path.</p>
@@ -103,14 +124,24 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
     {error && <p className="data-warning" role="status">{error}{history ? " Showing the previous script snapshot." : ""}</p>}
     {history && <>
       <div className="graphus-script-summary"><strong>{fmtInt(history.total)} recorded events</strong><span>{fmtInt(history.events.length)} shown · indexed as of slot {fmtInt(history.asOfSlot)}</span><code>{short(history.scriptHash)}</code></div>
-      <div className="graphus-script-map" role="img" aria-label={`Script reference ${history.scriptHash} with ${history.total} indexed creation or spend events. The diagram shows up to twelve returned events without asserting ownership.`}>
-        <svg viewBox="0 0 800 360" aria-hidden="true" focusable="false">
+      <div className="graphus-script-map" role="group" aria-label={`Script reference ${history.scriptHash} with ${history.total} indexed creation or spend events. Each point opens its outpoint. The diagram shows up to twelve returned events without asserting ownership.`}>
+        <svg viewBox="0 0 800 360">
           <g className="graphus-map-links">{events.map((_, index) => { const angle = index * Math.PI * 2 / Math.max(events.length, 1) - Math.PI / 2; return <path key={index} d={`M400 180L${400 + Math.cos(angle) * 290} ${180 + Math.sin(angle) * 125}`} />; })}</g>
-          <g className="graphus-map-nodes">{events.map((event, index) => { const angle = index * Math.PI * 2 / Math.max(events.length, 1) - Math.PI / 2; const x = 400 + Math.cos(angle) * 290, y = 180 + Math.sin(angle) * 125; return <g key={`${event.kind}-${event.txid}-${event.vout}-${index}`}><circle cx={x} cy={y} r="18" /><text x={x} y={y + 5} textAnchor="middle">{event.kind === "created" ? "C" : "S"}</text></g>; })}</g>
-          <circle className="graphus-map-core" cx="400" cy="180" r="37" /><text className="graphus-map-core-label" x="400" y="186" textAnchor="middle">SH</text>
+          <g className="graphus-map-nodes">{events.map((event, index) => { const angle = index * Math.PI * 2 / Math.max(events.length, 1) - Math.PI / 2; const x = 400 + Math.cos(angle) * 290, y = 180 + Math.sin(angle) * 125; return <a key={`${event.kind}-${event.txid}-${event.vout}-${index}`} href={`/outpoint/${event.txid}/${event.vout}`} aria-label={`Open ${event.kind} outpoint ${event.txid}:${event.vout}`}><circle cx={x} cy={y} r="18" /><text x={x} y={y + 5} textAnchor="middle">{event.kind === "created" ? "C" : "S"}</text></a>; })}</g>
+          <a href={`/hash/${history.scriptHash}`} aria-label={`Open script reference ${history.scriptHash}`}><circle className="graphus-map-core" cx="400" cy="180" r="37" /><text className="graphus-map-core-label" x="400" y="186" textAnchor="middle">SH</text></a>
         </svg>
         <p>C = output created · S = output spent. Spatial position has no geographic or ownership meaning.</p>
       </div>
+      <div className="graphus-recent-head"><div><span className="eyebrow">WALLET REFERENCE MAP / SAMPLED TRANSACTIONS</span><h2>Scripts seen together on chain.</h2></div><span>{sampleBusy ? "Loading receipts…" : `${fmtInt(sampled.length)} transactions inspected · ${fmtInt(neighbors.length)} references shown`}</span></div>
+      <p className="lookup-hint">Each point is a clickable script reference found in the same sampled transaction as the selected reference. Lines do not identify wallet owners or prove a direct transfer. Up to four receipts and eight neighboring references are shown.</p>
+      <div className="graphus-wallet-map">
+        {neighbors.length ? <svg viewBox="0 0 800 380" role="group" aria-label={`${neighbors.length} script references co-occur with ${history.scriptHash} in ${sampled.length} sampled transactions. Every point links to its Bloch record.`}>
+          <g className="graphus-map-links">{neighbors.map((node, index) => { const angle = index * Math.PI * 2 / neighbors.length - Math.PI / 2; return <path key={node.scriptHash} d={`M400 190L${400 + Math.cos(angle) * 285} ${190 + Math.sin(angle) * 135}`} />; })}</g>
+          <g className="graphus-map-nodes">{neighbors.map((node, index) => { const angle = index * Math.PI * 2 / neighbors.length - Math.PI / 2; const x = 400 + Math.cos(angle) * 285, y = 190 + Math.sin(angle) * 135; return <a key={node.scriptHash} href={`/hash/${node.scriptHash}`} aria-label={`Open script reference ${node.scriptHash}, seen in ${node.transactions} sampled transactions`}><circle cx={x} cy={y} r={19 + Math.min(node.transactions, 4) * 3} /><text x={x} y={y + 5} textAnchor="middle">{index + 1}</text></a>; })}</g>
+          <a href={`/hash/${history.scriptHash}`} aria-label={`Open selected script reference ${history.scriptHash}`}><circle className="graphus-map-core" cx="400" cy="190" r="43" /><text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">SH</text></a>
+        </svg> : <p>{sampleBusy ? "Reading a bounded transaction sample…" : "No other script references found in the available transaction sample."}</p>}
+      </div>
+      {neighbors.length > 0 && <div className="graphus-neighbor-list" role="list" aria-label="Script references seen in sampled transactions">{neighbors.map((node, index) => <div role="listitem" key={node.scriptHash}><strong>{index + 1}</strong><Link to={`/hash/${node.scriptHash}`} className="mono-link">{short(node.scriptHash)} ↗</Link><span>{node.transactions} shared {node.transactions === 1 ? "transaction" : "transactions"} · {node.inputCount} inputs / {node.outputCount} outputs</span><small>Inputs {amount(node.inputSat)} · outputs {amount(node.outputSat)}</small><Link to={`/tx/${node.txids[0]}`}>Inspect example transaction ↗</Link></div>)}</div>}
       <div className="graphus-event-list" role="list" aria-label="Indexed events for this script hash">{history.events.map((event, index) => <div role="listitem" key={`${event.kind}-${event.txid}-${event.vout}-${index}`}><strong>{event.kind === "created" ? "CREATED" : "SPENT"}</strong><span>{amount(event.valueSat)} · H{fmtInt(event.height)} / S{fmtInt(event.slot)}</span><Link to={`/outpoint/${event.txid}/${event.vout}`}>{short(event.txid)}:{event.vout} ↗</Link>{event.transactionId && event.transactionId !== event.txid && <Link to={`/tx/${event.transactionId}`}>Spending transaction ↗</Link>}</div>)}</div>
       {history.total > history.events.length && <p className="lookup-hint">Showing the first {fmtInt(history.events.length)} events from a snapshot with {fmtInt(history.total)}. The complete history remains available through the indexer API.</p>}
       <p className="lookup-hint">Source: {history.source}{history.verification ? ` · ${history.verification}` : ""}. No private Graphus research records or scores are served here.</p>
