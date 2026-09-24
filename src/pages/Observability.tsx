@@ -17,7 +17,7 @@ interface ObservabilityData {
   prometheus: { targets_total: Metric; targets_healthy: Metric; targets_unhealthy: Metric };
   bloch: {
     nodes: Metric; head_slot: Metric; finalized_epoch: Metric; worst_lag_slots: Metric;
-    peers: Metric; peer_reporting_nodes: Metric; peer_sampled_at: Metric;
+    peers: Metric; peer_reporting_nodes: Metric; peer_isolated_nodes: Metric; peer_sampled_at: Metric;
     peer_p2p_connections: Metric; peer_devnet_connections: Metric;
     peer_min_per_node: Metric; peer_median_per_node: Metric; peer_max_per_node: Metric;
     mempool_transactions: Metric; blocks_per_minute: Metric;
@@ -149,6 +149,7 @@ export function ObservabilityPage() {
           <div><span>Finalized epoch</span><strong>{integer(bloch?.finalized_epoch ?? null)}</strong><small>highest exported finality</small></div>
           <div><span>Worst lag</span><strong>{integer(bloch?.worst_lag_slots ?? null)}</strong><small>slots behind</small></div>
           <div><span>Peer connections</span><strong>{integer(peersFresh ? bloch?.peers ?? null : null)}</strong><small>{peersFresh && bloch?.peers !== null && bloch?.peers !== undefined ? `${integer(bloch.peer_reporting_nodes)} reporting nodes · samples ≤90s` : "awaiting fresh samples"}</small></div>
+          <div><span>Zero-connection nodes</span><strong>{integer(peersFresh ? bloch?.peer_isolated_nodes ?? null : null)}</strong><small>monitored nodes with no live peer sockets</small></div>
           <div><span>P2P connections</span><strong>{integer(peersFresh ? bloch?.peer_p2p_connections ?? null : null)}</strong><small>complete transport coverage required</small></div>
           <div><span>Devnet connections</span><strong>{integer(peersFresh ? bloch?.peer_devnet_connections ?? null : null)}</strong><small>complete transport coverage required</small></div>
           <div><span>Fewest connections</span><strong>{integer(peersFresh ? bloch?.peer_min_per_node ?? null : null)}</strong><small>one reporting node</small></div>

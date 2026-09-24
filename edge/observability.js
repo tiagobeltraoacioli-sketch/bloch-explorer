@@ -35,6 +35,7 @@ const QUERIES = Object.freeze({
   // observers may be counted twice; this is not a unique-network-peer count.
   bloch_peers: `sum(${FRESH_PEER_SERIES})`,
   bloch_peer_reporting_nodes: `count(${FRESH_PEER_SERIES})`,
+  bloch_peer_isolated_nodes: `sum((${FRESH_PEER_SERIES}) == bool 0)`,
   bloch_peer_oldest_heartbeat_unix: `min(bloch_pos_heartbeat_unix and on(instance) (${FRESH_PEER_SERIES}))`,
   bloch_peer_min_per_node: `min(${FRESH_PEER_SERIES})`,
   bloch_peer_median_per_node: `quantile(0.5, ${FRESH_PEER_SERIES})`,
@@ -74,7 +75,7 @@ const GROUPS = Object.freeze({
   prometheus: ['targets_total', 'targets_healthy', 'targets_unhealthy'],
   bloch: [
     'bloch_nodes', 'bloch_head_slot', 'bloch_finalized_epoch', 'bloch_worst_lag_slots',
-    'bloch_peers', 'bloch_peer_reporting_nodes', 'bloch_peer_min_per_node',
+    'bloch_peers', 'bloch_peer_reporting_nodes', 'bloch_peer_isolated_nodes', 'bloch_peer_min_per_node',
     'bloch_peer_median_per_node', 'bloch_peer_max_per_node', 'bloch_peer_p2p_connections',
     'bloch_peer_devnet_connections', 'bloch_mempool_transactions', 'bloch_mempool_sampled_nodes',
     'bloch_mempool_min_transactions', 'bloch_mempool_max_transactions', 'bloch_blocks_per_minute',
@@ -270,6 +271,8 @@ export async function handleObservability(env, runtime = {}) {
     values.bloch_peer_min_per_node <= values.bloch_peer_median_per_node &&
     values.bloch_peer_median_per_node <= values.bloch_peer_max_per_node &&
     values.bloch_peer_max_per_node <= values.bloch_peers;
+  const isolatedNodesComplete = peersFresh && Number.isSafeInteger(values.bloch_peer_isolated_nodes) &&
+    values.bloch_peer_isolated_nodes >= 0 && values.bloch_peer_isolated_nodes <= values.bloch_peer_reporting_nodes;
   const failures = settled.filter((result) => result.status === 'rejected').length;
   const successes = settled.length - failures;
   const anyTelemetry = Object.values(values).some((value) => value !== null);
@@ -300,6 +303,7 @@ export async function handleObservability(env, runtime = {}) {
           worst_lag_slots: values.bloch_worst_lag_slots,
           peers: values.bloch_peers,
           peer_reporting_nodes: values.bloch_peer_reporting_nodes,
+          peer_isolated_nodes: isolatedNodesComplete ? values.bloch_peer_isolated_nodes : null,
           peer_sampled_at: peersFresh ? peerSampleMs : null,
           peer_min_per_node: peerRangeComplete ? values.bloch_peer_min_per_node : null,
           peer_median_per_node: peerRangeComplete ? values.bloch_peer_median_per_node : null,

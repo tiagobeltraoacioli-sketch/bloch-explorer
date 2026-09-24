@@ -12,6 +12,7 @@ export interface ObservabilitySummary extends ObservabilityPromotion {
   blochNodes: number | null;
   peerConnections: number | null;
   peerReportingNodes: number | null;
+  peerIsolatedNodes: number | null;
   peerSampledAt: number | null;
   peerP2pConnections: number | null;
   peerDevnetConnections: number | null;
@@ -58,6 +59,7 @@ export function observabilitySummary(value: unknown): ObservabilitySummary | nul
     blochNodes: metric("bloch", "nodes"),
     peerConnections: countMetric(metric("bloch", "peers")),
     peerReportingNodes: countMetric(metric("bloch", "peer_reporting_nodes")),
+    peerIsolatedNodes: countMetric(metric("bloch", "peer_isolated_nodes")),
     peerSampledAt: countMetric(metric("bloch", "peer_sampled_at")),
     peerP2pConnections: countMetric(metric("bloch", "peer_p2p_connections")),
     peerDevnetConnections: countMetric(metric("bloch", "peer_devnet_connections")),
@@ -90,6 +92,7 @@ export function freshPeerReading(summary: ObservabilitySummary | null, now: numb
   if (!summary || summary.peerConnections === null || summary.peerReportingNodes === null ||
       summary.peerReportingNodes < 1 || sampledAt === null || !peerSampleFresh(sampledAt, now)) return null;
   return { connections: summary.peerConnections, reportingNodes: summary.peerReportingNodes,
+    isolatedNodes: summary.peerIsolatedNodes,
     p2pConnections: summary.peerP2pConnections, devnetConnections: summary.peerDevnetConnections,
     minPerNode: summary.peerMinPerNode, medianPerNode: summary.peerMedianPerNode,
     maxPerNode: summary.peerMaxPerNode,

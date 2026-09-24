@@ -33,6 +33,7 @@ test('observability exposes aggregate values without credentials, labels or prom
     [observabilityQueries.bloch_head_slot, '70001'],
     [observabilityQueries.bloch_peers, '4623'],
     [observabilityQueries.bloch_peer_reporting_nodes, '44'],
+    [observabilityQueries.bloch_peer_isolated_nodes, '0'],
     [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
     [observabilityQueries.bloch_peer_min_per_node, '104'],
     [observabilityQueries.bloch_peer_median_per_node, '105.5'],
@@ -63,6 +64,7 @@ test('observability exposes aggregate values without credentials, labels or prom
   assert.equal(out.body.data.bloch.head_slot, 70001);
   assert.equal(out.body.data.bloch.peers, 4623);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, 44);
+  assert.equal(out.body.data.bloch.peer_isolated_nodes, 0);
   assert.equal(out.body.data.bloch.peer_sampled_at, 1719999999000);
   assert.equal(out.body.data.bloch.peer_min_per_node, 104);
   assert.equal(out.body.data.bloch.peer_median_per_node, 105.5);
@@ -99,6 +101,7 @@ test('old peer samples cannot be represented as a current network reading', asyn
   });
   assert.equal(out.body.data.bloch.peers, null);
   assert.equal(out.body.data.bloch.peer_reporting_nodes, null);
+  assert.equal(out.body.data.bloch.peer_isolated_nodes, null);
   assert.equal(out.body.data.bloch.peer_sampled_at, null);
   assert.equal(out.body.data.bloch.peer_min_per_node, null);
   assert.equal(out.body.data.bloch.peer_median_per_node, null);
@@ -135,6 +138,7 @@ test('impossible peer distribution is withheld while the fresh total remains ava
   const values = new Map([
     [observabilityQueries.bloch_peers, '10'],
     [observabilityQueries.bloch_peer_reporting_nodes, '2'],
+    [observabilityQueries.bloch_peer_isolated_nodes, '3'],
     [observabilityQueries.bloch_peer_oldest_heartbeat_unix, '1719999999'],
     [observabilityQueries.bloch_peer_min_per_node, '8'],
     [observabilityQueries.bloch_peer_median_per_node, '7'],
@@ -149,6 +153,7 @@ test('impossible peer distribution is withheld while the fresh total remains ava
     },
   });
   assert.equal(out.body.data.bloch.peers, 10);
+  assert.equal(out.body.data.bloch.peer_isolated_nodes, null);
   assert.equal(out.body.data.bloch.peer_min_per_node, null);
   assert.equal(out.body.data.bloch.peer_median_per_node, null);
   assert.equal(out.body.data.bloch.peer_max_per_node, null);
@@ -207,7 +212,8 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     state: 'live', sampled_at: 1720000000000,
     coverage: { prometheus: true, bloch: true, host: true, kubernetes: true },
     prometheus: { targets_healthy: 56, targets_total: 56 },
-    bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, peer_sampled_at: 1720000000000,
+    bloch: { nodes: 44, peers: 0, peer_reporting_nodes: 44, peer_isolated_nodes: 44,
+      peer_sampled_at: 1720000000000,
       peer_p2p_connections: 0, peer_devnet_connections: 0,
       peer_min_per_node: 0, peer_median_per_node: 0, peer_max_per_node: 0,
       worst_lag_slots: 0, blocks_per_minute: 2, rejected_blocks_1h: 0 },
@@ -217,6 +223,7 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
   assert.deepEqual(summary, {
     layers: 4, state: 'live', sampledAt: 1720000000000,
     targetsHealthy: 56, targetsTotal: 56, blochNodes: 44, peerConnections: 0, peerReportingNodes: 44,
+    peerIsolatedNodes: 44,
     peerSampledAt: 1720000000000,
     peerP2pConnections: 0, peerDevnetConnections: 0,
     peerMinPerNode: 0, peerMedianPerNode: 0, peerMaxPerNode: 0,
@@ -226,7 +233,8 @@ test('homepage summary preserves measured zeros and rejects invalid metrics', ()
     podsRunning: 6, podsUnhealthy: 0, deploymentsAvailable: 5, deploymentsDesired: 5,
   });
   assert.deepEqual(freshPeerReading(summary, 1720000089999), {
-    connections: 0, reportingNodes: 44, p2pConnections: 0, devnetConnections: 0,
+    connections: 0, reportingNodes: 44, isolatedNodes: 44,
+    p2pConnections: 0, devnetConnections: 0,
     minPerNode: 0, medianPerNode: 0, maxPerNode: 0,
     sampledAt: 1720000000000,
   });

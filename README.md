@@ -36,6 +36,8 @@ bundle served in production byte for byte.
   when both transport gauges cover every reporting node and sum to the total.
   The observability view also shows minimum, median and maximum connections
   per reporting node; all are subject to the same freshness check.
+  The network and observability views also count monitored nodes with zero
+  live peer sockets, using that same fresh-node filter.
   Connections can be counted by more than one observer; this is not the number
   of unique network nodes.
 - The **network page** pairs fresh Prometheus connection aggregates with the
