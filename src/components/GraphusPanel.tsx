@@ -28,7 +28,7 @@ export function GraphusPanel() {
     <div className="graphus-copy">
       <span className="eyebrow">BLOCH GRAPHUS / CHAIN FACTS</span>
       <h2 id="graphus-panel-title">Follow transactions and wallet balances.</h2>
-      <p>Inspect Bloch eUTXO inputs, created outputs and a holder heat map whose points scale with indexed script balances, here in the explorer.</p>
+      <p>Inspect Bloch eUTXO inputs and outputs, then explore Graphus Oculum: a heat map of the largest indexed script balances.</p>
       <div className="graphus-facts" aria-label="Graphus Bloch data boundaries">
         <span>BLCH only</span><span>Indexed balances</span><span>No ownership inference</span>
       </div>

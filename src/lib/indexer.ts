@@ -40,6 +40,16 @@ export interface IndexedScriptBalance {
   chain_tip: string;
 }
 
+export interface IndexedHoldersPage {
+  holders: { rank: number; script_hash: string; balance_sat: string; utxo_count: number }[];
+  returned: number;
+  total_script_hashes_with_balance: number;
+  indexed_total_sat: string;
+  as_of_height: number;
+  as_of_slot: number;
+  chain_tip: string;
+}
+
 export interface IndexedOutpoint {
   txid: string;
   vout: number;
@@ -158,6 +168,10 @@ export function indexedUtxos(
 
 export function indexedScriptBalance(scriptHash: string): Promise<IndexedScriptBalance> {
   return get<IndexedScriptBalance>(`/script/${scriptHash}/balance`);
+}
+
+export function indexedHolders(limit = 64): Promise<IndexedHoldersPage> {
+  return get<IndexedHoldersPage>(`/holders?limit=${Math.max(1, Math.min(256, Math.floor(limit)))}`);
 }
 
 export function indexedOutpoint(txid: string, vout: number): Promise<IndexedOutpoint> {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { graphusBalance, graphusHeat, graphusHistory, graphusNeighbors, graphusPage, graphusTransaction } from '../../src/lib/graphus.ts';
+import { graphusBalance, graphusHeat, graphusHistory, graphusHoldersPage, graphusNeighbors, graphusPage, graphusTransaction } from '../../src/lib/graphus.ts';
 
 const txid = 'a'.repeat(64), previous = 'b'.repeat(64), block = 'c'.repeat(64), script = 'd'.repeat(64);
 const receipt = {
@@ -71,4 +71,18 @@ test('holder heat map preserves exact indexed balances and scales points only fo
   assert.equal(graphusBalance({ script_hash: txid, balance_sat: '5', utxo_count: 1, height: 1, chain_tip: block }, script), null);
   assert.ok(graphusHeat('1000000', '100000000').radius < graphusHeat('100000000', '100000000').radius);
   assert.deepEqual(graphusHeat('0', '100000000'), { radius: 12, intensity: 0 });
+});
+
+test('Oculum accepts only a ranked canonical balance snapshot with exact satoshis', () => {
+  const raw = { holders: [
+    { rank: 1, script_hash: script, balance_sat: '9007199254740993', utxo_count: 3 },
+    { rank: 2, script_hash: txid, balance_sat: '7', utxo_count: 1 },
+  ], returned: 2, total_script_hashes_with_balance: 12, indexed_total_sat: '9007199254741000',
+  as_of_height: 89276, as_of_slot: 118484, chain_tip: block };
+  const page = graphusHoldersPage(raw);
+  assert.ok(page);
+  assert.equal(page.holders[0].balanceSat, '9007199254740993');
+  assert.equal(page.total, 12);
+  assert.equal(graphusHoldersPage({ ...raw, holders: [...raw.holders].reverse() }), null);
+  assert.equal(graphusHoldersPage({ ...raw, chain_tip: 'bad' }), null);
 });

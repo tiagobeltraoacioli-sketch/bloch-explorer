@@ -6,6 +6,7 @@ import { graphusBalance, graphusHeat, graphusHistory, graphusNeighbors, graphusP
 import { classify } from "../lib/scriptHash";
 import { pollWhileVisible } from "../lib/polling";
 import { fmtInt } from "../lib/format";
+import { HolderOculum } from "../components/HolderOculum";
 import "../graphus.css";
 
 type GraphusPage = NonNullable<ReturnType<typeof graphusPage>>;
@@ -233,8 +234,9 @@ export function GraphusConstellationPage() {
   const selectedInPage = selectedFromFeed && page?.transactions.some(record =>
     record.txid === selected?.txid && record.blockId === selected?.blockId);
   return <div className="container graphus-page">
-    <div className="overview-heading"><div><span className="eyebrow">BLOCH GRAPHUS / GENESIS-4</span><h1>Bloch constellation.</h1><p>Real transaction structure and a sampled wallet balance heat map from this explorer's historical indexer API.</p></div><a href="#graphus-script">Explore holder heat map ↓</a></div>
+    <div className="overview-heading"><div><span className="eyebrow">BLOCH GRAPHUS / GENESIS-4</span><h1>Bloch constellation.</h1><p>Graphus Oculum ranks the largest indexed wallet references. Inspect transaction structure and local relationships below.</p></div><a href="#oculum-map">Explore Oculum ↓</a></div>
     <div className="graphus-page-boundary" role="status">This is a factual eUTXO view. It does not infer wallet owners, direct input-to-output value paths, risk, or AML scores. Graphus's separate public research preview has no live transaction API.</div>
+    <HolderOculum />
     <form className="graphus-lookup" onSubmit={event => void lookup(event)}>
       <label htmlFor="graphus-txid">Find an indexed Bloch transaction</label>
       <div><input id="graphus-txid" value={query} onChange={event => setQuery(event.target.value)} placeholder="64-character transaction ID" spellCheck={false} autoComplete="off" /><button className="btn" type="submit" disabled={lookingUp}>{lookingUp ? "Looking up…" : "Inspect"}</button></div>

@@ -69,6 +69,37 @@ export interface GraphusBalance {
   scriptHash: string; balanceSat: string; utxoCount: number; height: number; chainTip: string;
 }
 
+export interface GraphusHolder {
+  rank: number; scriptHash: string; balanceSat: string; utxoCount: number;
+}
+export interface GraphusHoldersPage {
+  holders: GraphusHolder[]; returned: number; total: number; indexedTotalSat: string;
+  height: number; slot: number; chainTip: string;
+}
+
+export function graphusHoldersPage(value: unknown): GraphusHoldersPage | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const page = value as Record<string, unknown>;
+  if (!Array.isArray(page.holders) || page.holders.length > 256 || !count(page.returned) ||
+      page.returned !== page.holders.length || !count(page.total_script_hashes_with_balance) ||
+      page.total_script_hashes_with_balance < page.returned || !sat(page.indexed_total_sat) ||
+      !count(page.as_of_height) || !count(page.as_of_slot) || !hash(page.chain_tip)) return null;
+  const holders: GraphusHolder[] = [];
+  const seen = new Set<string>();
+  for (const [index, item] of page.holders.entries()) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const row = item as Record<string, unknown>;
+    if (row.rank !== index + 1 || !hash(row.script_hash) || seen.has(row.script_hash) ||
+        !sat(row.balance_sat) || BigInt(row.balance_sat) === 0n || !count(row.utxo_count) ||
+        (holders.length > 0 && BigInt(holders[holders.length - 1].balanceSat) < BigInt(row.balance_sat))) return null;
+    seen.add(row.script_hash);
+    holders.push({ rank: row.rank, scriptHash: row.script_hash, balanceSat: row.balance_sat, utxoCount: row.utxo_count });
+  }
+  if (holders.reduce((total, holder) => total + BigInt(holder.balanceSat), 0n) > BigInt(page.indexed_total_sat)) return null;
+  return { holders, returned: page.returned, total: page.total_script_hashes_with_balance,
+    indexedTotalSat: page.indexed_total_sat, height: page.as_of_height, slot: page.as_of_slot, chainTip: page.chain_tip };
+}
+
 export function graphusBalance(value: unknown, expectedScriptHash: string): GraphusBalance | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;

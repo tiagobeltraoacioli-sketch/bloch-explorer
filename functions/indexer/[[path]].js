@@ -4,7 +4,7 @@ import { Bucket, clientBucket, clientKey } from '../../edge/governor.js';
 import { handleRead, buildOpts, runtimeFor } from '../../edge/core.js';
 const budget = new Bucket(40, 15, Date.now);
 const HASH = '[a-fA-F0-9]{64}';
-const route = new RegExp(`^(?:health|transactions|(?:utxos|history|tx)/${HASH}|script/${HASH}/balance|outpoint/${HASH}/[0-9]{1,10}|block/${HASH}/transactions)$`);
+const route = new RegExp(`^(?:health|holders|transactions|(?:utxos|history|tx)/${HASH}|script/${HASH}/balance|outpoint/${HASH}/[0-9]{1,10}|block/${HASH}/transactions)$`);
 const origin = 'http://139.180.166.5.nip.io:8080/indexer/';
 const headers = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 const answer = (status, body) => new Response(JSON.stringify(body), { status, headers });
@@ -19,7 +19,7 @@ export async function onRequest(context) {
   for (const [key, value] of url.searchParams) {
     if (seen.has(key)) return answer(400, { error: 'Duplicate parameter.' });
     seen.add(key);
-    if (key === 'limit' && /^[0-9]{1,4}$/.test(value) && +value >= 1 && +value <= 1000) continue;
+    if (key === 'limit' && /^[0-9]{1,4}$/.test(value) && +value >= 1 && +value <= (path === 'holders' ? 256 : 1000)) continue;
     if (key === 'cursor' && /^[0-9]{1,16}-[a-f0-9]{64}-[0-9]{1,16}$/.test(value)) continue;
     if (key === 'block' && /^[a-f0-9]{64}$/.test(value)) continue;
     return answer(400, { error: 'Invalid indexer parameter.' });

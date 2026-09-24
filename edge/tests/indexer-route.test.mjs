@@ -12,6 +12,7 @@ test('indexer route rejects writes, unknown paths and malformed pagination witho
       [`utxos/${hash}?limit=0`, 'GET', 400], [`utxos/${hash}?limit=1001`, 'GET', 400],
       ['transactions?url=http://localhost', 'GET', 400], ['transactions?cursor=bad', 'GET', 400],
       ['transactions?limit=5&limit=10', 'GET', 400],
+      ['holders?limit=257', 'GET', 400],
     ]) assert.equal((await onRequest(ctx(path, method))).status, status);
   } finally { globalThis.fetch = old; }
 });
@@ -35,6 +36,16 @@ test('holder balance route forwards one validated script reference and exact sat
     assert.equal(target, `http://139.180.166.5.nip.io:8080/indexer/script/${hash}/balance`);
     assert.equal((await response.json()).balance_sat, '9007199254740993');
     assert.equal((await onRequest(ctx('script/bad/balance'))).status, 404);
+  } finally { globalThis.fetch = old; }
+});
+test('Oculum holder route forwards bounded rankings without losing amount precision', async () => {
+  const old = globalThis.fetch; let target;
+  globalThis.fetch = async url => { target = url; return Response.json({ holders: [{ rank: 1, script_hash: hash, balance_sat: '9007199254740993', utxo_count: 1 }], returned: 1 }); };
+  try {
+    const response = await onRequest(ctx('holders?limit=64'));
+    assert.equal(response.status, 200);
+    assert.equal(target, 'http://139.180.166.5.nip.io:8080/indexer/holders?limit=64');
+    assert.equal((await response.json()).holders[0].balance_sat, '9007199254740993');
   } finally { globalThis.fetch = old; }
 });
 test('indexer route fails closed on HTML and preserves a reorg conflict', async () => {
