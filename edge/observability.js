@@ -225,10 +225,15 @@ export async function handlePeerDistribution(env, runtime = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), QUERY_TIMEOUT_MS);
   try {
-    const response = await (runtime.fetchImpl ?? fetch)(url.toString(), {
-      method: 'GET', headers: { accept: 'application/json', authorization: basicAuth(user, token) },
-      signal: controller.signal,
-    });
+    const auth = basicAuth(user, token);
+    const fetchImpl = runtime.fetchImpl ?? fetch;
+    const [response, oldestHeartbeat] = await Promise.all([
+      fetchImpl(url.toString(), {
+        method: 'GET', headers: { accept: 'application/json', authorization: auth },
+        signal: controller.signal,
+      }),
+      queryPrometheus(base, auth, QUERIES.bloch_peer_oldest_heartbeat_unix, fetchImpl),
+    ]);
     if (!response.ok) throw new Error('prometheus_distribution_http');
     const body = await response.json();
     const result = body?.data?.result;
@@ -247,8 +252,13 @@ export async function handlePeerDistribution(env, runtime = {}) {
     }).sort((a, b) => a.connections_per_node - b.connections_per_node);
     const reportingNodes = bins.reduce((sum, bin) => sum + bin.reporting_nodes, 0);
     if (!Number.isSafeInteger(reportingNodes)) throw new Error('prometheus_invalid_distribution');
-    return { status: 200, body: { data: { bins, reporting_nodes: reportingNodes, sampled_at: sampledAt },
-      state: bins.length ? 'live' : 'awaiting_telemetry', sampled_at: sampledAt } };
+    const peerSampledAt = oldestHeartbeat === null ? null : oldestHeartbeat * 1000;
+    if (!bins.length || !Number.isSafeInteger(peerSampledAt) || peerSampledAt <= 0 ||
+        peerSampledAt > sampledAt + 5_000 || sampledAt - peerSampledAt > PEER_MAX_SAMPLE_AGE_SECONDS * 1000) {
+      return { status: 200, body: { data: null, state: 'awaiting_telemetry', sampled_at: sampledAt } };
+    }
+    return { status: 200, body: { data: { bins, reporting_nodes: reportingNodes, peer_sampled_at: peerSampledAt },
+      state: 'live', sampled_at: sampledAt } };
   } catch {
     return { status: 503, body: { data: null, state: 'unavailable', sampled_at: sampledAt,
       error: { reason: 'prometheus_distribution_unavailable' } } };

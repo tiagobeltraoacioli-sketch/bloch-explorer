@@ -376,7 +376,13 @@ test('peer distribution exposes only sorted aggregate frequencies', async () => 
   const out = await handlePeerDistribution(env, {
     now: () => 1720000000000,
     fetchImpl: async (input, init) => {
-      seen.push({ url: new URL(input), auth: init.headers.authorization });
+      const url = new URL(input);
+      seen.push({ url, auth: init.headers.authorization });
+      if (url.searchParams.get('query') === observabilityQueries.bloch_peer_oldest_heartbeat_unix) {
+        return Response.json({ status: 'success', data: { resultType: 'vector', result: [
+          { metric: {}, value: [1, '1719999999'] },
+        ] } });
+      }
       return Response.json({ status: 'success', data: { resultType: 'vector', result: [
         { metric: { connections: '127', private_host: 'must-not-leak' }, value: [1, '2'] },
         { metric: { connections: '4', private_host: 'must-not-leak' }, value: [1, '1'] },
@@ -390,16 +396,33 @@ test('peer distribution exposes only sorted aggregate frequencies', async () => 
     { connections_per_node: 127, reporting_nodes: 2 },
   ]);
   assert.equal(out.body.data.reporting_nodes, 3);
-  assert.deepEqual(peerDistribution(out.body), { sampledAt: 1720000000000, reportingNodes: 3,
+  assert.equal(out.body.data.peer_sampled_at, 1719999999000);
+  assert.deepEqual(peerDistribution(out.body), { sampledAt: 1719999999000, reportingNodes: 3,
     bins: [{ connectionsPerNode: 4, reportingNodes: 1 }, { connectionsPerNode: 127, reportingNodes: 2 }] });
-  assert.equal(seen.length, 1);
+  assert.equal(seen.length, 2);
   assert.equal(seen[0].url.pathname, '/api/prom/api/v1/query');
   assert.match(seen[0].url.searchParams.get('query'), /^count_values\("connections", bloch_pos_peer_count/);
   assert.match(seen[0].url.searchParams.get('query'), /bloch_pos_heartbeat_unix/);
-  assert.equal(seen[0].auth, 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu');
+  assert.equal(seen[1].url.searchParams.get('query'), observabilityQueries.bloch_peer_oldest_heartbeat_unix);
+  for (const request of seen) assert.equal(request.auth, 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu');
   for (const secret of ['private_host', 'must-not-leak', 'secret-token', 'bloch_pos_peer_count']) {
     assert.ok(!JSON.stringify(out.body).includes(secret));
   }
+});
+
+test('peer distribution withholds bins when source heartbeat is stale', async () => {
+  const out = await handlePeerDistribution(env, {
+    now: () => 1720000000000,
+    fetchImpl: async input => Response.json({ status: 'success', data: { resultType: 'vector', result:
+      new URL(input).searchParams.get('query') === observabilityQueries.bloch_peer_oldest_heartbeat_unix
+        ? [{ metric: {}, value: [1, '1719999800'] }]
+        : [{ metric: { connections: '4' }, value: [1, '1'] }],
+    } }),
+  });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.state, 'awaiting_telemetry');
+  assert.equal(out.body.data, null);
+  assert.equal(peerDistribution(out.body), null);
 });
 
 test('peer distribution rejects duplicate or malformed bins', async () => {
@@ -411,7 +434,7 @@ test('peer distribution rejects duplicate or malformed bins', async () => {
   });
   assert.equal(out.status, 503);
   assert.equal(out.body.error.reason, 'prometheus_distribution_unavailable');
-  assert.equal(peerDistribution({ data: { sampled_at: 1720000000000, reporting_nodes: 3,
+  assert.equal(peerDistribution({ data: { peer_sampled_at: 1720000000000, reporting_nodes: 3,
     bins: [{ connections_per_node: 4, reporting_nodes: 1 }] } }), null);
   const unconfigured = await handlePeerDistribution({ ...env, GRAFANA_PROM_TOKEN: '' }, {
     fetchImpl: async () => { throw new Error('must not fetch'); },

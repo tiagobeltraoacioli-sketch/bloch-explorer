@@ -183,9 +183,9 @@ export function peerDistribution(value: unknown): PeerDistribution | null {
   if (!value || typeof value !== "object") return null;
   const data = (value as { data?: unknown }).data;
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-  const source = data as { bins?: unknown; reporting_nodes?: unknown; sampled_at?: unknown };
+  const source = data as { bins?: unknown; reporting_nodes?: unknown; peer_sampled_at?: unknown };
   const reportingNodes = countMetric(source.reporting_nodes);
-  const sampledAt = countMetric(source.sampled_at);
+  const sampledAt = countMetric(source.peer_sampled_at);
   if (!Array.isArray(source.bins) || source.bins.length > 256 || reportingNodes === null || sampledAt === null) return null;
   const bins: PeerDistributionBin[] = [];
   for (const item of source.bins) {
