@@ -13,7 +13,7 @@ export function HolderOculum({ compact = false }: { compact?: boolean }) {
     let active = true;
     const stop = pollWhileVisible(async () => {
       try {
-        const result = graphusHoldersPage(await indexedHolders(compact ? 16 : 64));
+        const result = graphusHoldersPage(await indexedHolders(64));
         if (!result) throw new Error("The indexer returned an invalid holder snapshot.");
         if (active) { setPage(result); setError(null); }
       } catch (cause) {
@@ -28,17 +28,18 @@ export function HolderOculum({ compact = false }: { compact?: boolean }) {
   const share = indexedTotal > 0n ? Number(shown * 10_000n / indexedTotal) / 100 : null;
   return <section id={compact ? "oculum-preview" : "oculum-map"} className={`card oculum-panel${compact ? " oculum-compact" : ""}`} aria-labelledby={compact ? "oculum-preview-title" : "oculum-map-title"}>
     <div className="oculum-heading">
-      <div><span className="eyebrow">GRAPHUS OCULUM / BLOCH GENESIS-4</span><h2 id={compact ? "oculum-preview-title" : "oculum-map-title"}>The holder heat map.</h2><p>Largest indexed eUTXO balances, one script reference per point. Size and glow rise with the amount held.</p></div>
-      <div className="oculum-snapshot" aria-live="polite"><strong>{page ? `H${fmtInt(page.height)} · S${fmtInt(page.slot)}` : "Waiting for indexer"}</strong><span>{page ? `${fmtInt(page.returned)} shown / ${fmtInt(page.total)} funded references` : "Canonical index snapshot"}</span></div>
+      <div><span className="eyebrow">GRAPHUS OCULUM / BLOCH GENESIS-4</span><h2 id={compact ? "oculum-preview-title" : "oculum-map-title"}>The holder heat map.</h2><p>64 positions ranked by indexed eUTXO balance. Funded points grow and glow with the amount held; empty positions are marked separately.</p></div>
+      <div className="oculum-snapshot" aria-live="polite"><strong>{page ? `H${fmtInt(page.height)} · S${fmtInt(page.slot)}` : "Waiting for indexer"}</strong><span>{page ? `${fmtInt(page.returned)} funded / ${64 - page.returned} empty positions` : "Canonical index snapshot"}</span></div>
     </div>
     {error && <p className="data-warning" role="status">{error}{page ? " Showing the last available snapshot." : ""}</p>}
     <div className="oculum-grid" role="list" aria-label="Largest Bloch script balances; click a point to explore its ledger reference">
-      {page?.holders.map(holder => {
+      {page && Array.from({ length: 64 }, (_, index) => page.holders[index] ?? null).map((holder, index) => {
+        if (!holder) return <div className="oculum-cell oculum-empty" role="listitem" key={`empty-${index}`} aria-label={`Position ${index + 1}: no funded script reference in this snapshot`}><span className="oculum-empty-dot" aria-hidden="true" /></div>;
         const heat = graphusHeat(holder.balanceSat, largest);
         const tier = Math.max(1, Math.min(4, Math.ceil(heat.intensity * 4)));
         return <div className="oculum-cell" role="listitem" key={holder.scriptHash}>
           <a className={`oculum-point oculum-tier-${tier}`} href={`/graphus/constellation?script=${holder.scriptHash}`} aria-label={`Rank ${holder.rank}, ${fmtBloch(holder.balanceSat, 8)} BLOCH, ${holder.utxoCount} UTXOs. Explore in Graphus.`} title={`#${holder.rank} · ${fmtBloch(holder.balanceSat, 8)} BLOCH · ${fmtInt(holder.utxoCount)} UTXOs`}>
-            <span className="oculum-orb" style={{ width: heat.radius * 2, height: heat.radius * 2 }}><span>{holder.rank}</span></span>
+            <span className="oculum-orb" style={{ width: heat.radius * (compact ? 1.5 : 2), height: heat.radius * (compact ? 1.5 : 2) }}><span>{holder.rank}</span></span>
           </a>
         </div>;
       })}
@@ -47,6 +48,6 @@ export function HolderOculum({ compact = false }: { compact?: boolean }) {
     {page && <div className="oculum-summary"><div><span>Largest reference</span><strong>{fmtBloch(largest, 2)} BLCH</strong></div><div><span>Shown share of indexed eUTXOs</span><strong>{share === null ? "—" : `${share.toFixed(2)}%`}</strong></div><div><span>Coverage</span><strong>{page.returned === page.total ? `All ${fmtInt(page.total)} funded references` : `Top ${fmtInt(page.returned)} of ${fmtInt(page.total)}`}</strong></div></div>}
     <div className="oculum-foot"><span>Heat scale: relative to the largest displayed balance</span><i aria-hidden="true" /><span>More BLCH → brighter</span></div>
     <p className="oculum-boundary">Balances are exact indexed satoshis; point sizes use a logarithmic visual scale. A script reference does not identify a person or prove common wallet ownership. This ranking covers unspent eUTXOs only; staked or delegated amounts are outside it.</p>
-    {compact && <a className="btn btn-sm" href="/graphus/constellation#oculum-map">Explore the full holder map →</a>}
+    {compact && <a className="btn btn-sm" href="/graphus/constellation#oculum-map">Explore Graphus Oculum →</a>}
   </section>;
 }
