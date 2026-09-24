@@ -1,0 +1,196 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link } from "../lib/router";
+import { IndexedTxAmbiguity, indexedHistory, indexedTransaction, indexedTransactions } from "../lib/indexer";
+import { graphusHistory, graphusPage, graphusTransaction, type GraphusHistory, type GraphusIo, type GraphusTransaction } from "../lib/graphus";
+import { classify } from "../lib/scriptHash";
+import { pollWhileVisible } from "../lib/polling";
+import { fmtInt } from "../lib/format";
+import "../graphus.css";
+
+type GraphusPage = NonNullable<ReturnType<typeof graphusPage>>;
+type Focus = { side: "input" | "output"; index: number } | null;
+const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-6)}`;
+const amount = (value: string) => `${BigInt(value).toLocaleString()} sat`;
+
+function Graph({ tx }: { tx: GraphusTransaction }) {
+  const inputs = tx.inputs.slice(0, 4), outputs = tx.outputs.slice(0, 4);
+  const y = (index: number, total: number) => 60 + (index + 1) * 260 / (total + 1);
+  return <div className="graphus-map" role="img" aria-label={`Transaction ${tx.txid} consumes ${tx.inputs.length} input outpoints and creates ${tx.outputs.length} outputs. Lines show transaction structure, not address ownership or direct value paths.`}>
+    <div className="graphus-map-head"><span>INPUT OUTPOINTS</span><span>TRANSACTION / S{fmtInt(tx.slot)}</span><span>CREATED OUTPUTS</span></div>
+    <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+      <g className="graphus-map-links">
+        {inputs.map((_, index) => <path key={`i-${index}`} d={`M145 ${y(index, inputs.length)}L400 190`} />)}
+        {outputs.map((_, index) => <path key={`o-${index}`} d={`M400 190L655 ${y(index, outputs.length)}`} />)}
+      </g>
+      <g className="graphus-map-nodes">
+        {inputs.map((io, index) => <g key={`i-${index}`}><circle cx="145" cy={y(index, inputs.length)} r="20" /><text x="145" y={y(index, inputs.length) + 5} textAnchor="middle">I{index + 1}</text></g>)}
+        {outputs.map((io, index) => <g key={`o-${index}`}><circle cx="655" cy={y(index, outputs.length)} r="20" /><text x="655" y={y(index, outputs.length) + 5} textAnchor="middle">O{index + 1}</text></g>)}
+      </g>
+      <circle className="graphus-map-core" cx="400" cy="190" r="43" />
+      <text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">TX</text>
+      <text className="graphus-map-caption" x="400" y="265" textAnchor="middle">{short(tx.txid)}</text>
+      {tx.inputs.length > 4 && <text className="graphus-map-extra" x="145" y="360" textAnchor="middle">+{tx.inputs.length - 4} more inputs</text>}
+      {tx.outputs.length > 4 && <text className="graphus-map-extra" x="655" y="360" textAnchor="middle">+{tx.outputs.length - 4} more outputs</text>}
+    </svg>
+    <p>Each line meets this transaction only. It does not assert a path between a particular input and output.</p>
+  </div>;
+}
+
+function IoList({ tx, side, focus, onFocus }: { tx: GraphusTransaction; side: "input" | "output"; focus: Focus; onFocus: (value: Focus) => void }) {
+  const items = side === "input" ? tx.inputs : tx.outputs;
+  return <div className="graphus-io-column">
+    <h3>{side === "input" ? "Consumed input outpoints" : "Created outputs"} <small>{fmtInt(items.length)}</small></h3>
+    <div className="graphus-io-scroll" role="list">
+      {items.length ? items.slice(0, 24).map((io, index) => <button type="button" role="listitem" key={`${side}-${index}`} className={focus?.side === side && focus.index === index ? "is-selected" : ""} onClick={() => onFocus({ side, index })}>
+        <span>{side === "input" ? `Input ${index + 1}` : `Output ${io.vout}`}</span>
+        <strong>{amount(io.valueSat)}</strong>
+        <small>{io.txid ? `${short(io.txid)}:${io.vout}` : "Outpoint reference unavailable"}</small>
+      </button>) : <p>No {side === "input" ? "input outpoints" : "outputs"} recorded for this transaction.</p>}
+      {items.length > 24 && <p>Showing 24 of {fmtInt(items.length)}. Open the transaction receipt for the complete list.</p>}
+    </div>
+  </div>;
+}
+
+function Evidence({ tx, focus, asOfSlot, source, verification, onTrace }: { tx: GraphusTransaction; focus: Focus; asOfSlot: number | null; source: string | null; verification: string | null; onTrace: (scriptHash: string) => void }) {
+  const io: GraphusIo | null = focus ? (focus.side === "input" ? tx.inputs : tx.outputs)[focus.index] ?? null : null;
+  return <section className="card graphus-evidence" aria-live="polite">
+    <span className="eyebrow">SOURCE RECORD</span>
+    <h3>{io ? `${focus!.side === "input" ? "Consumed outpoint" : "Created output"} ${io.vout}` : "Choose an input or output"}</h3>
+    {io ? <dl>
+      <div><dt>Exact amount</dt><dd>{amount(io.valueSat)}</dd></div>
+      <div><dt>Script hash</dt><dd><code>{io.scriptHash}</code></dd></div>
+      <div><dt>Outpoint</dt><dd>{io.txid ? <Link to={`/outpoint/${io.txid}/${io.vout}`} className="mono-link">{short(io.txid)}:{io.vout} ↗</Link> : "Reference unavailable"}</dd></div>
+      <div><dt>Meaning</dt><dd>{focus!.side === "input" ? "This transaction consumes the referenced output." : "This transaction creates this output."}</dd></div>
+    </dl> : <p>Select a record to inspect its exact satoshis, script hash and outpoint. Script hashes do not identify people or prove common ownership.</p>}
+    {io && <button className="btn btn-sm graphus-trace-button" type="button" onClick={() => onTrace(io.scriptHash)}>Trace this script reference ↓</button>}
+    <div className="graphus-provenance"><span>BLOCK H{fmtInt(tx.height)} · S{fmtInt(tx.slot)}</span><span>{asOfSlot !== null ? `INDEXED AS OF S${fmtInt(asOfSlot)}` : "INDEXER SNAPSHOT"}</span></div>
+    {source && <small>Source: {source}. {verification ? `Verification: ${verification}. ` : ""}This panel does not add Graphus scoring or identity labels.</small>}
+  </section>;
+}
+
+function ScriptConstellation({ initialScript }: { initialScript: string | null }) {
+  const [query, setQuery] = useState("");
+  const [history, setHistory] = useState<GraphusHistory | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const generation = useRef(0);
+  const load = async (input: string) => {
+    const reference = classify(input);
+    if (reference.kind !== "script_hash" && reference.kind !== "g3_address" && reference.kind !== "g3_hash160") {
+      setError(reference.kind === "bad_address" ? "The Bloch address checksum is invalid." : "Enter a 64-character script hash or a valid carried Bloch address.");
+      return;
+    }
+    const current = ++generation.current;
+    setBusy(true); setError(null);
+    try {
+      const result = graphusHistory(await indexedHistory(reference.scriptHash, null, 16), reference.scriptHash);
+      if (!result) throw new Error("The historical index returned an invalid script history.");
+      if (current === generation.current) { setHistory(result); setQuery(input); }
+    } catch (cause) {
+      if (current === generation.current) setError(cause instanceof Error ? cause.message : "Script history is unavailable.");
+    } finally { if (current === generation.current) setBusy(false); }
+  };
+  useEffect(() => { if (initialScript) void load(initialScript); }, [initialScript]);
+  const events = history?.events.slice(0, 12) ?? [];
+  return <section className="graphus-script-section" id="graphus-script" aria-labelledby="graphus-script-title">
+    <div className="graphus-recent-head"><div><span className="eyebrow">SCRIPT REFERENCE / EVENT FAN</span><h2 id="graphus-script-title">Constellation of recorded events.</h2></div><span>Created and spent eUTXOs · one script hash</span></div>
+    <p className="lookup-hint">A script hash groups indexed output records. It does not identify a person, a wallet owner, or an input-to-output value path.</p>
+    <form className="graphus-lookup" onSubmit={event => { event.preventDefault(); void load(query); }}>
+      <label htmlFor="graphus-script-query">Bloch script hash or carried address</label>
+      <div><input id="graphus-script-query" value={query} onChange={event => setQuery(event.target.value)} placeholder="64-character script hash or bloch1q…" spellCheck={false} autoComplete="off" /><button className="btn" type="submit" disabled={busy}>{busy ? "Loading…" : "Trace"}</button></div>
+    </form>
+    {error && <p className="data-warning" role="status">{error}{history ? " Showing the previous script snapshot." : ""}</p>}
+    {history && <>
+      <div className="graphus-script-summary"><strong>{fmtInt(history.total)} recorded events</strong><span>{fmtInt(history.events.length)} shown · indexed as of slot {fmtInt(history.asOfSlot)}</span><code>{short(history.scriptHash)}</code></div>
+      <div className="graphus-script-map" role="img" aria-label={`Script reference ${history.scriptHash} with ${history.total} indexed creation or spend events. The diagram shows up to twelve returned events without asserting ownership.`}>
+        <svg viewBox="0 0 800 360" aria-hidden="true" focusable="false">
+          <g className="graphus-map-links">{events.map((_, index) => { const angle = index * Math.PI * 2 / Math.max(events.length, 1) - Math.PI / 2; return <path key={index} d={`M400 180L${400 + Math.cos(angle) * 290} ${180 + Math.sin(angle) * 125}`} />; })}</g>
+          <g className="graphus-map-nodes">{events.map((event, index) => { const angle = index * Math.PI * 2 / Math.max(events.length, 1) - Math.PI / 2; const x = 400 + Math.cos(angle) * 290, y = 180 + Math.sin(angle) * 125; return <g key={`${event.kind}-${event.txid}-${event.vout}-${index}`}><circle cx={x} cy={y} r="18" /><text x={x} y={y + 5} textAnchor="middle">{event.kind === "created" ? "C" : "S"}</text></g>; })}</g>
+          <circle className="graphus-map-core" cx="400" cy="180" r="37" /><text className="graphus-map-core-label" x="400" y="186" textAnchor="middle">SH</text>
+        </svg>
+        <p>C = output created · S = output spent. Spatial position has no geographic or ownership meaning.</p>
+      </div>
+      <div className="graphus-event-list" role="list" aria-label="Indexed events for this script hash">{history.events.map((event, index) => <div role="listitem" key={`${event.kind}-${event.txid}-${event.vout}-${index}`}><strong>{event.kind === "created" ? "CREATED" : "SPENT"}</strong><span>{amount(event.valueSat)} · H{fmtInt(event.height)} / S{fmtInt(event.slot)}</span><Link to={`/outpoint/${event.txid}/${event.vout}`}>{short(event.txid)}:{event.vout} ↗</Link>{event.transactionId && event.transactionId !== event.txid && <Link to={`/tx/${event.transactionId}`}>Spending transaction ↗</Link>}</div>)}</div>
+      {history.total > history.events.length && <p className="lookup-hint">Showing the first {fmtInt(history.events.length)} events from a snapshot with {fmtInt(history.total)}. The complete history remains available through the indexer API.</p>}
+      <p className="lookup-hint">Source: {history.source}{history.verification ? ` · ${history.verification}` : ""}. No private Graphus research records or scores are served here.</p>
+    </>}
+  </section>;
+}
+
+export function GraphusConstellationPage() {
+  const [page, setPage] = useState<GraphusPage | null>(null);
+  const [selected, setSelected] = useState<GraphusTransaction | null>(null);
+  const [selectedFromFeed, setSelectedFromFeed] = useState(true);
+  const [focus, setFocus] = useState<Focus>(null);
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<GraphusTransaction[]>([]);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [scriptTarget, setScriptTarget] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    const stop = pollWhileVisible(async () => {
+      try {
+        const result = graphusPage(await indexedTransactions(undefined, 4));
+        if (!result) throw new Error("The historical index returned an invalid page.");
+        if (active) {
+          setPage(result); setError(null);
+          setSelected(previous => previous ?? result.transactions[0] ?? null);
+        }
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : "The historical index is unavailable.");
+      }
+    }, 60_000);
+    return () => { active = false; stop(); };
+  }, []);
+  const lookup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const txid = query.trim();
+    setLookupError(null); setMatches([]);
+    if (!/^[0-9a-f]{64}$/i.test(txid)) { setLookupError("Enter a 64-character hexadecimal transaction ID."); return; }
+    setLookingUp(true);
+    try {
+      const result = await indexedTransaction(txid);
+      const record = graphusTransaction(result);
+      if (!record) { setLookupError(result === null ? "This ID is not in the current indexer snapshot." : "The indexer returned an invalid receipt."); return; }
+      setSelected(record); setSelectedFromFeed(false); setFocus(null);
+    } catch (cause) {
+      if (cause instanceof IndexedTxAmbiguity) {
+        const choices = cause.matches.map(graphusTransaction).filter((record): record is GraphusTransaction => record !== null);
+        setMatches(choices);
+        setLookupError("This ID appears in more than one indexed block. Choose an occurrence below.");
+      } else setLookupError(cause instanceof Error ? cause.message : "Unable to look up this transaction.");
+    } finally { setLookingUp(false); }
+  };
+  const choose = (record: GraphusTransaction, fromFeed: boolean) => { setSelected(record); setSelectedFromFeed(fromFeed); setFocus(null); setLookupError(null); setMatches([]); };
+  const trace = (scriptHash: string) => { setScriptTarget(scriptHash); window.requestAnimationFrame(() => document.getElementById("graphus-script")?.scrollIntoView({ behavior: "smooth", block: "start" })); };
+  const selectedInPage = selectedFromFeed && page?.transactions.some(record =>
+    record.txid === selected?.txid && record.blockId === selected?.blockId);
+  return <div className="container graphus-page">
+    <div className="overview-heading"><div><span className="eyebrow">BLOCH GRAPHUS / GENESIS-4</span><h1>Bloch constellation.</h1><p>Real transaction structure from this explorer's historical indexer API.</p></div><Link to="/transactions">Transaction ledger ↗</Link></div>
+    <div className="graphus-page-boundary" role="status">This is a factual eUTXO view. It does not infer wallet owners, direct input-to-output value paths, risk, or AML scores. Graphus's separate public research preview has no live transaction API.</div>
+    <form className="graphus-lookup" onSubmit={event => void lookup(event)}>
+      <label htmlFor="graphus-txid">Find an indexed Bloch transaction</label>
+      <div><input id="graphus-txid" value={query} onChange={event => setQuery(event.target.value)} placeholder="64-character transaction ID" spellCheck={false} autoComplete="off" /><button className="btn" type="submit" disabled={lookingUp}>{lookingUp ? "Looking up…" : "Inspect"}</button></div>
+    </form>
+    {lookupError && <p className="data-warning" role="status">{lookupError}</p>}
+    {matches.length > 0 && <div className="graphus-recent" aria-label="Matching transaction occurrences">{matches.map(record => <button key={`${record.blockId}-${record.txid}`} type="button" onClick={() => choose(record, false)}>H{fmtInt(record.height)} · S{fmtInt(record.slot)} · {short(record.blockId)}</button>)}</div>}
+    <div className="graphus-recent-head"><h2>Latest indexed transactions</h2><span>{page ? `Snapshot S${fmtInt(page.asOfSlot)} · ${page.source}` : "Waiting for indexer"}</span></div>
+    {error && <p className="data-warning" role="status">{error}{page ? " Showing the last available snapshot." : ""}</p>}
+    <div className="graphus-recent" aria-label="Choose a recent Bloch transaction">
+      {page?.transactions.length ? page.transactions.map(record => <button key={`${record.blockId}-${record.txid}`} type="button" className={selectedFromFeed && selected?.txid === record.txid && selected.blockId === record.blockId ? "is-selected" : ""} onClick={() => choose(record, true)}><strong>{short(record.txid)}</strong><span>S{fmtInt(record.slot)} · {record.inputs.length} in / {record.outputs.length} out</span></button>) : <span>{error ?? "Waiting for indexed transactions."}</span>}
+    </div>
+    {selected && <>
+      <div className="graphus-selected-head"><div><span className="eyebrow">INDEXED TRANSACTION / {selected.kind}</span><h2>{short(selected.txid)}</h2><p>Block H{fmtInt(selected.height)} · slot {fmtInt(selected.slot)} · fee {selected.feeSat === null ? "unavailable" : amount(selected.feeSat)}</p></div><Link className="btn btn-sm" to={`/tx/${selected.txid}`}>Full receipt ↗</Link></div>
+      <Graph tx={selected} />
+      <div className="graphus-inspector">
+        <IoList tx={selected} side="input" focus={focus} onFocus={setFocus} />
+        <IoList tx={selected} side="output" focus={focus} onFocus={setFocus} />
+        <Evidence tx={selected} focus={focus} asOfSlot={selectedInPage ? page?.asOfSlot ?? null : null} source={selectedInPage ? page?.source ?? null : null} verification={selectedInPage ? page?.verification ?? null : null} onTrace={trace} />
+      </div>
+    </>}
+    <ScriptConstellation initialScript={scriptTarget} />
+  </div>;
+}

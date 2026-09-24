@@ -40,10 +40,14 @@ bundle served in production byte for byte.
   live peer sockets, using that same fresh-node filter.
   Connections can be counted by more than one observer; this is not the number
   of unique network nodes.
-- The dashboard's **Bloch Graphus** panel links to a BLCH wallet example in
-  Graphus of Bloch Inc. The panel and destination identify the public
-  constellation as synthetic; no wallet score or Graphus research output is
-  presented as a live Genesis-4 chain reading.
+- The dashboard's **Bloch Graphus** panel reads the same-origin historical
+  indexer API and opens `/graphus/constellation` inside the explorer. The page
+  visualizes real Bloch transaction input outpoints, created outputs, exact
+  satoshi amounts, script hashes, block position, and indexer provenance. It
+  can also trace created and spent output events for one script hash or carried
+  Bloch address through the indexer's bounded history API. The constellation
+  does not infer wallet ownership, direct value paths, risk, or AML scores.
+  Graphus's separate public research preview has no live transaction API.
 - The **network page** pairs fresh Prometheus connection aggregates with the
   separate RPC observer diagnostics. The connection panel expires with its
   oldest peer sample and polls only while the RPC nodes tab is open. Its trend

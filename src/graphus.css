@@ -1,0 +1,60 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+.graphus-page { padding-bottom: 44px; }
+.graphus-page .overview-heading { margin-bottom: 18px; }
+.graphus-page-boundary { padding: 13px 16px; margin-bottom: 18px; border: 1px solid var(--line-strong); border-left: 3px solid var(--brass); border-radius: 6px; background: var(--bg1); color: var(--muted); font-size: .8rem; line-height: 1.55; }
+.graphus-lookup { display: grid; gap: 8px; margin: 0 0 20px; color: var(--muted); font-size: .8rem; }
+.graphus-lookup > div { display: flex; gap: 10px; }
+.graphus-lookup input { min-width: 0; flex: 1; padding: 12px 13px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg0); color: var(--fg); font: .8rem var(--font-mono); }
+.graphus-lookup input:focus-visible, .graphus-recent button:focus-visible, .graphus-io-scroll button:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: 2px; }
+.graphus-recent-head, .graphus-selected-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin: 20px 0 10px; }
+.graphus-recent-head h2, .graphus-selected-head h2 { margin: 0; font-size: clamp(1.15rem, 2vw, 1.6rem); }
+.graphus-recent-head span, .graphus-selected-head p { margin: 0; color: var(--muted); font: .7rem/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.graphus-recent { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 26px; }
+.graphus-recent button { display: grid; gap: 4px; min-width: 160px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg1); color: var(--fg); cursor: pointer; text-align: left; }
+.graphus-recent button.is-selected { border-color: var(--brass-bright); background: color-mix(in srgb, var(--bg1) 88%, var(--brass)); }
+.graphus-recent button strong { font: 500 .78rem var(--font-mono); }
+.graphus-recent button span { color: var(--muted); font: .7rem var(--font-mono); }
+.graphus-selected-head { margin-top: 28px; }
+.graphus-selected-head h2 { margin: 5px 0; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.graphus-map { padding: 15px; border: 1px solid var(--line-strong); border-radius: 9px; background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--brass) 10%, transparent), transparent 45%), var(--bg0); }
+.graphus-map-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; color: var(--faint); font: .66rem var(--font-mono); text-align: center; letter-spacing: .05em; }
+.graphus-map svg { display: block; width: 100%; height: auto; max-height: 410px; }
+.graphus-map-links path { fill: none; stroke: var(--line-strong); stroke-width: 2; }
+.graphus-map-nodes circle { fill: var(--bg1); stroke: var(--brass-bright); stroke-width: 2; }
+.graphus-map-nodes text { fill: var(--fg); font: 500 14px var(--font-mono); }
+.graphus-map-core { fill: var(--bg1); stroke: var(--brass-bright); stroke-width: 3; }
+.graphus-map-core-label { fill: var(--brass-bright); font: 600 27px var(--font-mono); }
+.graphus-map-caption, .graphus-map-extra { fill: var(--muted); font: 11px var(--font-mono); }
+.graphus-map p { margin: 0; color: var(--muted); font-size: .73rem; text-align: center; }
+.graphus-inspector { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(250px, .95fr); gap: 12px; margin-top: 14px; }
+.graphus-io-column, .graphus-evidence { min-width: 0; padding: 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg1); }
+.graphus-io-column h3, .graphus-evidence h3 { margin: 0 0 13px; font-size: 1rem; }
+.graphus-io-column h3 small { margin-left: 5px; color: var(--muted); font: .75rem var(--font-mono); }
+.graphus-io-scroll { display: grid; align-content: start; gap: 7px; max-height: 400px; overflow: auto; }
+.graphus-io-scroll button { display: grid; gap: 3px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg0); color: var(--fg); text-align: left; cursor: pointer; }
+.graphus-io-scroll button.is-selected { border-color: var(--brass-bright); }
+.graphus-io-scroll button span { color: var(--muted); font: .68rem var(--font-mono); text-transform: uppercase; }
+.graphus-io-scroll button strong { font: 500 .83rem var(--font-mono); overflow-wrap: anywhere; }
+.graphus-io-scroll button small, .graphus-io-scroll p { color: var(--faint); font: .68rem var(--font-mono); overflow-wrap: anywhere; }
+.graphus-evidence h3 { margin-top: 6px; }
+.graphus-evidence > p, .graphus-evidence > small { color: var(--muted); font-size: .75rem; line-height: 1.6; }
+.graphus-evidence dl { display: grid; gap: 10px; margin: 0; }
+.graphus-evidence dl > div { display: grid; gap: 3px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.graphus-evidence dt { color: var(--faint); font-size: .65rem; text-transform: uppercase; }
+.graphus-evidence dd { margin: 0; font: .72rem/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.graphus-provenance { display: flex; gap: 5px 12px; flex-wrap: wrap; margin: 20px 0 10px; color: var(--brass); font: .68rem var(--font-mono); }
+.graphus-trace-button { margin-top: 15px; }
+.graphus-script-section { margin-top: 40px; scroll-margin-top: 88px; }
+.graphus-script-summary { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; margin: 13px 0; font: .74rem var(--font-mono); }
+.graphus-script-summary strong { color: var(--fg); }
+.graphus-script-summary span, .graphus-script-summary code { color: var(--muted); }
+.graphus-script-map { padding: 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brass) 10%, transparent), transparent 50%), var(--bg0); }
+.graphus-script-map svg { display: block; width: 100%; max-height: 360px; }
+.graphus-script-map p { margin: 0; color: var(--muted); text-align: center; font-size: .72rem; }
+.graphus-event-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.graphus-event-list > div { display: flex; gap: 7px 14px; flex-wrap: wrap; align-items: center; min-width: 0; padding: 11px 13px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg1); font: .7rem var(--font-mono); }
+.graphus-event-list strong { color: var(--brass); font-size: .65rem; }
+.graphus-event-list span { color: var(--muted); }
+.graphus-event-list a { overflow-wrap: anywhere; }
+@media (max-width: 1000px) { .graphus-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .graphus-evidence { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .graphus-inspector, .graphus-event-list { grid-template-columns: 1fr; } .graphus-evidence { grid-column: auto; } .graphus-lookup > div { flex-direction: column; } .graphus-map { padding: 9px; } .graphus-map-head { font-size: .55rem; } }
