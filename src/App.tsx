@@ -599,6 +599,7 @@ export function App() {
             ))}
             <a href="/api/v1/capabilities" rel="noopener">REST API</a>
             <a href="https://blochinc.xyz/" rel="noopener">Bloch Inc. ↗</a>
+            <a href="https://bloch-graphus.xyz/constellation?wallet=SIM-BLCH-001" rel="noopener noreferrer">Graphus · BLCH ↗</a>
             <a href="https://posternlabs.com" rel="noopener">posternlabs.com ↗</a>
           </div>
           <RpcStatus p={pulse} />

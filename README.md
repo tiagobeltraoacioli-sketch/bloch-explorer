@@ -40,6 +40,10 @@ bundle served in production byte for byte.
   live peer sockets, using that same fresh-node filter.
   Connections can be counted by more than one observer; this is not the number
   of unique network nodes.
+- The dashboard's **Bloch Graphus** panel links to a BLCH wallet example in
+  Graphus of Bloch Inc. The panel and destination identify the public
+  constellation as synthetic; no wallet score or Graphus research output is
+  presented as a live Genesis-4 chain reading.
 - The **network page** pairs fresh Prometheus connection aggregates with the
   separate RPC observer diagnostics. The connection panel expires with its
   oldest peer sample and polls only while the RPC nodes tab is open. Its trend

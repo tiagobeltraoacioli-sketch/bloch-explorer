@@ -33,6 +33,7 @@ import { Kpi, SlotStrip, StripLegend } from "../components/kit";
 import { TxLandings } from "../components/txBits";
 import { ChainOverview } from "../components/chainOverview";
 import { DataDesk } from "../components/dataDesk";
+import { GraphusPanel } from "../components/GraphusPanel";
 import { indexerHealth, type IndexerHealth } from "../lib/indexer";
 import { fmtBloch, fmtCompactBloch, fmtInt, fmtNum, fmtBytes, fmtTime } from "../lib/format";
 import { Link } from "../lib/router";
@@ -267,6 +268,7 @@ export function G4Dashboard() {
     <div className="container">
       <ChainOverview head={head} cells={ordered} mempool={mp} stale={!!err} corroboration={corro} indexer={indexer} observability={observability} />
       <DataDesk summary={observability} />
+      <GraphusPanel />
       <section className="card validator-constellation" aria-labelledby="validator-constellation-title">
         <div className="validator-constellation-copy">
           <span className="eyebrow">LIVE VALIDATOR REGISTRY</span>
