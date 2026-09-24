@@ -135,6 +135,7 @@ function TxDetail({ tx }: { tx: IndexedTx }) {
 }
 
 export function TxAnswerPage({ hash }: { hash?: string }) {
+  const blockId = new URLSearchParams(window.location.search).get("block") ?? undefined;
   const [attempt, setAttempt] = useState(0);
   const [indexError, setIndexError] = useState<string | null>(null);
   const [matches, setMatches] = useState<IndexedTx[]>([]);
@@ -146,12 +147,12 @@ export function TxAnswerPage({ hash }: { hash?: string }) {
     setMatches([]);
     setIndexError(null);
     if (hash && wellFormed) {
-      indexedTransaction(hash.toLowerCase())
+      indexedTransaction(hash.toLowerCase(), blockId)
         .then((value) => { if (!stop) setTx(value); })
         .catch(e => { if (!stop) { setTx(null); if (e instanceof IndexedTxAmbiguity) setMatches(e.matches); else setIndexError(e instanceof Error ? e.message : "Historical index unavailable."); } });
     }
     return () => { stop = true; };
-  }, [hash, attempt, wellFormed]);
+  }, [hash, attempt, wellFormed, blockId]);
 
   if (!hash) return <div className="container">
     <h1 className="page-title">Transaction lookup</h1>

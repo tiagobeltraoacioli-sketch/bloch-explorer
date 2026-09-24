@@ -212,19 +212,20 @@ export class IndexedTxAmbiguity extends Error {
   }
 }
 
-export async function indexedTransaction(txid: string): Promise<IndexedTx | null> {
+export async function indexedTransaction(txid: string, blockId?: string): Promise<IndexedTx | null> {
+  if (blockId !== undefined && !/^[0-9a-f]{64}$/i.test(blockId)) throw new Error("Invalid transaction block reference.");
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${INDEXER_BASE}/tx/${txid}`, { signal: ac.signal });
+    const res = await fetch(`${INDEXER_BASE}/tx/${txid}${blockId ? `?block=${blockId.toLowerCase()}` : ""}`, { signal: ac.signal });
     if (res.status === 404) return null;
     if (res.status === 409) {
       const body = await res.json();
-      if (Array.isArray(body.matches) && body.matches.length > 0 && body.matches.every((t: unknown) => isIndexedTx(t) && t.txid.toLowerCase() === txid.toLowerCase())) throw new IndexedTxAmbiguity(body.matches);
+      if (Array.isArray(body.matches) && body.matches.length > 0 && body.matches.every((t: unknown) => isIndexedTx(t) && t.txid.toLowerCase() === txid.toLowerCase() && (!blockId || t.block_id.toLowerCase() === blockId.toLowerCase()))) throw new IndexedTxAmbiguity(body.matches);
     }
     if (!res.ok) throw new Error(res.status === 409 ? "The indexed snapshot changed. Restart this history to read the current chain." : `Indexer unavailable (${res.status}). Please retry.`);
     const body: unknown = await res.json();
-    if (!isIndexedTx(body) || body.txid.toLowerCase() !== txid.toLowerCase()) throw new Error("The indexer returned an invalid transaction receipt. Please retry.");
+    if (!isIndexedTx(body) || body.txid.toLowerCase() !== txid.toLowerCase() || (blockId && body.block_id.toLowerCase() !== blockId.toLowerCase())) throw new Error("The indexer returned an invalid transaction receipt. Please retry.");
     return body;
   } finally {
     clearTimeout(timer);

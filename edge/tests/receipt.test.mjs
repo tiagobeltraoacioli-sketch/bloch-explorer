@@ -35,3 +35,13 @@ test('lookup distinguishes missing, unavailable, malformed and ambiguous receipt
   body = { matches: [{}] };
   await assert.rejects(indexedTransaction(txid), /snapshot changed/);
 });
+
+test('a graph receipt link pins its block and rejects another occurrence', async t => {
+  let requested, body = tx;
+  t.mock.method(globalThis, 'fetch', async url => { requested = url; return Response.json(body); });
+  assert.deepEqual(await indexedTransaction(txid, tx.block_id), tx);
+  assert.equal(requested, `/indexer/tx/${txid}?block=${tx.block_id}`);
+  body = { ...tx, block_id: 'd'.repeat(64) };
+  await assert.rejects(indexedTransaction(txid, tx.block_id), /invalid transaction/);
+  await assert.rejects(indexedTransaction(txid, 'invalid'), /Invalid transaction block/);
+});

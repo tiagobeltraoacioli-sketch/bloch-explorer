@@ -6,10 +6,11 @@ import { G4Search, SEARCH_INPUT_ID } from "./components/g4search";
 import { g4HeadWithMeta, pollWhileVisible, G4Head, G4Corroboration } from "./lib/g4";
 import { fmtInt } from "./lib/format";
 import { toggleTheme, useTheme } from "./lib/theme";
-import { G4Dashboard } from "./pages/G4Dashboard";
+import { IntelligencePage } from "./pages/Intelligence";
 import { RouteBoundary } from "./components/RouteBoundary";
-// The dashboard is the only eager page. Every specialist surface is loaded on
+// The atlas is the only eager page. Every specialist surface is loaded on
 // demand, keeping the first visit light even as the explorer grows richer.
+const G4Dashboard = lazy(() => import("./pages/G4Dashboard").then((m) => ({ default: m.G4Dashboard })));
 const FinalityPage = lazy(() => import("./pages/Finality").then((m) => ({ default: m.FinalityPage })));
 const G4BlockPage = lazy(() => import("./pages/G4Block").then((m) => ({ default: m.G4BlockPage })));
 const G4BlocksPage = lazy(() => import("./pages/G4Blocks").then((m) => ({ default: m.G4BlocksPage })));
@@ -36,6 +37,7 @@ const ValidatorGuidePage = lazy(() => import("./pages/ValidatorGuide").then((m) 
 // link. Dynamic imports are module-cached, so the subsequent lazy render reuses
 // the same request instead of making a second one.
 const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
+  "/chain": () => import("./pages/G4Dashboard"),
   "/blocks": () => import("./pages/G4Blocks"),
   "/transactions": () => import("./pages/Transactions"),
   "/analytics": () => import("./pages/Analytics"),
@@ -99,7 +101,8 @@ type NavRoute = Route & { nav?: string; group?: string; desktop?: boolean; hint?
 
 const ROUTES: NavRoute[] = [
   { pattern: "/validators/guide", nav: "Validator guide", desktop: false, group: "Network", hint: "validator operations guide", render: () => <ValidatorGuidePage /> },
-  { pattern: "/", nav: "Chain", group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
+  { pattern: "/", nav: "Atlas", group: "Chain", hint: "graphs, evidence and machine learning", render: () => <IntelligencePage /> },
+  { pattern: "/chain", nav: "Chain", desktop: false, group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
   { pattern: "/transactions", nav: "Txs", group: "Chain", hint: "where they landed; each one, when indexed", render: () => <TransactionsPage /> },
   { pattern: "/analytics", desktop: false, nav: "Analytics", group: "Chain", hint: "epochs, proposers, emission", render: () => <AnalyticsPage /> },
@@ -561,7 +564,7 @@ export function App() {
 
       <Drawer open={drawer} onClose={closeDrawer} path={path} returnFocusRef={menuRef} />
 
-      <main id="main" tabIndex={-1}>
+      <main id="main" className={path === "/" ? "atlas-main" : undefined} tabIndex={-1}>
         <RouteBoundary key={path}>
           <Suspense fallback={
             <div className="route-loading" role="status" aria-live="polite" aria-label="Loading explorer view">

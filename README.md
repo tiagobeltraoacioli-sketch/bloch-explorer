@@ -11,6 +11,13 @@ bundle served in production byte for byte.
 
 ## What it is
 
+- The **graph intelligence atlas** is the homepage: four interactive relation and
+  balance maps, six quantitative panels, source records and CSV/JSON exports.
+  It connects Bloch Space telemetry to the canonical Bloch indexer, with evaluated
+  ridge time-series modeling and deterministic transaction-shape clustering.
+  The existing full chain dashboard is available at `/chain`.
+  See [sources, graph limits and model methodology](docs/graph-intelligence-atlas.md).
+
 - A **React + Vite** single-page app (`src/`) with a live dashboard, pages for
   blocks and slots, epochs and chain analytics, transactions, hashes and
   outpoints, validators and their queues, finality, fees and mempool, supply,
