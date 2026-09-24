@@ -36,7 +36,7 @@ export async function onRequestGet(context) {
     out = url.pathname === '/api/v1/observability'
       ? await handleObservability(env, opts)
       : url.pathname === '/api/v1/observability/peer-history'
-        ? await handlePeerHistory(env, opts)
+        ? await handlePeerHistory(env, { ...opts, period: url.searchParams.get('period') ?? undefined })
         : await handleApi(url.pathname, url.searchParams, opts);
   } catch (e) {
     // An unhandled fault at the edge is an edge fault. Say so, rather than

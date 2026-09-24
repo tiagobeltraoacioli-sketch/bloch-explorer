@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { appendPeerHistory, freshPeerReading, observabilitySummary, peerRangeHistory, type PeerHistorySample, type PeerRangePoint } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, peerRangeHistory, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -43,10 +43,11 @@ function support(method: RpcMethod, nodes: Observer[], now: number): string {
 
 function NetworkConnections() {
   const live = useLiveRead<unknown>("/api/v1/observability", 30_000);
-  const rangeLive = useLiveRead<unknown>("/api/v1/observability/peer-history", 300_000);
   const [now, setNow] = useState(() => Date.now());
   const [history, setHistory] = useState<PeerHistorySample[]>([]);
-  const [chartMode, setChartMode] = useState<"six-hours" | "session">("six-hours");
+  const [chartMode, setChartMode] = useState<PeerRangePeriod | "session">("6h");
+  const period: PeerRangePeriod = chartMode === "session" ? "6h" : chartMode;
+  const rangeLive = useLiveRead<unknown>(`/api/v1/observability/peer-history?period=${period}`, 300_000);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
     return () => clearInterval(timer);
@@ -64,8 +65,8 @@ function NetworkConnections() {
     }));
   }, [live.updatedAt, live.error, summary?.sampledAt, reading?.connections, reading?.reportingNodes]);
   const measured = (value: number | null | undefined) => value == null ? "—" : fmtInt(value);
-  const range = peerRangeHistory(rangeLive.data);
-  const trend: PeerRangePoint[] = chartMode === "six-hours" ? range ?? [] : history.map(sample => ({
+  const range = peerRangeHistory(rangeLive.data, period);
+  const trend: PeerRangePoint[] = chartMode !== "session" ? range ?? [] : history.map(sample => ({
     at: sample.at, connections: sample.connections, reportingNodes: sample.reportingNodes,
   }));
   const valid = trend.filter((point): point is PeerRangePoint & { connections: number; reportingNodes: number } =>
@@ -78,11 +79,11 @@ function NetworkConnections() {
   const x = (sample: PeerRangePoint) => 20 + (sample.at - first.at) / duration * 560;
   const y = (connections: number) => high === low ? 80 : 140 - (connections - low) / span * 120;
   const segments: (PeerRangePoint & { connections: number; reportingNodes: number })[][] = [];
-  for (const point of trend) {
+  for (let index = 0; index < trend.length; index++) {
+    const point = trend[index];
     if (point.connections === null || point.reportingNodes === null) continue;
-    const previous = segments.at(-1)?.at(-1);
-    const prior = trend[trend.indexOf(point) - 1];
-    if (!previous || prior !== previous || previous.reportingNodes !== point.reportingNodes) segments.push([]);
+    const previous = trend[index - 1];
+    if (!previous || previous.connections === null || previous.reportingNodes !== point.reportingNodes) segments.push([]);
     segments.at(-1)!.push(point as PeerRangePoint & { connections: number; reportingNodes: number });
   }
   const sessionChange = history.length > 1 ? history.at(-1)!.connections - history[0].connections : 0;
@@ -94,9 +95,9 @@ function NetworkConnections() {
       <div className="card"><span className="eyebrow">CONNECTIONS PER NODE</span><strong>{reading?.minPerNode == null || reading.maxPerNode == null ? "—" : `${measured(reading.minPerNode)}–${measured(reading.maxPerNode)}`}</strong><small>Fewest to most · median {reading?.medianPerNode == null ? "—" : reading.medianPerNode.toLocaleString(undefined, { maximumFractionDigits: 1 })}</small></div>
       <div className="card"><span className="eyebrow">SAMPLE STATUS</span><strong>{reading ? "Live" : "Waiting"}</strong><small>{live.error ?? (reading ? "Refreshes every 30 seconds" : "No fresh network reading")}</small></div>
     </div>
-    <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode === "six-hours" ? `${valid.length} / ${trend.length || 73} five-minute samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
-    <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period"><button type="button" className={chartMode === "six-hours" ? "active" : ""} aria-pressed={chartMode === "six-hours"} onClick={() => setChartMode("six-hours")}>Last 6 hours</button><button type="button" className={chartMode === "session" ? "active" : ""} aria-pressed={chartMode === "session"} onClick={() => setChartMode("session")}>This session</button></div>
-    {valid.length < 2 ? <div className="telemetry-empty">{chartMode === "six-hours" ? rangeLive.error ?? "Waiting for historical samples from Prometheus." : "The session chart starts after two fresh readings with the same reporter count."}</div> : <>
+    <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode !== "session" ? `${valid.length} / ${trend.length || (period === "7d" ? 169 : period === "24h" ? 97 : 73)} samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
+    <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period">{(["6h", "24h", "7d", "session"] as const).map(value => <button key={value} type="button" className={chartMode === value ? "active" : ""} aria-pressed={chartMode === value} onClick={() => setChartMode(value)}>{value === "6h" ? "Last 6 hours" : value === "24h" ? "Last 24 hours" : value === "7d" ? "Last 7 days" : "This session"}</button>)}</div>
+    {valid.length < 2 ? <div className="telemetry-empty">{chartMode !== "session" ? rangeLive.error ?? "Waiting for historical samples from Prometheus." : "The session chart starts after two fresh readings with the same reporter count."}</div> : <>
       <div className="peer-history-chart" role="img" aria-label={`Reported connections ranged from ${low} to ${high} across ${valid.length} measured points. Gaps or changes in reporting-node count interrupt the line.`}>
         <svg viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"><path d="M20 140H580" className="peer-history-baseline" />{segments.map((segment, index) => segment.length > 1
           ? <polyline key={index} points={segment.map(point => `${x(point)},${y(point.connections)}`).join(" ")} />
@@ -105,7 +106,7 @@ function NetworkConnections() {
       <div className="peer-history-axis"><span>{new Date(first.at).toLocaleTimeString()}</span><span>{fmtInt(low)}–{fmtInt(high)} connections</span><span>{new Date(last?.at ?? first.at).toLocaleTimeString()}</span></div>
       <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Sampled at</th><th>Connections</th><th>Reporting nodes</th></tr></thead><tbody>{[...trend].reverse().map(point => <tr key={point.at}><td>{new Date(point.at).toLocaleString()}</td><td>{measured(point.connections)}</td><td>{measured(point.reportingNodes)}</td></tr>)}</tbody></table></div></details>
     </>}
-    <p className="lookup-hint">The six-hour view uses fixed five-minute Prometheus samples. Missing readings and changes in reporter coverage break the line. The session view starts when this tab opens and restarts after a 75-second gap or coverage change. Both charts scale vertically to their observed range.</p>
+    <p className="lookup-hint">Historical views use fixed Prometheus samples: 5 minutes over 6 hours, 15 minutes over 24 hours, or 1 hour over 7 days. Missing readings and changed reporter coverage break the line. The session view starts when this tab opens and restarts after a 75-second gap or coverage change. All charts scale vertically to their observed range.</p>
     <p className="lookup-hint">A peer may connect to several monitored nodes, so these are connection reports, not unique network peers. “Devnet” is a transport name, not the chain stage. Prometheus coverage and RPC observer health measure different node sets.</p>
   </section>;
 }

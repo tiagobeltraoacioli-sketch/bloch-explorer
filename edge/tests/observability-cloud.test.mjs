@@ -276,6 +276,7 @@ test('fixed six-hour peer history preserves gaps and hides Prometheus labels', a
   });
   assert.equal(out.status, 200);
   assert.equal(out.body.state, 'live');
+  assert.equal(out.body.data.period, '6h');
   assert.equal(out.body.data.points.length, 73);
   assert.equal(out.body.data.valid_points, 2);
   assert.deepEqual(out.body.data.points[0], { at: start * 1000, connections: 0, reporting_nodes: 44 });
@@ -306,8 +307,37 @@ test('peer history rejects invalid matrix responses and malformed browser data',
   const start = 1720000000000;
   const points = Array.from({ length: 73 }, (_, index) =>
     ({ at: start + index * 300_000, connections: 5, reporting_nodes: 2 }));
-  const good = { data: { start_at: start, end_at: start + 72 * 300_000, step_seconds: 300, points } };
+  const good = { data: { period: '6h', start_at: start, end_at: start + 72 * 300_000, step_seconds: 300, points } };
   assert.equal(peerRangeHistory(good)?.length, 73);
+  assert.equal(peerRangeHistory(good, '24h'), null);
   assert.equal(peerRangeHistory({ data: { ...good.data, points: points.slice(1) } }), null);
   assert.equal(peerRangeHistory({ data: { ...good.data, points: [{ ...points[0], reporting_nodes: 0 }, ...points.slice(1)] } }), null);
+});
+
+test('history periods are allowlisted with bounded fixed resolutions', async () => {
+  for (const [period, step, steps] of [['24h', 900, 96], ['7d', 3600, 168]]) {
+    const seen = [];
+    const out = await handlePeerHistory(env, {
+      period, now: () => 1720000000000,
+      fetchImpl: async input => {
+        seen.push(new URL(input));
+        return Response.json({ status: 'success', data: { resultType: 'matrix', result: [] } });
+      },
+    });
+    assert.equal(out.status, 200);
+    assert.equal(out.body.state, 'awaiting_telemetry');
+    assert.equal(out.body.data.period, period);
+    assert.equal(out.body.data.step_seconds, step);
+    assert.equal(out.body.data.points.length, steps + 1);
+    assert.equal(out.body.data.valid_points, 0);
+    assert.equal(peerRangeHistory(out.body, period)?.length, steps + 1);
+    assert.equal(seen.length, 2);
+    assert.ok(seen.every(url => url.searchParams.get('step') === String(step)));
+  }
+  let fetched = false;
+  const invalid = await handlePeerHistory(env, { period: '30d',
+    fetchImpl: async () => { fetched = true; } });
+  assert.equal(invalid.status, 400);
+  assert.deepEqual(invalid.body.error.allowed, ['6h', '24h', '7d']);
+  assert.equal(fetched, false);
 });

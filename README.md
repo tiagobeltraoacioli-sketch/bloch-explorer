@@ -41,14 +41,14 @@ bundle served in production byte for byte.
 - The **network page** pairs fresh Prometheus connection aggregates with the
   separate RPC observer diagnostics. The connection panel expires with its
   oldest peer sample and polls only while the RPC nodes tab is open. Its trend
-  chart can show six hours of fixed five-minute Prometheus samples or the
-  current browser session. Missing historical points and changed reporter
+  chart can show six hours (5-minute steps), 24 hours (15-minute steps), seven
+  days (hourly steps), or the current browser session. Missing historical points and changed reporter
   coverage break the line; the session chart restarts when coverage changes or
   the sampling gap exceeds 75 seconds.
-  `GET /api/v1/observability/peer-history` returns 73 fixed five-minute buckets
-  over six hours. Each bucket reports aggregate connections and reporting-node
+  `GET /api/v1/observability/peer-history?period=6h|24h|7d` returns 73, 97 or
+  169 fixed buckets, respectively. Each bucket reports aggregate connections and reporting-node
   count or explicit `null` when the fresh aggregate is unavailable. The endpoint
-  ignores caller query parameters and exposes neither PromQL nor node labels.
+  accepts a period from that allowlist and exposes neither PromQL nor node labels.
 
 ## Develop
 

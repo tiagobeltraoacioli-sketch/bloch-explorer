@@ -111,21 +111,28 @@ export function appendPeerHistory(history: PeerHistorySample[], sample: PeerHist
 }
 
 export interface PeerRangePoint { at: number; connections: number | null; reportingNodes: number | null }
+export type PeerRangePeriod = "6h" | "24h" | "7d";
+const PEER_RANGE_WINDOWS: Record<PeerRangePeriod, { stepSeconds: number; steps: number }> = {
+  "6h": { stepSeconds: 300, steps: 72 },
+  "24h": { stepSeconds: 900, steps: 96 },
+  "7d": { stepSeconds: 3600, steps: 168 },
+};
 
-/** Keep missing five-minute buckets missing; never turn them into zero peers. */
-export function peerRangeHistory(value: unknown): PeerRangePoint[] | null {
+/** Keep missing buckets missing; never turn them into zero peers. */
+export function peerRangeHistory(value: unknown, expectedPeriod: PeerRangePeriod = "6h"): PeerRangePoint[] | null {
   if (!value || typeof value !== "object") return null;
   const data = (value as { data?: unknown }).data;
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-  const source = data as { points?: unknown; start_at?: unknown; end_at?: unknown; step_seconds?: unknown };
-  if (source.step_seconds !== 300 || !Number.isSafeInteger(source.start_at) ||
+  const source = data as { period?: unknown; points?: unknown; start_at?: unknown; end_at?: unknown; step_seconds?: unknown };
+  const { stepSeconds, steps } = PEER_RANGE_WINDOWS[expectedPeriod];
+  if (source.period !== expectedPeriod || source.step_seconds !== stepSeconds || !Number.isSafeInteger(source.start_at) ||
       !Number.isSafeInteger(source.end_at) || !Array.isArray(source.points) ||
-      source.points.length !== 73 || (source.end_at as number) - (source.start_at as number) !== 72 * 300_000) return null;
+      source.points.length !== steps + 1 || (source.end_at as number) - (source.start_at as number) !== steps * stepSeconds * 1000) return null;
   const points: PeerRangePoint[] = [];
   for (const [index, item] of source.points.entries()) {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const point = item as { at?: unknown; connections?: unknown; reporting_nodes?: unknown };
-    if (point.at !== (source.start_at as number) + index * 300_000) return null;
+    if (point.at !== (source.start_at as number) + index * stepSeconds * 1000) return null;
     const connections = countMetric(point.connections);
     const reportingNodes = countMetric(point.reporting_nodes);
     if ((point.connections !== null || point.reporting_nodes !== null) &&
