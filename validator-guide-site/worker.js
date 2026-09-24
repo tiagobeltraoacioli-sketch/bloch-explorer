@@ -24,8 +24,8 @@ export default {
       rewriter.on('.desktop-nav, .mobile-menu nav, .footer-links', {
         element(element) { element.append('<a href="/releases">Weekly releases</a>', { html: true }); }
       });
-      if (home) rewriter.on('.hero-actions', {
-        element(element) { element.append('<a class="button button-outline" href="/validators">Run a validator <span aria-hidden="true">→</span></a>', { html: true }); }
+      if (home) rewriter.on('#wallet .card-link', {
+        element(element) { element.setAttribute('href', 'https://posternlabs.com/apps/wallet/'); }
       });
       else rewriter.on('section#validators', {
         element(element) {
