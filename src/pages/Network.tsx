@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { appendPeerHistory, freshPeerReading, observabilitySummary, peerDistribution, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, peerDistribution, peerDistributionCsv, peerDistributionInsights, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -57,6 +57,7 @@ function NetworkConnections() {
   const reading = freshPeerReading(summary, now);
   const distributionResponse = peerDistribution(distributionLive.data);
   const distribution = distributionResponse && peerSampleFresh(distributionResponse.sampledAt, now) ? distributionResponse : null;
+  const distributionInsights = distribution ? peerDistributionInsights(distribution) : null;
   const tallestBin = Math.max(1, ...(distribution?.bins.map(bin => bin.reportingNodes) ?? []));
   useEffect(() => {
     if (live.error || !reading || summary?.sampledAt == null ||
@@ -104,6 +105,18 @@ function NetworkConnections() {
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
+  const downloadDistributionCsv = () => {
+    if (!distribution || !distributionInsights) return;
+    const blob = new Blob([peerDistributionCsv(distribution)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `bloch-peer-distribution-${new Date(distribution.sampledAt).toISOString().replace(/[:.]/g, "-")}.csv`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
   return <section className="card" aria-labelledby="network-connections-heading">
     <div className="section-heading"><div><span className="eyebrow">PROMETHEUS / GENESIS-4 NODES</span><h2 id="network-connections-heading">Network connections</h2><p>Fresh samples from monitored chain nodes, separate from the explorer’s RPC observer pool.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
     <div className="edge-counter-grid" aria-live="polite">
@@ -113,9 +126,15 @@ function NetworkConnections() {
       <div className="card"><span className="eyebrow">ZERO-CONNECTION NODES</span><strong>{measured(reading?.isolatedNodes)}</strong><small>{live.error ?? (reading ? "Monitored nodes with no live peer sockets" : "Awaiting fresh network readings")}</small></div>
     </div>
     <div className="peer-distribution-head"><div><h3>Connections across monitored nodes</h3><p>Each row groups nodes reporting the same live socket count.</p></div><span>{distribution ? `${distribution.reportingNodes} reporting nodes · oldest sample ${new Date(distribution.sampledAt).toLocaleTimeString()}` : "Awaiting fresh distribution"}</span></div>
+    {distributionInsights && <div className="peer-quality-grid peer-distribution-metrics" aria-label="Connection distribution insights">
+      <div><span>Connections in distribution</span><strong>{fmtInt(distributionInsights.totalConnections)}</strong><small>Sum across current reporting nodes</small></div>
+      <div><span>90th percentile per node</span><strong>{fmtInt(distributionInsights.p90Connections)}</strong><small>Nearest rank across reporting nodes</small></div>
+      <div><span>Top 10% connection share</span><strong>{distributionInsights.topConnectionShare === null ? "—" : `${distributionInsights.topConnectionShare.toFixed(1)}%`}</strong><small>Highest {fmtInt(distributionInsights.topNodeCount)} reporting nodes</small></div>
+    </div>}
     {distribution?.bins.length ? <div className="peer-distribution-list" role="list" aria-label="Distribution of connection counts across monitored nodes">
       {distribution.bins.map(bin => <div className="peer-distribution-row" role="listitem" key={bin.connectionsPerNode}><span>{fmtInt(bin.connectionsPerNode)} connections</span><div className="peer-distribution-track" aria-hidden="true"><i style={{ width: `${bin.reportingNodes / tallestBin * 100}%` }} /></div><strong>{fmtInt(bin.reportingNodes)} {bin.reportingNodes === 1 ? "node" : "nodes"}</strong></div>)}
     </div> : <div className="telemetry-empty">{distributionLive.error ?? "Waiting for fresh per-node connection counts."}</div>}
+    <div className="peer-history-tools"><span>UTC source timestamp · aggregate counts only</span><button className="btn btn-sm" type="button" onClick={downloadDistributionCsv} disabled={!distributionInsights}>Download distribution CSV</button></div>
     <p className="lookup-hint">This is a frequency of connection counts, not a list of node identities or a count of distinct remote peers. Samples older than 90 seconds are hidden.</p>
     <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode !== "session" ? `${valid.length} / ${trend.length || (period === "7d" ? 169 : period === "24h" ? 97 : 73)} samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
     <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period">{(["6h", "24h", "7d", "session"] as const).map(value => <button key={value} type="button" className={chartMode === value ? "active" : ""} aria-pressed={chartMode === value} onClick={() => setChartMode(value)}>{value === "6h" ? "Last 6 hours" : value === "24h" ? "Last 24 hours" : value === "7d" ? "Last 7 days" : "This session"}</button>)}</div>

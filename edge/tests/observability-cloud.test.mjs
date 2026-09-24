@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, handlePeerDistribution, handlePeerHistory, observabilityQueries } from '../observability.js';
-import { appendPeerHistory, freshPeerReading, peerDistribution, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { appendPeerHistory, freshPeerReading, peerDistribution, peerDistributionCsv, peerDistributionInsights, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -423,6 +423,30 @@ test('peer distribution withholds bins when source heartbeat is stale', async ()
   assert.equal(out.body.state, 'awaiting_telemetry');
   assert.equal(out.body.data, null);
   assert.equal(peerDistribution(out.body), null);
+});
+
+test('distribution insights weight nodes, handle partial top bins, and export source time', () => {
+  const distribution = peerDistribution({ data: { peer_sampled_at: 1720000000000, reporting_nodes: 20,
+    bins: [
+      { connections_per_node: 0, reporting_nodes: 3 },
+      { connections_per_node: 2, reporting_nodes: 12 },
+      { connections_per_node: 10, reporting_nodes: 5 },
+    ] } });
+  assert.ok(distribution);
+  assert.deepEqual(peerDistributionInsights(distribution), {
+    totalConnections: 74, p90Connections: 10, topNodeCount: 2, topConnectionShare: 20 / 74 * 100,
+  });
+  assert.equal(peerDistributionCsv(distribution), [
+    'oldest_sample_at_utc,connections_per_node,reporting_nodes,reported_connections',
+    '2024-07-03T09:46:40.000Z,0,3,0',
+    '2024-07-03T09:46:40.000Z,2,12,24',
+    '2024-07-03T09:46:40.000Z,10,5,50',
+    '',
+  ].join('\n'));
+  assert.equal(peerDistributionInsights({ ...distribution, bins: [{ connectionsPerNode: Number.MAX_SAFE_INTEGER,
+    reportingNodes: 20 }] }), null);
+  assert.equal(peerDistributionInsights({ ...distribution, bins: [{ connectionsPerNode: 0,
+    reportingNodes: 20 }] })?.topConnectionShare, null);
 });
 
 test('peer distribution rejects duplicate or malformed bins', async () => {

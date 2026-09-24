@@ -201,6 +201,42 @@ export function peerDistribution(value: unknown): PeerDistribution | null {
   return { bins, reportingNodes, sampledAt };
 }
 
+/** Weighted node percentiles and connection concentration from aggregate bins. */
+export function peerDistributionInsights(distribution: PeerDistribution) {
+  const { bins, reportingNodes } = distribution;
+  if (!bins.length || reportingNodes < 1) return null;
+  let totalConnections = 0;
+  for (const bin of bins) {
+    const connections = bin.connectionsPerNode * bin.reportingNodes;
+    if (!Number.isSafeInteger(connections) || !Number.isSafeInteger(totalConnections + connections)) return null;
+    totalConnections += connections;
+  }
+  const p90Rank = Math.ceil(reportingNodes * 0.9);
+  let cumulativeNodes = 0;
+  let p90Connections = bins.at(-1)!.connectionsPerNode;
+  for (const bin of bins) {
+    cumulativeNodes += bin.reportingNodes;
+    if (cumulativeNodes >= p90Rank) { p90Connections = bin.connectionsPerNode; break; }
+  }
+  const topNodeCount = Math.ceil(reportingNodes * 0.1);
+  let remaining = topNodeCount;
+  let topConnections = 0;
+  for (let index = bins.length - 1; index >= 0 && remaining > 0; index--) {
+    const taken = Math.min(remaining, bins[index].reportingNodes);
+    topConnections += taken * bins[index].connectionsPerNode;
+    remaining -= taken;
+  }
+  return { totalConnections, p90Connections, topNodeCount,
+    topConnectionShare: totalConnections > 0 ? topConnections / totalConnections * 100 : null };
+}
+
+export function peerDistributionCsv(distribution: PeerDistribution): string {
+  const sampledAt = new Date(distribution.sampledAt).toISOString();
+  const rows = distribution.bins.map(bin =>
+    `${sampledAt},${bin.connectionsPerNode},${bin.reportingNodes},${bin.connectionsPerNode * bin.reportingNodes}`);
+  return ["oldest_sample_at_utc,connections_per_node,reporting_nodes,reported_connections", ...rows].join("\n") + "\n";
+}
+
 /** The homepage must advertise infrastructure telemetry only after at least
  * one real metric family is present. Connectivity alone is not data. */
 export function observabilityPromotion(value: unknown): ObservabilityPromotion | null {

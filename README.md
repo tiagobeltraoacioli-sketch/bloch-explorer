@@ -55,7 +55,9 @@ bundle served in production byte for byte.
   as CSV with UTC timestamps and empty fields for missing readings.
   `GET /api/v1/observability/peer-distribution` returns the current, aggregate
   frequency of live socket counts per monitored node. It has no instance names,
-  addresses, peer identities or arbitrary query surface.
+  addresses, peer identities or arbitrary query surface. The network view derives
+  the 90th percentile and top-decile connection share from those bins and exports
+  them as CSV with the oldest underlying heartbeat timestamp.
 
 ## Develop
 
