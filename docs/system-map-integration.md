@@ -35,3 +35,31 @@ EXPLORER_ORIGIN=https://blochl1.com PLAYWRIGHT_MODULE=/path/to/playwright/index.
 The local browser run uses clearly named fixtures at the API boundary. It checks the four viewport widths (1,440, 1,280, 1,024 and 390 px), module clicks/dialogs, no implicit source capture, all five asset contracts, validated exports, searches, graph inspection, themes, baseline comparison, partial failures, cancellation, asset-switch races and registry failure/retry. Production mode uses actual Graphus APIs. `SYSTEM_MAP_ASSETS` can select a comma-separated subset when repeating a source check. Screenshots are written outside the repository to `/private/tmp/bloch-system-map/`.
 
 The existing explorer suite also verifies the unchanged RPC/indexer contracts. Node-source parity checks require a matching node checkout and are reported as skipped when unavailable. Production uses the existing `bloch-explorer` Pages project; deploy the Graphus API release before the explorer frontend.
+
+### Published release — 2026-09-24
+
+Explorer release `d407c8cb` publishes source commit `5e9fab4` at `https://blochl1.com/system-map`. The companion Graphus API release is `d574fa04`, source commit `1c6df13`. The Explorer release starts from the previously deployed `db13541`; it does not include the separate unpublished gateway change on another local branch.
+
+Local verification: 189 Explorer tests passed, seven existing node-source parity tests skipped, no failures; TypeScript/Vite build passed. The five-asset local WebKit harness passed, including baseline, partial failure, cancellation and late-response handling. All 27 selected Graphus API/registry/evidence tests passed.
+
+Production WebKit verified all 44 modules at 1,440, 1,280, 1,024 and 390 px, actual selection, filters, dialogs, expanded view and no horizontal overflow. A separate homepage check followed the System Map link into the native route. Real captures, reference search, graph inspection and full/filtered exports validated these bounded observations across separate runs:
+
+| Asset | Records | References, including transaction nodes | Dataset SHA-256 |
+| --- | ---: | ---: | --- |
+| BTC | 75 | 81 | `b5bf5b9a86496c77fd5def69c25300a89f0be581d3bbc96bc43bad6c9f59a0b7` |
+| ETH | 24 | 42 | `b5f1275de33cabd1837a0d3f7bc4f5bfefcd1628d35eb4483c2b7973f90a5c20` |
+| BLCH | 844 | 49 | `821aef60a6bcd631c1476920c0a5314dcad39ca165c58563fb1b67d6b107b35f` |
+| USDT | 193 | 264 | `c2e4532a9c66285238bd1088f1abac0ed55e837cba127e37aad7c6e4501681e7` |
+| USDC | 278 | 257 | `de7c7e57c06196c4599d4e5270d21406a9eda2268d2d49e7f1fa85d889917f86` |
+
+These are source samples, not synchronized network totals. Navigation, inspection, filtering and export made no additional source reads. Live phone inspector and light-theme graph screenshots were inspected.
+
+Initial token requests encountered intermittent HTTP 502 responses. The custom domain sometimes returned a Cloudflare plain-text error without CORS; the release URL returned the API's CORS-enabled `chain_source_unavailable` response. Later browser requests returned valid USDT/USDC samples. Failures were shown explicitly and did not create substitute data. The two targeted token runs completed the System Map interactions but failed the harness's final zero-page-errors assertion because the existing header RPC fallback at `posternlabs.com/g4rpc` reported browser access-control failures. This is not a completely green production smoke test or an availability guarantee; the gateway/fallback implementation was unchanged by this release.
+
+Content verification fetched the production asset URLs from the served HTML and compared their bytes to the local build:
+
+| Asset | SHA-256 |
+| --- | --- |
+| `index-D10mxTuo.js` | `3675d467106e42e2d0c09a6801c67a2c92406d73bb04d9debb43746e87fbab2b` |
+| `index-JSoYUbhk.css` | `2bc14ac96ceb49016117e3ce9529efe3b87d1db1d0a53f05f2d11a4da413019a` |
+| `SystemMap-Bk-tGsS_.js` | `f608e7a97f96cf4e82cd819990df89f90526aa3739e55639c5114bd2cff1cd84` |
