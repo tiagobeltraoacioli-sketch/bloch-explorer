@@ -49,7 +49,7 @@ export function graphusPage(value: unknown): { transactions: GraphusTransaction[
 }
 
 export interface GraphusEvent {
-  kind: "created" | "spent"; txid: string; transactionId: string | null;
+  kind: "created" | "spent"; txid: string; transactionId: string | null; blockId: string | null;
   vout: number; valueSat: string; slot: number; height: number;
 }
 export interface GraphusHistory {
@@ -101,9 +101,11 @@ export function graphusHistory(value: unknown, expectedScriptHash: string): Grap
     const event = item as Record<string, unknown>;
     if ((event.kind !== "created" && event.kind !== "spent") || !hash(event.txid) ||
         (event.transaction_id != null && !hash(event.transaction_id)) ||
+        (event.block_id != null && !hash(event.block_id)) ||
         !count(event.vout) || !sat(event.value_sat) || !count(event.slot) || !count(event.height)) return null;
     events.push({ kind: event.kind, txid: event.txid,
       transactionId: typeof event.transaction_id === "string" ? event.transaction_id : null,
+      blockId: typeof event.block_id === "string" ? event.block_id : null,
       vout: event.vout, valueSat: event.value_sat, slot: event.slot, height: event.height });
   }
   return { scriptHash: expectedScriptHash, total: page.total, events,

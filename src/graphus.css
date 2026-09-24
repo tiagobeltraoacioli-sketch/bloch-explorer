@@ -61,7 +61,7 @@
 .graphus-neighbor-list > div { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg1); font: .7rem var(--font-mono); }
 .graphus-neighbor-list strong { color: var(--brass); }
 .graphus-neighbor-list span, .graphus-neighbor-list small { grid-column: 2; color: var(--muted); overflow-wrap: anywhere; }
-.graphus-neighbor-list a:last-child { grid-column: 2; }
+.graphus-neighbor-links { grid-column: 2; display: flex; gap: 5px 15px; flex-wrap: wrap; }
 .graphus-event-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .graphus-event-list > div { display: flex; gap: 7px 14px; flex-wrap: wrap; align-items: center; min-width: 0; padding: 11px 13px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg1); font: .7rem var(--font-mono); }
 .graphus-event-list strong { color: var(--brass); font-size: .65rem; }

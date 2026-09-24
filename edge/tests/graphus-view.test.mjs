@@ -33,18 +33,21 @@ test('Bloch constellation refuses malformed references and amounts', () => {
 });
 
 test('script constellation preserves created and spent events without inventing ownership', () => {
-  const history = graphusHistory({ script_hash: script, total: 2, as_of_slot: 118484,
+  const rawHistory = { script_hash: script, total: 2, as_of_slot: 118484,
     source: 'archival-1 / canonical blocks.log', verification: 'consensus replay and state-root verification',
     events: [
-      { kind: 'created', txid, transaction_id: txid, vout: 0, value_sat: '391099999999993502', slot: 118400, height: 89200, owner: 'false-claim' },
+      { kind: 'created', txid, transaction_id: txid, block_id: block, vout: 0, value_sat: '391099999999993502', slot: 118400, height: 89200, owner: 'false-claim' },
       { kind: 'spent', txid, transaction_id: previous, vout: 0, value_sat: '391099999999993502', slot: 118484, height: 89276 },
-    ] }, script);
+    ] };
+  const history = graphusHistory(rawHistory, script);
   assert.ok(history);
   assert.equal(history.events.length, 2);
   assert.equal(history.events[1].transactionId, previous);
+  assert.equal(history.events[0].blockId, block);
   assert.equal(history.events[0].valueSat, '391099999999993502');
   assert.ok(!JSON.stringify(history).includes('false-claim'));
-  assert.equal(graphusHistory({ ...history, script_hash: 'f'.repeat(64) }, script), null);
+  assert.equal(graphusHistory({ ...rawHistory, script_hash: 'f'.repeat(64) }, script), null);
+  assert.equal(graphusHistory({ ...rawHistory, events: [{ ...rawHistory.events[0], block_id: 'bad' }] }, script), null);
 });
 
 test('wallet reference map counts shared transactions and exact values without linking inputs to outputs', () => {
