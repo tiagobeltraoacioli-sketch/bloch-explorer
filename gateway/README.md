@@ -1,5 +1,21 @@
 # Genesis-4 production gateway replacement
 
+## Cold-cache evidence recovery — 2026-09-24
+
+Gateway 2.0.2 refreshes the archival plane before serving a cached,
+branch-sensitive read. Cloudflare response caches can survive isolate recycling
+while in-memory plane evidence does not. Previously this produced `-32051`
+with `not_probed` even when healthy observers and a fleet witness were reachable.
+The refresh uses the existing coalescing, deadline, budget and evidence TTL.
+A newly observed lineage contradiction invalidates the old cached answer.
+Missing or contradictory evidence still fails the strict gateway check.
+
+Regression coverage exercises warm caches in cold isolates, failed evidence
+refresh, bounded repeated reads, and finalized block reuse without refetching
+the block. Deployment must retain existing gateway variables (`--keep-vars`).
+The previous production Worker version is
+`b06d2e28-ccfa-451b-88be-183b1b6dc3f1` for rollback.
+
 **Live at https://posternlabs.com/g4rpc since 2026-09-14.** Gateway 2.0.0,
 Worker version `b917ff94-c568-477a-bbbf-e4c523e6a974`. See the production record
 below; the earlier permission limitation and preview notes are historical.

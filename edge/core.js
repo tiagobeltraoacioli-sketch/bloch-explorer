@@ -841,10 +841,21 @@ export async function handleRead(payload, opts) {
 
   const epoch = wit && wit.ok && wit.chain ? Number(wit.chain.epoch) : null;
   const ctx = { salt: salt(), epoch };
-  const key = cacheKeyFor(method, params, spec, ctx);
+  let key = cacheKeyFor(method, params, spec, ctx);
 
   // ── 3. cache ──────────────────────────────────────────────────────────────
-  const hit = await readCache(opts.cache, key, spec, now(), false);
+  let hit = await readCache(opts.cache, key, spec, now(), false);
+  if (hit && isBranchSensitive(method)) {
+    // The Cache API survives isolate recycling; plane evidence does not.
+    // Renew the bounded evidence before labelling a cached mutable reading.
+    await refreshPlane({ ...opts, archivals: opts.pools.archivals, witness: wit,
+      deadlineAt: requestDeadline }, false);
+    if (ctx.salt !== salt()) {
+      // A newly observed lineage contradiction invalidates the old cache key.
+      key = cacheKeyFor(method, params, spec, { ...ctx, salt: salt() });
+      hit = null;
+    }
+  }
   if (hit) {
     counters.cacheHits += 1;
     return finish(hit.result, hit.meta, {

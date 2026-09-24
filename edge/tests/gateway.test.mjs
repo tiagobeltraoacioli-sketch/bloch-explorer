@@ -2,6 +2,7 @@ import { test, beforeEach } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { handleGateway, enforceReadQuorum, readBounded, resetGatewayForTests, MAX_BODY } from '../../gateway/worker.js';
 import { ARCHIVALS, FLEET, clock, fakeCache, fakeFetch, chainInfo, reset } from './harness.mjs';
+import { _resetCoreForTests } from '../core.js';
 
 beforeEach(() => { reset(); resetGatewayForTests(); });
 const payload = (method = 'getchaininfo', params = []) => ({ jsonrpc: '2.0', id: 7, method, params });
@@ -132,6 +133,39 @@ test('real read engine serves agreeing observers with fresh fleet evidence', asy
   const r = await call(payload(), { fetchImpl: alignedFetch(map) });
   const v = await r.json(); assert.equal(v.result.corroboration.level, 'corroborated');
   assert.equal(v.result.corroboration.archival_witnesses, 2);
+});
+
+test('a warm response cache in a cold isolate renews plane evidence before a strict read', async () => {
+  const now = clock(), cache = fakeCache();
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push(url);
+    return Response.json({ jsonrpc: '2.0', id: JSON.parse(init.body).id, result: chainInfo() });
+  };
+  const overrides = { now, cache, fetchImpl };
+  assert.equal((await (await call(payload(), overrides)).json()).result.corroboration.level, 'corroborated');
+  _resetCoreForTests(); calls.length = 0;
+  const recovered = await (await call(payload(), overrides)).json();
+  assert.equal(recovered.error, undefined);
+  assert.equal(recovered.result.corroboration.plane.certified, true);
+  assert.equal(recovered.result.corroboration.level, 'corroborated');
+  assert.deepEqual(calls.sort(), [...ARCHIVALS].sort());
+  calls.length = 0;
+  await call(payload(), overrides);
+  assert.equal(calls.length, 0, 'fresh plane evidence remains bounded by its TTL');
+});
+
+test('a cached strict read still fails closed when renewed plane evidence is unavailable', async () => {
+  const now = clock(), cache = fakeCache(); let unavailable = false;
+  const fetchImpl = async (url, init) => unavailable && ARCHIVALS.includes(url)
+    ? new Response('', { status: 503 })
+    : Response.json({ jsonrpc: '2.0', id: JSON.parse(init.body).id, result: chainInfo() });
+  const overrides = { now, cache, fetchImpl };
+  assert.ok((await (await call(payload(), overrides)).json()).result);
+  _resetCoreForTests(); unavailable = true;
+  const refused = await (await call(payload(), overrides)).json();
+  assert.equal(refused.error.code, -32051);
+  assert.equal(refused.result, undefined);
 });
 
 test('broadcast rejects redirects and oversized replies without retrying', async () => {

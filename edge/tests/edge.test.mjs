@@ -240,7 +240,8 @@ test('a finalised block is fetched once and then never again', async () => {
   now.advance(24 * 3_600_000);
   const again = await handleRead(call('getblockbyslot', [54_000]), o);
   assert.equal(again.cacheState, 'hit');
-  assert.equal(f.archival().length, after, 'a finalised block must not be re-fetched');
+  assert.equal(f.ofMethod('getblockbyslot').length, 2, 'a finalised block must not be re-fetched');
+  assert.equal(f.archival().length, after + 2, 'only the expired plane evidence is refreshed');
 });
 
 test('an unfinalised block expires quickly — the head is not immutable', async () => {
