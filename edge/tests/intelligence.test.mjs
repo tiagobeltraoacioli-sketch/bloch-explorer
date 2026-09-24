@@ -72,15 +72,26 @@ test('research route rejects arbitrary upstreams, duplicate windows and non-GET 
   assert.equal((await onRequest({ request: new Request('https://test/research', { method: 'POST' }) })).status, 405);
 });
 
-test('research route pins public origin, preserves provenance and fails closed', async () => {
-  const original = globalThis.fetch;
-  try {
-    let called;
-    globalThis.fetch = async (url, options) => { called = [url, options]; return Response.json({ network: 'bloch', period: '6h', points: [], source: 'telemetry', independent_verification: false }); };
-    const response = await onRequest({ request: new Request('https://test/research?period=6h') });
-    assert.equal(response.status, 200); assert.equal(called[0], 'https://bloch.space/api/series?network=bloch&range=6h'); assert.equal(called[1].redirect, 'error');
-    assert.equal((await response.json()).independent_verification, false);
-    globalThis.fetch = async () => Response.json({ network: 'ethereum', period: '6h', points: [] });
-    assert.equal((await onRequest({ request: new Request('https://test/research?period=6h') })).status, 503);
-  } finally { globalThis.fetch = original; }
+test('research uses the same bounded telemetry producer as Space without a circular public fetch', async t => {
+  const env = { GRAFANA_PROM_URL: 'https://prometheus.example/api/prom', GRAFANA_PROM_USER: 'test', GRAFANA_PROM_TOKEN: 'test-secret' };
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async input => {
+    const url = new URL(input); calls.push(url);
+    const start = Number(url.searchParams.get('start'));
+    return Response.json({ status: 'success', data: { resultType: 'matrix', result: [{ values: [[start, url.searchParams.get('query').startsWith('sum(') ? '5000' : '44']] }] } });
+  });
+  const response = await onRequest({ request: new Request('https://test/research?period=24h'), env });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.delivery, 'shared_source_direct');
+  assert.equal(body.independent_verification, false);
+  assert.equal(body.points.length, 97);
+  assert.equal(body.points[0].connections, 5000);
+  assert.equal(body.points[1].connections, null);
+  assert.equal(body.points[0].reporting_nodes, 44);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every(url => url.origin === 'https://prometheus.example' && url.pathname.endsWith('/query_range')));
+  assert.ok(!JSON.stringify(body).includes('test-secret'));
+  assert.ok(parseSpaceSeries(body, '24h'));
+  assert.equal((await onRequest({ request: new Request('https://test/research'), env: {} })).status, 503);
 });

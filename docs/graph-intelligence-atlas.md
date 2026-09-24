@@ -12,9 +12,12 @@ remains at `/chain`. Existing block, transaction, validator and Graphus routes r
   graph, not an inferred payment flow. Receipt links pin the indexed block.
 - `/indexer/holders?limit=64`: top funded script references, exact decimal satoshis,
   denominator from the same snapshot. Stake and delegation are outside this total.
-- `/research?period=6h|24h|7d`: a fixed, read-only public Bloch Space series endpoint.
-  No arbitrary URL or query is accepted. Upstream reads have an eight-second timeout,
-  a 256 KiB response cap and 60-second cache. Source provenance is preserved.
+- `/research?period=6h|24h|7d`: a Space-compatible envelope over the same bounded telemetry
+  producer used by Bloch Space. Its public series itself calls this explorer, so
+  the atlas calls `handlePeerHistory` directly to avoid circular Worker requests.
+  Two fixed aggregate Prometheus queries have six-second timeouts; the response
+  is cached for up to 60 seconds. No arbitrary URL, PromQL or query is accepted.
+  The response explicitly names the shared producer and both public source URLs.
 - `https://bloch-graphus.xyz/`: linked research reference, explicitly a synthetic
   product preview. Its synthetic wallet records and scores are **not** integrated.
   `bloch-grapus.xyz`, supplied initially, did not resolve during implementation.
@@ -60,7 +63,7 @@ structure, not identity, ownership, money flow or risk. Outputs include change.
 
 `npm test` covers source validation, exact monetary amounts, bounded graphs,
 missing-data/coverage behavior, no look-ahead in evaluation, constant series,
-deterministic clustering, pinned receipt occurrences and the fixed upstream route.
+deterministic clustering, pinned receipt occurrences and the shared-source route.
 
 After `npm run build`, `scripts/verify-atlas.mjs` starts a temporary local server
 with production read-only sources. Set `PLAYWRIGHT_MODULE` to the installed

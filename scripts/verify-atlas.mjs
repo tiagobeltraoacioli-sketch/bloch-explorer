@@ -5,7 +5,6 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { onRequest } from '../functions/research.js';
 
 const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE));
 const root = path.resolve('dist');
@@ -14,7 +13,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname === '/research') {
-      const response = await onRequest({ request: new Request(url) });
+      const response = await fetch(`https://blochl1.com/research${url.search}`);
       res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(await response.text()); return;
     }
     if (/^\/(rpc|g4|indexer|api)(\/|$)/.test(url.pathname)) {
@@ -66,6 +65,7 @@ try {
   await page.getByRole('button', { name: 'Export observations CSV' }).click();
   const download = await downloadPromise; await download.saveAs('/private/tmp/bloch-atlas-observations.csv');
   if (!fs.readFileSync('/private/tmp/bloch-atlas-observations.csv', 'utf8').startsWith('time_utc,connections,reporting_nodes')) throw new Error('CSV header mismatch');
+  await page.evaluate(() => { document.activeElement?.blur(); scrollTo(0, 0); });
   await page.screenshot({ path: '/private/tmp/bloch-atlas-desktop-full.png', fullPage: true });
   await page.evaluate(() => scrollTo(0, 0)); await page.screenshot({ path: '/private/tmp/bloch-atlas-desktop.png' });
   await page.getByRole('button', { name: 'Switch to the light theme', exact: true }).click();
@@ -77,7 +77,7 @@ try {
   // Upstream outage must preserve the full shell and explicit unavailable state.
   await page.route('**/research?*', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"test source outage"}' }));
   await page.getByRole('button', { name: '6h', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.atlas-warning')?.textContent.includes('Bloch Space unavailable'));
+  await page.waitForFunction(() => document.querySelector('.atlas-warning')?.textContent.includes('Shared telemetry unavailable'));
   if (await page.locator('.atlas-panel').count() !== 10) throw new Error('Outage erased the atlas shell');
   if (errors.length) throw new Error(errors.join('; '));
   console.log(JSON.stringify({ graphNodes: nodes, panels: 10, desktop: '1512px', mobile: '390px', themes: 2, graphSelection: 'passed', filters: 'passed', csv: 'passed', sourceOutage: 'passed', browserErrors: errors }));
