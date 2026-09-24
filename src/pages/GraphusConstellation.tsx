@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { Link } from "../lib/router";
-import { IndexedTxAmbiguity, indexedHistory, indexedTransaction, indexedTransactions } from "../lib/indexer";
-import { graphusHistory, graphusNeighbors, graphusPage, graphusTransaction, type GraphusHistory, type GraphusIo, type GraphusTransaction } from "../lib/graphus";
+import { IndexedTxAmbiguity, indexedHistory, indexedScriptBalance, indexedTransaction, indexedTransactions } from "../lib/indexer";
+import { graphusBalance, graphusHeat, graphusHistory, graphusNeighbors, graphusPage, graphusTransaction, type GraphusBalance, type GraphusHistory, type GraphusIo, type GraphusTransaction } from "../lib/graphus";
 import { classify } from "../lib/scriptHash";
 import { pollWhileVisible } from "../lib/polling";
 import { fmtInt } from "../lib/format";
@@ -75,6 +75,8 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
   const [busy, setBusy] = useState(false);
   const [sampled, setSampled] = useState<GraphusTransaction[]>([]);
   const [sampleBusy, setSampleBusy] = useState(false);
+  const [balances, setBalances] = useState<Record<string, GraphusBalance>>({});
+  const [balanceBusy, setBalanceBusy] = useState(false);
   const generation = useRef(0);
   const load = async (input: string) => {
     const reference = classify(input);
@@ -88,7 +90,7 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
       const result = graphusHistory(await indexedHistory(reference.scriptHash, null, 16), reference.scriptHash);
       if (!result) throw new Error("The historical index returned an invalid script history.");
       if (current === generation.current) {
-        setHistory(result); setQuery(input); setSampled([]); setSampleBusy(true);
+        setHistory(result); setQuery(input); setSampled([]); setSampleBusy(true); setBalances({}); setBalanceBusy(true);
         const location = new URL(window.location.href);
         location.searchParams.set("script", result.scriptHash);
         window.history.replaceState(window.history.state, "", location);
@@ -108,12 +110,17 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
           throw cause;
         }
       }));
+      const validReceipts = receipts.flatMap((receipt, index) => receipt.status === "fulfilled" && receipt.value?.slot === sampleEvents[index].slot && receipt.value.height === sampleEvents[index].height && (!sampleEvents[index].blockId || receipt.value.blockId === sampleEvents[index].blockId) ? [receipt.value] : []);
+      if (current === generation.current) { setSampled(validReceipts); setSampleBusy(false); }
+      const references = [result.scriptHash, ...graphusNeighbors(result.scriptHash, validReceipts).slice(0, 8).map(node => node.scriptHash)];
+      const snapshots = await Promise.allSettled(references.map(async scriptHash => graphusBalance(await indexedScriptBalance(scriptHash), scriptHash)));
       if (current === generation.current) {
-        setSampled(receipts.flatMap((receipt, index) => receipt.status === "fulfilled" && receipt.value?.slot === sampleEvents[index].slot && receipt.value.height === sampleEvents[index].height && (!sampleEvents[index].blockId || receipt.value.blockId === sampleEvents[index].blockId) ? [receipt.value] : []));
-        setSampleBusy(false);
+        const found: Record<string, GraphusBalance> = {};
+        snapshots.forEach((snapshot, index) => { if (snapshot.status === "fulfilled" && snapshot.value) found[references[index]] = snapshot.value; });
+        setBalances(found); setBalanceBusy(false);
       }
     } catch (cause) {
-      if (current === generation.current) { setError(cause instanceof Error ? cause.message : "Script history is unavailable."); setSampleBusy(false); }
+      if (current === generation.current) { setError(cause instanceof Error ? cause.message : "Script history is unavailable."); setSampleBusy(false); setBalanceBusy(false); }
     } finally { if (current === generation.current) setBusy(false); }
   };
   useEffect(() => {
@@ -127,6 +134,16 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
   };
   const events = history?.events.slice(0, 12) ?? [];
   const neighbors = history ? graphusNeighbors(history.scriptHash, sampled).slice(0, 8) : [];
+  const visibleBalances = history ? [history.scriptHash, ...neighbors.map(node => node.scriptHash)].map(scriptHash => balances[scriptHash]).filter((balance): balance is GraphusBalance => Boolean(balance)) : [];
+  const maxBalance = visibleBalances.reduce((max, balance) => BigInt(balance.balanceSat) > max ? BigInt(balance.balanceSat) : max, 0n).toString();
+  const balanceTotal = visibleBalances.reduce((total, balance) => total + BigInt(balance.balanceSat), 0n).toString();
+  const balanceHeights = [...new Set(visibleBalances.map(balance => balance.height))];
+  const heatClass = (scriptHash: string) => {
+    const balance = balances[scriptHash];
+    if (!balance) return "graphus-heat-unknown";
+    const intensity = graphusHeat(balance.balanceSat, maxBalance).intensity;
+    return `graphus-heat-${intensity === 0 ? 0 : Math.min(4, Math.ceil(intensity * 4))}`;
+  };
   return <section className="graphus-script-section" id="graphus-script" aria-labelledby="graphus-script-title">
     <div className="graphus-recent-head"><div><span className="eyebrow">SCRIPT REFERENCE / EVENT FAN</span><h2 id="graphus-script-title">Constellation of recorded events.</h2></div><span>Created and spent eUTXOs · one script hash</span></div>
     <p className="lookup-hint">A script hash groups indexed output records. It does not identify a person, a wallet owner, or an input-to-output value path.</p>
@@ -145,16 +162,19 @@ function ScriptConstellation({ initialScript }: { initialScript: string | null }
         </svg>
         <p>C = output created · S = output spent. Spatial position has no geographic or ownership meaning.</p>
       </div>
-      <div className="graphus-recent-head"><div><span className="eyebrow">WALLET REFERENCE MAP / SAMPLED TRANSACTIONS</span><h2>Scripts seen together on chain.</h2></div><span>{sampleBusy ? "Loading receipts…" : `${fmtInt(sampled.length)} transactions inspected · ${fmtInt(neighbors.length)} references shown`}</span></div>
-      <p className="lookup-hint">Select a point to explore that script reference within Graphus. Lines mean the references occur in the same sampled transaction; they do not identify wallet owners or prove a direct transfer. Up to four receipts and eight neighboring references are shown.</p>
+      <div className="graphus-recent-head"><div><span className="eyebrow">HOLDER HEAT MAP / WALLET REFERENCES</span><h2>Balance and activity, point by point.</h2></div><span>{sampleBusy || balanceBusy ? "Loading indexed records…" : `${fmtInt(sampled.length)} transactions · ${fmtInt(visibleBalances.length)} balances`}</span></div>
+      <p className="lookup-hint">Point area and color show the current indexed balance of each displayed script reference, scaled relative to this sample. Select a point to explore it within Graphus. Lines mean shared transaction presence; they do not prove common ownership or a direct transfer. This is a local sample of up to four receipts and eight neighbors, not a network-wide holder ranking.</p>
+      <div className="graphus-holder-stats"><div><span>Balance across displayed references</span><strong>{amount(balanceTotal)}</strong></div><div><span>Largest displayed balance</span><strong>{amount(maxBalance)}</strong></div><div><span>Balance snapshot</span><strong>{balanceHeights.length === 1 ? `H${fmtInt(balanceHeights[0])}` : balanceHeights.length > 1 ? `${balanceHeights.length} indexed heights` : "Unavailable"}</strong></div></div>
       <div className="graphus-wallet-map">
-        {neighbors.length ? <svg viewBox="0 0 800 380" role="group" aria-label={`${neighbors.length} script references co-occur with ${history.scriptHash} in ${sampled.length} sampled transactions. Every point links to its Bloch record.`}>
+        <svg viewBox="0 0 800 380" role="group" aria-label={`${neighbors.length} script references co-occur with ${history.scriptHash} in ${sampled.length} sampled transactions. Point size and color represent indexed balances relative to the displayed sample. Select a point to explore it.`}>
           <g className="graphus-map-links">{neighbors.map((node, index) => { const angle = index * Math.PI * 2 / neighbors.length - Math.PI / 2; return <path key={node.scriptHash} d={`M400 190L${400 + Math.cos(angle) * 285} ${190 + Math.sin(angle) * 135}`} />; })}</g>
-          <g className="graphus-map-nodes">{neighbors.map((node, index) => { const angle = index * Math.PI * 2 / neighbors.length - Math.PI / 2; const x = 400 + Math.cos(angle) * 285, y = 190 + Math.sin(angle) * 135; return <a key={node.scriptHash} href={`/graphus/constellation?script=${node.scriptHash}`} onClick={event => pivot(event, node.scriptHash)} aria-label={`Explore script reference ${node.scriptHash} in Graphus, seen in ${node.transactions} sampled transactions`}><circle cx={x} cy={y} r={19 + Math.min(node.transactions, 4) * 3} /><text x={x} y={y + 5} textAnchor="middle">{index + 1}</text></a>; })}</g>
-          <a href={`/hash/${history.scriptHash}`} aria-label={`Open selected script reference ${history.scriptHash}`}><circle className="graphus-map-core" cx="400" cy="190" r="43" /><text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">SH</text></a>
-        </svg> : <p>{sampleBusy ? "Reading a bounded transaction sample…" : "No other script references found in the available transaction sample."}</p>}
+          <g className="graphus-map-nodes">{neighbors.map((node, index) => { const angle = index * Math.PI * 2 / neighbors.length - Math.PI / 2; const x = 400 + Math.cos(angle) * 285, y = 190 + Math.sin(angle) * 135; const radius = balances[node.scriptHash] ? graphusHeat(balances[node.scriptHash].balanceSat, maxBalance).radius : 12; return <a key={node.scriptHash} className={heatClass(node.scriptHash)} href={`/graphus/constellation?script=${node.scriptHash}`} onClick={event => pivot(event, node.scriptHash)} aria-label={`Explore script reference ${node.scriptHash} in Graphus. Indexed balance ${balances[node.scriptHash] ? amount(balances[node.scriptHash].balanceSat) : "unavailable"}.`}><circle className="graphus-heat-halo" cx={x} cy={y} r={radius + 11} /><circle cx={x} cy={y} r={radius} /><text x={x} y={y + 5} textAnchor="middle">{index + 1}</text></a>; })}</g>
+          <a className={heatClass(history.scriptHash)} href={`/hash/${history.scriptHash}`} aria-label={`Open selected script reference ${history.scriptHash}. Indexed balance ${balances[history.scriptHash] ? amount(balances[history.scriptHash].balanceSat) : "unavailable"}.`}><circle className="graphus-heat-halo" cx="400" cy="190" r={(balances[history.scriptHash] ? graphusHeat(balances[history.scriptHash].balanceSat, maxBalance).radius : 12) + 11} /><circle className="graphus-map-core" cx="400" cy="190" r={balances[history.scriptHash] ? graphusHeat(balances[history.scriptHash].balanceSat, maxBalance).radius : 12} /><text className="graphus-map-core-label" x="400" y="196" textAnchor="middle">SH</text></a>
+        </svg>
+        {neighbors.length === 0 && <p>{sampleBusy ? "Reading a bounded transaction sample…" : "No other script references found in the available transaction sample."}</p>}
+        <div className="graphus-heat-legend" aria-label="Balance heat scale relative to the displayed sample"><span>0 sat</span><i aria-hidden="true" /><span>{amount(maxBalance)}</span></div>
       </div>
-      {neighbors.length > 0 && <div className="graphus-neighbor-list" role="list" aria-label="Script references seen in sampled transactions">{neighbors.map((node, index) => <div role="listitem" key={node.scriptHash}><strong>{index + 1}</strong><a href={`/graphus/constellation?script=${node.scriptHash}`} onClick={event => pivot(event, node.scriptHash)} className="mono-link">Explore {short(node.scriptHash)} →</a><span>{node.transactions} shared {node.transactions === 1 ? "transaction" : "transactions"} · {node.inputCount} inputs / {node.outputCount} outputs</span><small>Inputs {amount(node.inputSat)} · outputs {amount(node.outputSat)}</small><div className="graphus-neighbor-links"><Link to={`/hash/${node.scriptHash}`}>Full script record ↗</Link><Link to={`/tx/${node.txids[0]}`}>Example transaction ↗</Link></div></div>)}</div>}
+      {neighbors.length > 0 && <div className="graphus-neighbor-list" role="list" aria-label="Script references seen in sampled transactions">{neighbors.map((node, index) => <div role="listitem" key={node.scriptHash}><strong>{index + 1}</strong><a href={`/graphus/constellation?script=${node.scriptHash}`} onClick={event => pivot(event, node.scriptHash)} className="mono-link">Explore {short(node.scriptHash)} →</a><span>{balances[node.scriptHash] ? `${amount(balances[node.scriptHash].balanceSat)} held · ${fmtInt(balances[node.scriptHash].utxoCount)} UTXOs` : balanceBusy ? "Loading balance…" : "Balance unavailable"}</span><small>{node.transactions} shared {node.transactions === 1 ? "transaction" : "transactions"} · {node.inputCount} inputs / {node.outputCount} outputs</small><div className="graphus-neighbor-links"><Link to={`/hash/${node.scriptHash}`}>Full script record ↗</Link><Link to={`/tx/${node.txids[0]}`}>Example transaction ↗</Link></div></div>)}</div>}
       <div className="graphus-event-list" role="list" aria-label="Indexed events for this script hash">{history.events.map((event, index) => <div role="listitem" key={`${event.kind}-${event.txid}-${event.vout}-${index}`}><strong>{event.kind === "created" ? "CREATED" : "SPENT"}</strong><span>{amount(event.valueSat)} · H{fmtInt(event.height)} / S{fmtInt(event.slot)}</span><Link to={`/outpoint/${event.txid}/${event.vout}`}>{short(event.txid)}:{event.vout} ↗</Link>{event.transactionId && event.transactionId !== event.txid && <Link to={`/tx/${event.transactionId}`}>Spending transaction ↗</Link>}</div>)}</div>
       {history.total > history.events.length && <p className="lookup-hint">Showing the first {fmtInt(history.events.length)} events from a snapshot with {fmtInt(history.total)}. The complete history remains available through the indexer API.</p>}
       <p className="lookup-hint">Source: {history.source}{history.verification ? ` · ${history.verification}` : ""}. No private Graphus research records or scores are served here.</p>
@@ -172,7 +192,7 @@ export function GraphusConstellationPage() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [matches, setMatches] = useState<GraphusTransaction[]>([]);
   const [lookingUp, setLookingUp] = useState(false);
-  const [scriptTarget, setScriptTarget] = useState<string | null>(null);
+  const [scriptTarget, setScriptTarget] = useState<string | null>(() => new URLSearchParams(window.location.search).get("script"));
   useEffect(() => {
     let active = true;
     const stop = pollWhileVisible(async () => {
@@ -213,7 +233,7 @@ export function GraphusConstellationPage() {
   const selectedInPage = selectedFromFeed && page?.transactions.some(record =>
     record.txid === selected?.txid && record.blockId === selected?.blockId);
   return <div className="container graphus-page">
-    <div className="overview-heading"><div><span className="eyebrow">BLOCH GRAPHUS / GENESIS-4</span><h1>Bloch constellation.</h1><p>Real transaction structure from this explorer's historical indexer API.</p></div><Link to="/transactions">Transaction ledger ↗</Link></div>
+    <div className="overview-heading"><div><span className="eyebrow">BLOCH GRAPHUS / GENESIS-4</span><h1>Bloch constellation.</h1><p>Real transaction structure and a sampled wallet balance heat map from this explorer's historical indexer API.</p></div><a href="#graphus-script">Explore holder heat map ↓</a></div>
     <div className="graphus-page-boundary" role="status">This is a factual eUTXO view. It does not infer wallet owners, direct input-to-output value paths, risk, or AML scores. Graphus's separate public research preview has no live transaction API.</div>
     <form className="graphus-lookup" onSubmit={event => void lookup(event)}>
       <label htmlFor="graphus-txid">Find an indexed Bloch transaction</label>
@@ -235,6 +255,6 @@ export function GraphusConstellationPage() {
         <Evidence tx={selected} focus={focus} asOfSlot={selectedInPage ? page?.asOfSlot ?? null : null} source={selectedInPage ? page?.source ?? null : null} verification={selectedInPage ? page?.verification ?? null : null} onTrace={trace} />
       </div>
     </>}
-    <ScriptConstellation initialScript={scriptTarget} />
+    <ScriptConstellation initialScript={scriptTarget ?? selected?.outputs[0]?.scriptHash ?? selected?.inputs[0]?.scriptHash ?? null} />
   </div>;
 }

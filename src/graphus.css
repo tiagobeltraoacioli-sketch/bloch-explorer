@@ -57,6 +57,22 @@
 .graphus-wallet-map { padding: 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brass) 12%, transparent), transparent 52%), var(--bg0); }
 .graphus-wallet-map svg { display: block; width: 100%; max-height: 380px; }
 .graphus-wallet-map p { margin: 16px; color: var(--muted); text-align: center; font-size: .75rem; }
+.graphus-holder-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.graphus-holder-stats > div { display: grid; gap: 5px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg1); }
+.graphus-holder-stats span { color: var(--muted); font-size: .67rem; text-transform: uppercase; }
+.graphus-holder-stats strong { overflow-wrap: anywhere; font: 500 .85rem var(--font-mono); }
+.graphus-wallet-map .graphus-map-nodes a circle:not(.graphus-heat-halo), .graphus-wallet-map a > .graphus-map-core { fill: var(--bg1); stroke: var(--heat-color, var(--faint)); stroke-width: 3; }
+.graphus-wallet-map .graphus-heat-halo { fill: var(--heat-color, transparent); opacity: .13; stroke: none; }
+.graphus-wallet-map a:hover circle:not(.graphus-heat-halo), .graphus-wallet-map a:focus-visible circle:not(.graphus-heat-halo) { fill: color-mix(in srgb, var(--heat-color, var(--brass)) 32%, var(--bg1)); stroke-width: 4; }
+.graphus-wallet-map .graphus-map-core-label { font-size: 18px; }
+.graphus-heat-unknown { --heat-color: var(--faint); }
+.graphus-heat-0 { --heat-color: #657b90; }
+.graphus-heat-1 { --heat-color: #328eb5; }
+.graphus-heat-2 { --heat-color: #b5a74d; }
+.graphus-heat-3 { --heat-color: #d8813e; }
+.graphus-heat-4 { --heat-color: #e6533e; }
+.graphus-heat-legend { display: flex; align-items: center; gap: 10px; color: var(--muted); font: .68rem var(--font-mono); overflow-wrap: anywhere; }
+.graphus-heat-legend i { flex: 1; height: 8px; border-radius: 99px; background: linear-gradient(90deg, #657b90, #328eb5, #b5a74d, #d8813e, #e6533e); }
 .graphus-neighbor-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .graphus-neighbor-list > div { display: grid; grid-template-columns: auto 1fr; gap: 5px 10px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg1); font: .7rem var(--font-mono); }
 .graphus-neighbor-list strong { color: var(--brass); }
@@ -68,4 +84,4 @@
 .graphus-event-list span { color: var(--muted); }
 .graphus-event-list a { overflow-wrap: anywhere; }
 @media (max-width: 1000px) { .graphus-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .graphus-evidence { grid-column: 1 / -1; } }
-@media (max-width: 620px) { .graphus-inspector, .graphus-event-list, .graphus-neighbor-list { grid-template-columns: 1fr; } .graphus-evidence { grid-column: auto; } .graphus-lookup > div { flex-direction: column; } .graphus-map { padding: 9px; } .graphus-map-head { font-size: .55rem; } }
+@media (max-width: 620px) { .graphus-inspector, .graphus-event-list, .graphus-neighbor-list, .graphus-holder-stats { grid-template-columns: 1fr; } .graphus-evidence { grid-column: auto; } .graphus-lookup > div { flex-direction: column; } .graphus-map { padding: 9px; } .graphus-map-head { font-size: .55rem; } }

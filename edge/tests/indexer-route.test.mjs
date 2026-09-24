@@ -26,6 +26,17 @@ test('indexer route preserves exact amounts and only uses its fixed read origin'
     assert.equal(response.headers.get('cache-control'), 'no-store');
   } finally { globalThis.fetch = old; }
 });
+test('holder balance route forwards one validated script reference and exact satoshis', async () => {
+  const old = globalThis.fetch; let target;
+  globalThis.fetch = async url => { target = url; return Response.json({ script_hash: hash, balance_sat: '9007199254740993', utxo_count: 2, height: 90, chain_tip: hash }); };
+  try {
+    const response = await onRequest(ctx(`script/${hash}/balance`));
+    assert.equal(response.status, 200);
+    assert.equal(target, `http://139.180.166.5.nip.io:8080/indexer/script/${hash}/balance`);
+    assert.equal((await response.json()).balance_sat, '9007199254740993');
+    assert.equal((await onRequest(ctx('script/bad/balance'))).status, 404);
+  } finally { globalThis.fetch = old; }
+});
 test('indexer route fails closed on HTML and preserves a reorg conflict', async () => {
   const old = globalThis.fetch;
   try {

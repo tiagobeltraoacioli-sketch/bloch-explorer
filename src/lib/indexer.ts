@@ -32,6 +32,14 @@ export interface IndexedUtxoPage {
   as_of_slot: number;
 }
 
+export interface IndexedScriptBalance {
+  script_hash: string;
+  balance_sat: string;
+  utxo_count: number;
+  height: number;
+  chain_tip: string;
+}
+
 export interface IndexedOutpoint {
   txid: string;
   vout: number;
@@ -146,6 +154,10 @@ export function indexedUtxos(
   const q = new URLSearchParams({ limit: String(limit) });
   if (cursor) q.set("cursor", cursor);
   return get<IndexedUtxoPage>(`/utxos/${scriptHash}?${q}`);
+}
+
+export function indexedScriptBalance(scriptHash: string): Promise<IndexedScriptBalance> {
+  return get<IndexedScriptBalance>(`/script/${scriptHash}/balance`);
 }
 
 export function indexedOutpoint(txid: string, vout: number): Promise<IndexedOutpoint> {

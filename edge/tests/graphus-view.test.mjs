@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { graphusHistory, graphusNeighbors, graphusPage, graphusTransaction } from '../../src/lib/graphus.ts';
+import { graphusBalance, graphusHeat, graphusHistory, graphusNeighbors, graphusPage, graphusTransaction } from '../../src/lib/graphus.ts';
 
 const txid = 'a'.repeat(64), previous = 'b'.repeat(64), block = 'c'.repeat(64), script = 'd'.repeat(64);
 const receipt = {
@@ -60,4 +60,15 @@ test('wallet reference map counts shared transactions and exact values without l
     inputCount: 0, outputCount: 2, txids: [txid, previous],
   }]);
   assert.deepEqual(graphusNeighbors('invalid', [first]), []);
+});
+
+test('holder heat map preserves exact indexed balances and scales points only for display', () => {
+  const balance = graphusBalance({ script_hash: script, balance_sat: '9007199254740993', utxo_count: 3,
+    height: 89276, chain_tip: block }, script);
+  assert.deepEqual(balance, { scriptHash: script, balanceSat: '9007199254740993', utxoCount: 3,
+    height: 89276, chainTip: block });
+  assert.equal(graphusBalance({ script_hash: script, balance_sat: 42, utxo_count: 3, height: 1, chain_tip: block }, script), null);
+  assert.equal(graphusBalance({ script_hash: txid, balance_sat: '5', utxo_count: 1, height: 1, chain_tip: block }, script), null);
+  assert.ok(graphusHeat('1000000', '100000000').radius < graphusHeat('100000000', '100000000').radius);
+  assert.deepEqual(graphusHeat('0', '100000000'), { radius: 12, intensity: 0 });
 });

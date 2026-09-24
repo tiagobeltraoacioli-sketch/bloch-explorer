@@ -65,6 +65,26 @@ export interface GraphusNeighbor {
   inputCount: number; outputCount: number; txids: string[];
 }
 
+export interface GraphusBalance {
+  scriptHash: string; balanceSat: string; utxoCount: number; height: number; chainTip: string;
+}
+
+export function graphusBalance(value: unknown, expectedScriptHash: string): GraphusBalance | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (!hash(expectedScriptHash) || record.script_hash !== expectedScriptHash || !sat(record.balance_sat) ||
+      !count(record.utxo_count) || !count(record.height) || !hash(record.chain_tip)) return null;
+  return { scriptHash: expectedScriptHash, balanceSat: record.balance_sat,
+    utxoCount: record.utxo_count, height: record.height, chainTip: record.chain_tip };
+}
+
+/** Visual scale only; exact satoshis are kept as decimal strings everywhere. */
+export function graphusHeat(balanceSat: string, maxSat: string): { radius: number; intensity: number } {
+  if (!sat(balanceSat) || !sat(maxSat) || BigInt(balanceSat) === 0n || BigInt(maxSat) === 0n) return { radius: 12, intensity: 0 };
+  const ratio = Math.min(1, Math.log10(Number(balanceSat) + 1) / Math.log10(Number(maxSat) + 1));
+  return { radius: Math.round(17 + ratio * 29), intensity: ratio };
+}
+
 export function graphusNeighbors(focus: string, transactions: GraphusTransaction[]): GraphusNeighbor[] {
   if (!hash(focus)) return [];
   const neighbors = new Map<string, { txids: Set<string>; inputSat: bigint; outputSat: bigint; inputCount: number; outputCount: number }>();
