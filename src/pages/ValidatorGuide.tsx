@@ -16,19 +16,21 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Reviewed on September 22, 2026. Release and qualification records are timestamped observations.</p>
+      <p className="guide-date">Reviewed on September 24, 2026. Release and qualification records are timestamped observations.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>September 22 validator upgrade</h2>
-      <p>Existing synchronized Genesis-4 validators can upgrade to the signed Linux x86-64 binary built from commit <code>dade5a330181a7dd136cab1f6f173f31dbd70966</code>. Preserve the current command-line arguments, validator key environment, chain data and slashing-protection records. This package does not contain keys or a current bootstrap checkpoint.</p>
-      <div className="guide-actions"><a href="/releases/2026-09-22/bloch-pos" download>Download signed binary</a><a href="/releases/2026-09-22/README.md">Upgrade and verification instructions</a></div>
+      <h2>September 24 validator upgrade</h2>
+      <p>Existing synchronized Genesis-4 validators can upgrade to the signed Linux x86-64 binary built from commit <code>4d4c5075872c622fdd26aa418a9d249ec95fbcea</code>. Preserve the current command-line arguments, validator key environment, chain data and slashing-protection records. This package does not contain keys or a current bootstrap checkpoint.</p>
+      <div className="guide-actions"><a href="/releases/2026-09-24/bloch-pos" download>Download signed binary</a><a href="/releases/2026-09-24/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-09-22/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-09-22/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-09-22/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-09-22/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-09-22/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/main/releases/bloch-pos-2026-09-22">Repository copy</a></li>
+        <li><a href="/releases/2026-09-24/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-09-24/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-09-24/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-09-24/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-09-24/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/main/releases/bloch-pos-2026-09-24">Repository copy</a></li>
       </ul>
-      <p>Expected SHA-256: <code>1962c4a26c526e362e128a1b4ce45c20eded2c009e48f5d9eaea17741b9f5041</code>.</p>
+      <p>Expected SHA-256: <code>fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a</code>.</p>
+      <p>Before restarting, verify the signer-set pin required by <code>--ws-signer-set-sha3</code>. After replay, allow the two-epoch doppelganger observation before expecting validator activation. See the upgrade instructions for the complete checks.</p>
+      <p><a href="/releases/2026-09-22/README.md">Previous signed release — September 22</a></p>
     </section>
     <section className="guide-section" aria-label="Start a new validator">
       <h2>Start a new validator</h2>
