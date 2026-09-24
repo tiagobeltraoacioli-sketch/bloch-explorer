@@ -175,6 +175,32 @@ export function peerHistoryCsv(points: PeerRangePoint[]): string {
   return ["sampled_at_utc,reported_connections,reporting_nodes", ...rows].join("\n") + "\n";
 }
 
+export interface PeerDistributionBin { connectionsPerNode: number; reportingNodes: number }
+export interface PeerDistribution { bins: PeerDistributionBin[]; reportingNodes: number; sampledAt: number }
+
+/** Validated aggregate histogram; no Prometheus labels reach the browser. */
+export function peerDistribution(value: unknown): PeerDistribution | null {
+  if (!value || typeof value !== "object") return null;
+  const data = (value as { data?: unknown }).data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const source = data as { bins?: unknown; reporting_nodes?: unknown; sampled_at?: unknown };
+  const reportingNodes = countMetric(source.reporting_nodes);
+  const sampledAt = countMetric(source.sampled_at);
+  if (!Array.isArray(source.bins) || source.bins.length > 256 || reportingNodes === null || sampledAt === null) return null;
+  const bins: PeerDistributionBin[] = [];
+  for (const item of source.bins) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const bin = item as { connections_per_node?: unknown; reporting_nodes?: unknown };
+    const connectionsPerNode = countMetric(bin.connections_per_node);
+    const count = countMetric(bin.reporting_nodes);
+    if (connectionsPerNode === null || count === null || count < 1 ||
+        (bins.length > 0 && connectionsPerNode <= bins[bins.length - 1].connectionsPerNode)) return null;
+    bins.push({ connectionsPerNode, reportingNodes: count });
+  }
+  if (bins.reduce((total, bin) => total + bin.reportingNodes, 0) !== reportingNodes) return null;
+  return { bins, reportingNodes, sampledAt };
+}
+
 /** The homepage must advertise infrastructure telemetry only after at least
  * one real metric family is present. Connectivity alone is not data. */
 export function observabilityPromotion(value: unknown): ObservabilityPromotion | null {

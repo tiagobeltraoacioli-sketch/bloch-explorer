@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleObservability, handlePeerHistory, observabilityQueries } from '../observability.js';
-import { appendPeerHistory, freshPeerReading, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { handleObservability, handlePeerDistribution, handlePeerHistory, observabilityQueries } from '../observability.js';
+import { appendPeerHistory, freshPeerReading, peerDistribution, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -369,4 +369,52 @@ test('history quality and CSV distinguish missing buckets from measured zero', (
   assert.equal(csv[1], `${new Date(start).toISOString()},,`);
   assert.equal(csv[2], `${new Date(start + 300_000).toISOString()},0,44`);
   assert.equal(csv.length, 6);
+});
+
+test('peer distribution exposes only sorted aggregate frequencies', async () => {
+  const seen = [];
+  const out = await handlePeerDistribution(env, {
+    now: () => 1720000000000,
+    fetchImpl: async (input, init) => {
+      seen.push({ url: new URL(input), auth: init.headers.authorization });
+      return Response.json({ status: 'success', data: { resultType: 'vector', result: [
+        { metric: { connections: '127', private_host: 'must-not-leak' }, value: [1, '2'] },
+        { metric: { connections: '4', private_host: 'must-not-leak' }, value: [1, '1'] },
+      ] } });
+    },
+  });
+  assert.equal(out.status, 200);
+  assert.equal(out.body.state, 'live');
+  assert.deepEqual(out.body.data.bins, [
+    { connections_per_node: 4, reporting_nodes: 1 },
+    { connections_per_node: 127, reporting_nodes: 2 },
+  ]);
+  assert.equal(out.body.data.reporting_nodes, 3);
+  assert.deepEqual(peerDistribution(out.body), { sampledAt: 1720000000000, reportingNodes: 3,
+    bins: [{ connectionsPerNode: 4, reportingNodes: 1 }, { connectionsPerNode: 127, reportingNodes: 2 }] });
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].url.pathname, '/api/prom/api/v1/query');
+  assert.match(seen[0].url.searchParams.get('query'), /^count_values\("connections", bloch_pos_peer_count/);
+  assert.match(seen[0].url.searchParams.get('query'), /bloch_pos_heartbeat_unix/);
+  assert.equal(seen[0].auth, 'Basic dGVuYW50LTE6c2VjcmV0LXRva2Vu');
+  for (const secret of ['private_host', 'must-not-leak', 'secret-token', 'bloch_pos_peer_count']) {
+    assert.ok(!JSON.stringify(out.body).includes(secret));
+  }
+});
+
+test('peer distribution rejects duplicate or malformed bins', async () => {
+  const out = await handlePeerDistribution(env, {
+    fetchImpl: async () => Response.json({ status: 'success', data: { resultType: 'vector', result: [
+      { metric: { connections: '4' }, value: [1, '1'] },
+      { metric: { connections: '4' }, value: [1, '2'] },
+    ] } }),
+  });
+  assert.equal(out.status, 503);
+  assert.equal(out.body.error.reason, 'prometheus_distribution_unavailable');
+  assert.equal(peerDistribution({ data: { sampled_at: 1720000000000, reporting_nodes: 3,
+    bins: [{ connections_per_node: 4, reporting_nodes: 1 }] } }), null);
+  const unconfigured = await handlePeerDistribution({ ...env, GRAFANA_PROM_TOKEN: '' }, {
+    fetchImpl: async () => { throw new Error('must not fetch'); },
+  });
+  assert.equal(unconfigured.body.state, 'unconfigured');
 });

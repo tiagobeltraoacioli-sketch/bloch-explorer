@@ -19,6 +19,7 @@ const FRESH_PEER_SERIES =
   'bloch_pos_peer_count and on(instance) (bloch_pos_head_slot > 0) ' +
   `and on(instance) (time() - bloch_pos_heartbeat_unix <= ${PEER_MAX_SAMPLE_AGE_SECONDS}) ` +
   'and on(instance) (bloch_pos_heartbeat_unix <= time() + 5)';
+const PEER_DISTRIBUTION_QUERY = `count_values("connections", ${FRESH_PEER_SERIES})`;
 
 const QUERIES = Object.freeze({
   targets_total: 'count(up)',
@@ -209,6 +210,50 @@ export async function handlePeerHistory(env, runtime = {}) {
   } catch {
     return { status: 503, body: { data: null, state: 'unavailable', sampled_at: sampledAt,
       error: { reason: 'prometheus_history_unavailable' } } };
+  }
+}
+
+/** Exact frequency of reported socket counts, without node identity labels. */
+export async function handlePeerDistribution(env, runtime = {}) {
+  const sampledAt = (runtime.now ?? Date.now)();
+  const base = endpoint(env?.GRAFANA_PROM_URL);
+  const user = typeof env?.GRAFANA_PROM_USER === 'string' ? env.GRAFANA_PROM_USER.trim() : '';
+  const token = typeof env?.GRAFANA_PROM_TOKEN === 'string' ? env.GRAFANA_PROM_TOKEN : '';
+  if (!base || !user || !token) return { status: 200, body: { data: null, state: 'unconfigured', sampled_at: sampledAt } };
+  const url = new URL(base);
+  url.searchParams.set('query', PEER_DISTRIBUTION_QUERY);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), QUERY_TIMEOUT_MS);
+  try {
+    const response = await (runtime.fetchImpl ?? fetch)(url.toString(), {
+      method: 'GET', headers: { accept: 'application/json', authorization: basicAuth(user, token) },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error('prometheus_distribution_http');
+    const body = await response.json();
+    const result = body?.data?.result;
+    if (body?.status !== 'success' || body?.data?.resultType !== 'vector' ||
+        !Array.isArray(result) || result.length > 256) throw new Error('prometheus_invalid_distribution');
+    const seen = new Set();
+    const bins = result.map(item => {
+      const label = item?.metric?.connections;
+      const connections = typeof label === 'string' && /^(0|[1-9]\d{0,15})$/.test(label) ? Number(label) : NaN;
+      const count = typeof item?.value?.[1] === 'string' ? Number(item.value[1]) : NaN;
+      if (!Number.isSafeInteger(connections) || !Number.isSafeInteger(count) || count < 1 || seen.has(connections)) {
+        throw new Error('prometheus_invalid_distribution');
+      }
+      seen.add(connections);
+      return { connections_per_node: connections, reporting_nodes: count };
+    }).sort((a, b) => a.connections_per_node - b.connections_per_node);
+    const reportingNodes = bins.reduce((sum, bin) => sum + bin.reporting_nodes, 0);
+    if (!Number.isSafeInteger(reportingNodes)) throw new Error('prometheus_invalid_distribution');
+    return { status: 200, body: { data: { bins, reporting_nodes: reportingNodes, sampled_at: sampledAt },
+      state: bins.length ? 'live' : 'awaiting_telemetry', sampled_at: sampledAt } };
+  } catch {
+    return { status: 503, body: { data: null, state: 'unavailable', sampled_at: sampledAt,
+      error: { reason: 'prometheus_distribution_unavailable' } } };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

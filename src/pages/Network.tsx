@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { appendPeerHistory, freshPeerReading, observabilitySummary, peerHistoryCsv, peerRangeHistory, peerRangeQuality, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, peerDistribution, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -43,6 +43,7 @@ function support(method: RpcMethod, nodes: Observer[], now: number): string {
 
 function NetworkConnections() {
   const live = useLiveRead<unknown>("/api/v1/observability", 30_000);
+  const distributionLive = useLiveRead<unknown>("/api/v1/observability/peer-distribution", 30_000);
   const [now, setNow] = useState(() => Date.now());
   const [history, setHistory] = useState<PeerHistorySample[]>([]);
   const [chartMode, setChartMode] = useState<PeerRangePeriod | "session">("6h");
@@ -54,6 +55,9 @@ function NetworkConnections() {
   }, []);
   const summary = observabilitySummary(live.data);
   const reading = freshPeerReading(summary, now);
+  const distributionResponse = peerDistribution(distributionLive.data);
+  const distribution = distributionResponse && peerSampleFresh(distributionResponse.sampledAt, now) ? distributionResponse : null;
+  const tallestBin = Math.max(1, ...(distribution?.bins.map(bin => bin.reportingNodes) ?? []));
   useEffect(() => {
     if (live.error || !reading || summary?.sampledAt == null ||
         !Number.isSafeInteger(summary.sampledAt) || summary.sampledAt > now + 5_000 ||
@@ -108,6 +112,11 @@ function NetworkConnections() {
       <div className="card"><span className="eyebrow">CONNECTIONS PER NODE</span><strong>{reading?.minPerNode == null || reading.maxPerNode == null ? "—" : `${measured(reading.minPerNode)}–${measured(reading.maxPerNode)}`}</strong><small>Fewest to most · median {reading?.medianPerNode == null ? "—" : reading.medianPerNode.toLocaleString(undefined, { maximumFractionDigits: 1 })}</small></div>
       <div className="card"><span className="eyebrow">ZERO-CONNECTION NODES</span><strong>{measured(reading?.isolatedNodes)}</strong><small>{live.error ?? (reading ? "Monitored nodes with no live peer sockets" : "Awaiting fresh network readings")}</small></div>
     </div>
+    <div className="peer-distribution-head"><div><h3>Connections across monitored nodes</h3><p>Each row groups nodes reporting the same live socket count.</p></div><span>{distribution ? `${distribution.reportingNodes} reporting nodes · ${new Date(distribution.sampledAt).toLocaleTimeString()}` : "Awaiting fresh distribution"}</span></div>
+    {distribution?.bins.length ? <div className="peer-distribution-list" role="list" aria-label="Distribution of connection counts across monitored nodes">
+      {distribution.bins.map(bin => <div className="peer-distribution-row" role="listitem" key={bin.connectionsPerNode}><span>{fmtInt(bin.connectionsPerNode)} connections</span><div className="peer-distribution-track" aria-hidden="true"><i style={{ width: `${bin.reportingNodes / tallestBin * 100}%` }} /></div><strong>{fmtInt(bin.reportingNodes)} {bin.reportingNodes === 1 ? "node" : "nodes"}</strong></div>)}
+    </div> : <div className="telemetry-empty">{distributionLive.error ?? "Waiting for fresh per-node connection counts."}</div>}
+    <p className="lookup-hint">This is a frequency of connection counts, not a list of node identities or a count of distinct remote peers. Samples older than 90 seconds are hidden.</p>
     <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode !== "session" ? `${valid.length} / ${trend.length || (period === "7d" ? 169 : period === "24h" ? 97 : 73)} samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
     <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period">{(["6h", "24h", "7d", "session"] as const).map(value => <button key={value} type="button" className={chartMode === value ? "active" : ""} aria-pressed={chartMode === value} onClick={() => setChartMode(value)}>{value === "6h" ? "Last 6 hours" : value === "24h" ? "Last 24 hours" : value === "7d" ? "Last 7 days" : "This session"}</button>)}</div>
     {chartMode !== "session" && quality && <div className="peer-quality-grid" aria-label="Historical sample quality">

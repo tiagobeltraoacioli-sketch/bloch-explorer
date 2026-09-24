@@ -210,6 +210,7 @@ function notFound(detail) {
         'GET /api/v1/edge',
         'GET /api/v1/observability',
         'GET /api/v1/observability/peer-history',
+        'GET /api/v1/observability/peer-distribution',
       ],
     },
   };

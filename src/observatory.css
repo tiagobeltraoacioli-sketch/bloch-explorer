@@ -201,6 +201,16 @@ nav.mainnav a { font-family: var(--font-ui); font-size: .875rem; padding: 10px; 
 .peer-quality-grid strong { overflow-wrap: anywhere; font: 500 1.08rem var(--font-mono); }
 .peer-quality-grid small { color: var(--faint); font-size: .68rem; }
 .peer-history-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; color: var(--muted); font-size: .72rem; }
+.peer-distribution-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; margin: 22px 0 10px; }
+.peer-distribution-head h3 { margin: 0; font-size: 1rem; }
+.peer-distribution-head p, .peer-distribution-head > span { margin: 4px 0 0; color: var(--muted); font-size: .72rem; }
+.peer-distribution-list { max-height: 360px; overflow: auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg0); }
+.peer-distribution-row { display: grid; grid-template-columns: minmax(95px, 125px) minmax(60px, 1fr) minmax(55px, 80px); align-items: center; gap: 12px; min-height: 28px; font: .7rem var(--font-mono); }
+.peer-distribution-row > span { color: var(--muted); }
+.peer-distribution-row strong { font-weight: 500; text-align: right; }
+.peer-distribution-track { height: 7px; border-radius: 5px; background: var(--bg3); overflow: hidden; }
+.peer-distribution-track i { display: block; height: 100%; background: var(--brass-bright); }
+@media (max-width: 520px) { .peer-distribution-row { grid-template-columns: 90px minmax(35px, 1fr) 52px; gap: 7px; font-size: .62rem; } }
 @media (max-width: 760px) { .peer-quality-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1200px) { nav.mainnav { display: none; } .nav-toggle { display: inline-flex; } }
 @media (max-width: 1050px) { .network-tape { grid-template-columns: repeat(3, minmax(0, 1fr)); } .network-tape a:nth-child(4) { border-left: 0; } .network-tape a:nth-child(n+4) { border-top: 1px solid var(--line); } .consensus-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .consensus-rail::before { display: none; } .rail-stop { padding-top: 42px; } .overview-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } .overview-instrument:nth-child(odd) { border-left: 0; } .overview-instrument:nth-child(n+3) { border-top: 1px solid var(--line); } .overview-instrument:last-child { grid-column: 1 / -1; } .telemetry-metrics, .edge-counter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mempool-layout { grid-template-columns: 1fr; } .pool-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

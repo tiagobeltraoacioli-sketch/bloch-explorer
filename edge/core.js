@@ -686,7 +686,7 @@ export function capabilitiesJson(now) {
       stale_tolerance_slots: STALE_SLOTS,
       batch_requests: false,
     },
-    rest_resources: ['capabilities', 'status', 'network', 'build', 'tx-status/<txid>', 'blocks', 'block/<id-or-slot>', 'validators', 'validator/<index>', 'address/<address>', 'outpoint/<txid>/<vout>', 'mempool', 'edge', 'observability', 'observability/peer-history'],
+    rest_resources: ['capabilities', 'status', 'network', 'build', 'tx-status/<txid>', 'blocks', 'block/<id-or-slot>', 'validators', 'validator/<index>', 'address/<address>', 'outpoint/<txid>/<vout>', 'mempool', 'edge', 'observability', 'observability/peer-history', 'observability/peer-distribution'],
     honesty: [
       'This endpoint corroborates; it does not validate. It compares answers ' +
         'from independent nodes. It checks no signature and applies no state ' +

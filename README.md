@@ -53,6 +53,9 @@ bundle served in production byte for byte.
   accepts a period from that allowlist and exposes neither PromQL nor node labels.
   The network page summarizes sample coverage and exports the selected buckets
   as CSV with UTC timestamps and empty fields for missing readings.
+  `GET /api/v1/observability/peer-distribution` returns the current, aggregate
+  frequency of live socket counts per monitored node. It has no instance names,
+  addresses, peer identities or arbitrary query surface.
 
 ## Develop
 
