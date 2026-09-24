@@ -195,6 +195,13 @@ nav.mainnav a { font-family: var(--font-ui); font-size: .875rem; padding: 10px; 
 .peer-history-chart circle { fill: var(--brass-bright); }
 .peer-history-axis { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .peer-history-tabs { flex-wrap: wrap; margin-bottom: 12px; }
+.peer-quality-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 8px 0 14px; }
+.peer-quality-grid > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg0); }
+.peer-quality-grid span { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+.peer-quality-grid strong { overflow-wrap: anywhere; font: 500 1.08rem var(--font-mono); }
+.peer-quality-grid small { color: var(--faint); font-size: .68rem; }
+.peer-history-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; color: var(--muted); font-size: .72rem; }
+@media (max-width: 760px) { .peer-quality-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1200px) { nav.mainnav { display: none; } .nav-toggle { display: inline-flex; } }
 @media (max-width: 1050px) { .network-tape { grid-template-columns: repeat(3, minmax(0, 1fr)); } .network-tape a:nth-child(4) { border-left: 0; } .network-tape a:nth-child(n+4) { border-top: 1px solid var(--line); } .consensus-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } .consensus-rail::before { display: none; } .rail-stop { padding-top: 42px; } .overview-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } .overview-instrument:nth-child(odd) { border-left: 0; } .overview-instrument:nth-child(n+3) { border-top: 1px solid var(--line); } .overview-instrument:last-child { grid-column: 1 / -1; } .telemetry-metrics, .edge-counter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mempool-layout { grid-template-columns: 1fr; } .pool-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {

@@ -144,6 +144,34 @@ export function peerRangeHistory(value: unknown, expectedPeriod: PeerRangePeriod
   return points;
 }
 
+export function peerRangeQuality(points: PeerRangePoint[]) {
+  const present = points.filter((point): point is PeerRangePoint & { connections: number; reportingNodes: number } =>
+    point.connections !== null && point.reportingNodes !== null);
+  let coverageChanges = 0;
+  for (let index = 1; index < points.length; index++) {
+    const before = points[index - 1], after = points[index];
+    if (before.reportingNodes !== null && after.reportingNodes !== null &&
+        before.reportingNodes !== after.reportingNodes) coverageChanges++;
+  }
+  return {
+    total: points.length,
+    present: present.length,
+    missing: points.length - present.length,
+    firstAvailableAt: present[0]?.at ?? null,
+    lastAvailableAt: present.at(-1)?.at ?? null,
+    minReportingNodes: present.length ? Math.min(...present.map(point => point.reportingNodes)) : null,
+    maxReportingNodes: present.length ? Math.max(...present.map(point => point.reportingNodes)) : null,
+    coverageChanges,
+  };
+}
+
+export function peerHistoryCsv(points: PeerRangePoint[]): string {
+  const rows = points.map(point => [new Date(point.at).toISOString(),
+    point.connections === null ? "" : String(point.connections),
+    point.reportingNodes === null ? "" : String(point.reportingNodes)].join(","));
+  return ["sampled_at_utc,reported_connections,reporting_nodes", ...rows].join("\n") + "\n";
+}
+
 /** The homepage must advertise infrastructure telemetry only after at least
  * one real metric family is present. Connectivity alone is not data. */
 export function observabilityPromotion(value: unknown): ObservabilityPromotion | null {

@@ -49,6 +49,8 @@ bundle served in production byte for byte.
   169 fixed buckets, respectively. Each bucket reports aggregate connections and reporting-node
   count or explicit `null` when the fresh aggregate is unavailable. The endpoint
   accepts a period from that allowlist and exposes neither PromQL nor node labels.
+  The network page summarizes sample coverage and exports the selected buckets
+  as CSV with UTC timestamps and empty fields for missing readings.
 
 ## Develop
 

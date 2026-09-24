@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { useLiveRead } from "../lib/liveRead";
-import { appendPeerHistory, freshPeerReading, observabilitySummary, peerRangeHistory, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
+import { appendPeerHistory, freshPeerReading, observabilitySummary, peerHistoryCsv, peerRangeHistory, peerRangeQuality, type PeerHistorySample, type PeerRangePeriod, type PeerRangePoint } from "../lib/observabilityCloud";
 import { ApiReading, NetworkData, Observer, RpcMethod } from "../lib/observatory";
 import { fmtInt } from "../lib/format";
 import { ReadToolbar, RawData } from "../components/telemetry";
@@ -66,6 +66,7 @@ function NetworkConnections() {
   }, [live.updatedAt, live.error, summary?.sampledAt, reading?.connections, reading?.reportingNodes]);
   const measured = (value: number | null | undefined) => value == null ? "—" : fmtInt(value);
   const range = peerRangeHistory(rangeLive.data, period);
+  const quality = range ? peerRangeQuality(range) : null;
   const trend: PeerRangePoint[] = chartMode !== "session" ? range ?? [] : history.map(sample => ({
     at: sample.at, connections: sample.connections, reportingNodes: sample.reportingNodes,
   }));
@@ -87,6 +88,18 @@ function NetworkConnections() {
     segments.at(-1)!.push(point as PeerRangePoint & { connections: number; reportingNodes: number });
   }
   const sessionChange = history.length > 1 ? history.at(-1)!.connections - history[0].connections : 0;
+  const downloadCsv = () => {
+    if (!trend.length) return;
+    const blob = new Blob([peerHistoryCsv(trend)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `bloch-peer-connections-${chartMode}-${new Date(trend.at(-1)!.at).toISOString().slice(0, 10)}.csv`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
   return <section className="card" aria-labelledby="network-connections-heading">
     <div className="section-heading"><div><span className="eyebrow">PROMETHEUS / GENESIS-4 NODES</span><h2 id="network-connections-heading">Network connections</h2><p>Fresh samples from monitored chain nodes, separate from the explorer’s RPC observer pool.</p></div><Link to="/observability">Inspect telemetry ↗</Link></div>
     <div className="edge-counter-grid" aria-live="polite">
@@ -97,6 +110,14 @@ function NetworkConnections() {
     </div>
     <div className="peer-history-heading"><h3>Connection trend</h3><span>{chartMode !== "session" ? `${valid.length} / ${trend.length || (period === "7d" ? 169 : period === "24h" ? 97 : 73)} samples` : `${history.length} session samples · ${sessionChange >= 0 ? "+" : ""}${fmtInt(sessionChange)} since first sample`}</span></div>
     <div className="telemetry-tabs peer-history-tabs" role="group" aria-label="Connection trend period">{(["6h", "24h", "7d", "session"] as const).map(value => <button key={value} type="button" className={chartMode === value ? "active" : ""} aria-pressed={chartMode === value} onClick={() => setChartMode(value)}>{value === "6h" ? "Last 6 hours" : value === "24h" ? "Last 24 hours" : value === "7d" ? "Last 7 days" : "This session"}</button>)}</div>
+    {chartMode !== "session" && quality && <div className="peer-quality-grid" aria-label="Historical sample quality">
+      <div><span>Available samples</span><strong>{quality.present} / {quality.total}</strong><small>{quality.missing} missing buckets</small></div>
+      <div><span>First available</span><strong>{quality.firstAvailableAt === null ? "—" : new Date(quality.firstAvailableAt).toLocaleDateString()}</strong><small>{quality.firstAvailableAt === null ? "No measured point" : new Date(quality.firstAvailableAt).toLocaleTimeString()}</small></div>
+      <div><span>Reporting nodes</span><strong>{quality.minReportingNodes === null ? "—" : `${quality.minReportingNodes}–${quality.maxReportingNodes}`}</strong><small>minimum to maximum</small></div>
+      <div><span>Coverage changes</span><strong>{quality.coverageChanges}</strong><small>between adjacent measured buckets</small></div>
+    </div>}
+    <div className="peer-history-tools"><span>{chartMode === "session" ? "Current tab only" : "UTC timestamps in CSV · empty cells mean no sample"}</span><button className="btn btn-sm" type="button" onClick={downloadCsv} disabled={!trend.length}>Download CSV</button></div>
+    {chartMode !== "session" && rangeLive.error && range && <p className="data-warning" role="status">History refresh failed. Showing the last successful reading.</p>}
     {valid.length < 2 ? <div className="telemetry-empty">{chartMode !== "session" ? rangeLive.error ?? "Waiting for historical samples from Prometheus." : "The session chart starts after two fresh readings with the same reporter count."}</div> : <>
       <div className="peer-history-chart" role="img" aria-label={`Reported connections ranged from ${low} to ${high} across ${valid.length} measured points. Gaps or changes in reporting-node count interrupt the line.`}>
         <svg viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"><path d="M20 140H580" className="peer-history-baseline" />{segments.map((segment, index) => segment.length > 1
@@ -106,7 +127,7 @@ function NetworkConnections() {
       <div className="peer-history-axis"><span>{new Date(first.at).toLocaleTimeString()}</span><span>{fmtInt(low)}–{fmtInt(high)} connections</span><span>{new Date(last?.at ?? first.at).toLocaleTimeString()}</span></div>
       <details className="raw-reading"><summary>View exact samples</summary><div className="table-wrap"><table className="tbl"><thead><tr><th>Sampled at</th><th>Connections</th><th>Reporting nodes</th></tr></thead><tbody>{[...trend].reverse().map(point => <tr key={point.at}><td>{new Date(point.at).toLocaleString()}</td><td>{measured(point.connections)}</td><td>{measured(point.reportingNodes)}</td></tr>)}</tbody></table></div></details>
     </>}
-    <p className="lookup-hint">Historical views use fixed Prometheus samples: 5 minutes over 6 hours, 15 minutes over 24 hours, or 1 hour over 7 days. Missing readings and changed reporter coverage break the line. The session view starts when this tab opens and restarts after a 75-second gap or coverage change. All charts scale vertically to their observed range.</p>
+    <p className="lookup-hint">Historical views use fixed Prometheus samples: 5 minutes over 6 hours, 15 minutes over 24 hours, or 1 hour over 7 days. Missing readings and changed reporter coverage break the line. The session view starts when this tab opens and restarts after a 75-second gap or coverage change. All charts scale vertically to their observed range. CSV exports every selected bucket and leaves missing readings blank.</p>
     <p className="lookup-hint">A peer may connect to several monitored nodes, so these are connection reports, not unique network peers. “Devnet” is a transport name, not the chain stage. Prometheus coverage and RPC observer health measure different node sets.</p>
   </section>;
 }

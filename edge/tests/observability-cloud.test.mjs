@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { handleObservability, handlePeerHistory, observabilityQueries } from '../observability.js';
-import { appendPeerHistory, freshPeerReading, peerRangeHistory, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
+import { appendPeerHistory, freshPeerReading, peerHistoryCsv, peerRangeHistory, peerRangeQuality, peerSampleFresh, observabilityPromotion, observabilitySummary } from '../../src/lib/observabilityCloud.ts';
 
 const env = {
   GRAFANA_PROM_URL: 'https://prometheus.example/api/prom',
@@ -340,4 +340,25 @@ test('history periods are allowlisted with bounded fixed resolutions', async () 
   assert.equal(invalid.status, 400);
   assert.deepEqual(invalid.body.error.allowed, ['6h', '24h', '7d']);
   assert.equal(fetched, false);
+});
+
+test('history quality and CSV distinguish missing buckets from measured zero', () => {
+  const start = 1720000000000;
+  const points = [
+    { at: start, connections: null, reportingNodes: null },
+    { at: start + 300_000, connections: 0, reportingNodes: 44 },
+    { at: start + 600_000, connections: 10, reportingNodes: 43 },
+    { at: start + 900_000, connections: null, reportingNodes: null },
+    { at: start + 1_200_000, connections: 12, reportingNodes: 44 },
+  ];
+  assert.deepEqual(peerRangeQuality(points), {
+    total: 5, present: 3, missing: 2,
+    firstAvailableAt: start + 300_000, lastAvailableAt: start + 1_200_000,
+    minReportingNodes: 43, maxReportingNodes: 44, coverageChanges: 1,
+  });
+  const csv = peerHistoryCsv(points).trimEnd().split('\n');
+  assert.equal(csv[0], 'sampled_at_utc,reported_connections,reporting_nodes');
+  assert.equal(csv[1], `${new Date(start).toISOString()},,`);
+  assert.equal(csv[2], `${new Date(start + 300_000).toISOString()},0,44`);
+  assert.equal(csv.length, 6);
 });
