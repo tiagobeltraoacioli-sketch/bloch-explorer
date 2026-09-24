@@ -27,10 +27,10 @@ export function GraphusPanel() {
   return <section className="card graphus-panel" aria-labelledby="graphus-panel-title">
     <div className="graphus-copy">
       <span className="eyebrow">BLOCH GRAPHUS / CHAIN FACTS</span>
-      <h2 id="graphus-panel-title">Follow the transaction evidence.</h2>
-      <p>Inspect Bloch eUTXO inputs, created outputs and block provenance as a constellation of verified indexer records, here in the explorer.</p>
+      <h2 id="graphus-panel-title">Follow transactions and wallet balances.</h2>
+      <p>Inspect Bloch eUTXO inputs, created outputs and a holder heat map whose points scale with indexed script balances, here in the explorer.</p>
       <div className="graphus-facts" aria-label="Graphus Bloch data boundaries">
-        <span>BLCH only</span><span>Explorer indexer API</span><span>No ownership inference</span>
+        <span>BLCH only</span><span>Indexed balances</span><span>No ownership inference</span>
       </div>
       <div className="graphus-actions">
         <Link className="btn" to="/graphus/constellation">Open Bloch constellation →</Link>
