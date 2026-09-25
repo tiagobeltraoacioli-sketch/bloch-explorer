@@ -2,7 +2,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { EvidenceGraph as GraphData, GraphNode } from '../lib/intelligence';
 
-const colors: Record<GraphNode['kind'], string> = { transaction: 'var(--atlas-lime)', script: 'var(--atlas-purple)', outpoint: 'var(--atlas-blue)', block: 'var(--atlas-lime)', validator: 'var(--atlas-orange)' };
+const colors: Record<GraphNode['kind'], string> = { address: 'var(--atlas-purple)', transaction: 'var(--atlas-lime)', script: 'var(--atlas-purple)', outpoint: 'var(--atlas-blue)', block: 'var(--atlas-lime)', validator: 'var(--atlas-orange)' };
 function layout(graph: GraphData, radial: boolean) {
   const count = graph.nodes.length;
   const nodes = graph.nodes.map((node, i) => {
@@ -48,7 +48,7 @@ function layout(graph: GraphData, radial: boolean) {
   return { nodes, edges };
 }
 
-export function EvidenceGraph({ graph, label, radial = false }: { graph: GraphData; label: string; radial?: boolean }) {
+export function EvidenceGraph({ graph, label, radial = false, omittedLabel = 'IO records', emptyLabel = 'Waiting for verified graph records.' }: { graph: GraphData; label: string; radial?: boolean; omittedLabel?: string; emptyLabel?: string }) {
   const [selected, setSelected] = useState<string | null>(null), [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
@@ -78,8 +78,8 @@ export function EvidenceGraph({ graph, label, radial = false }: { graph: GraphDa
           {(n.id === selected || (positioned.nodes.length < 65 && n.kind === 'transaction')) && <text x={n.x} y={n.y + 24} textAnchor="middle" className="atlas-node-label">{n.label}</text>}
         </g>)}
       </g>
-    </svg> : <div className="atlas-empty">Waiting for verified graph records.</div>}
+    </svg> : <div className="atlas-empty">{emptyLabel}</div>}
     <div className="atlas-graph-inspector" aria-live="polite">{focus ? <><span><b>{focus.kind.toUpperCase()} / {focus.label}</b><small>{focus.detail}</small></span><a href={focus.href}>Open record ↗</a></> : <><span>Select a node to follow the evidence</span><span>Drag to pan · + to zoom</span></>}</div>
-    {graph.omitted > 0 && <small className="atlas-caption">{graph.omitted.toLocaleString()} IO records omitted from this bounded view. Open receipts for complete records.</small>}
+    {graph.omitted > 0 && <small className="atlas-caption">{graph.omitted.toLocaleString()} {omittedLabel} omitted from this bounded view. Open receipts for complete records.</small>}
   </div>;
 }

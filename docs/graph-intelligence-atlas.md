@@ -18,9 +18,10 @@ remains at `/chain`. Existing block, transaction, validator and Graphus routes r
   Two fixed aggregate Prometheus queries have six-second timeouts; the response
   is cached for up to 60 seconds. No arbitrary URL, PromQL or query is accepted.
   The response explicitly names the shared producer and both public source URLs.
-- `https://bloch-graphus.xyz/`: linked research reference, explicitly a synthetic
-  product preview. Its synthetic wallet records and scores are **not** integrated.
-  `bloch-grapus.xyz`, supplied initially, did not resolve during implementation.
+- `/system-map`: native integration with the Graphus module catalog and bounded
+  real public-chain APIs for Bloch mainnet only. Captures are manual and fixed to
+  BLCH; the map and all dependency actions use the Bloch catalog subset. See [the integration contract](system-map-integration.md). Public captures
+  contain no holder attribution or private scores.
 
 Bloch Space shares the underlying network telemetry with the explorer. It is not
 independent corroboration. Missing buckets stay missing; plots break at changes in

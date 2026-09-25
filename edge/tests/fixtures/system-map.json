@@ -1,0 +1,2776 @@
+{
+  "schema_version": 1,
+  "registry_version": "2026-09-24.1",
+  "source": "https://bloch-graphus.xyz/map",
+  "availability_semantics": "Implementation description, not continuous source health or an executed analysis.",
+  "connection_semantics": "Module dependencies, not wallet transfers.",
+  "assets": [
+    "BTC",
+    "ETH",
+    "USDT",
+    "USDC",
+    "BLCH"
+  ],
+  "layers": [
+    "SOURCE",
+    "NORMALIZE",
+    "DATA",
+    "GRAPH",
+    "ANALYZE",
+    "DELIVER"
+  ],
+  "statuses": {
+    "available": "Available",
+    "prototype": "Prototype",
+    "design": "Planned"
+  },
+  "categories": {
+    "all": "All modules",
+    "chains": "Chain sources",
+    "data": "Data & quality",
+    "graph": "Graphs",
+    "aml": "AML workspace",
+    "ml": "Machine learning",
+    "access": "Access & APIs",
+    "research": "Research"
+  },
+  "modules": [
+    {
+      "id": "btc-source",
+      "title": "Bitcoin source",
+      "layer": "SOURCE",
+      "category": "chains",
+      "assets": [
+        "BTC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Read a bounded best-chain block sample with confirmation depth and a repeated block-hash check.",
+      "inputs": [
+        "Bitcoin public source"
+      ],
+      "outputs": [
+        "Block anchor",
+        "UTXO transaction records"
+      ],
+      "limits": "First 20 transactions; up to 24 inputs and outputs per transaction. Earlier pages move to an earlier block.",
+      "actions": [
+        "capture",
+        "constellation"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=btc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "eth-source",
+      "title": "Ethereum source",
+      "layer": "SOURCE",
+      "category": "chains",
+      "assets": [
+        "ETH",
+        "USDT",
+        "USDC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Read source-finalized Ethereum blocks and successful direct-value transaction receipts.",
+      "inputs": [
+        "Ethereum mainnet RPC"
+      ],
+      "outputs": [
+        "Finalized block anchor",
+        "Matched native transactions"
+      ],
+      "limits": "Up to 24 eligible native transactions per page. Internal calls are outside this sample.",
+      "actions": [
+        "capture",
+        "constellation"
+      ],
+      "links_by_asset": {
+        "ETH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "usdt-source",
+      "title": "USDT transfer logs",
+      "layer": "SOURCE",
+      "category": "chains",
+      "assets": [
+        "USDT"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Read Transfer logs from the configured Ethereum USDT contract.",
+      "inputs": [
+        "Pinned token contract",
+        "Finalized block window"
+      ],
+      "outputs": [
+        "Exact token event records"
+      ],
+      "limits": "Up to 512 logs across four blocks. Contract identity stays separate from the token symbol.",
+      "actions": [
+        "capture",
+        "constellation"
+      ],
+      "links_by_asset": {
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          }
+        ]
+      }
+    },
+    {
+      "id": "usdc-source",
+      "title": "USDC transfer logs",
+      "layer": "SOURCE",
+      "category": "chains",
+      "assets": [
+        "USDC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Read Transfer logs from the configured Ethereum USDC contract.",
+      "inputs": [
+        "Pinned token contract",
+        "Finalized block window"
+      ],
+      "outputs": [
+        "Exact token event records"
+      ],
+      "limits": "Other chains and bridged versions are outside this adapter. Dense windows disclose truncation.",
+      "actions": [
+        "capture",
+        "constellation"
+      ],
+      "links_by_asset": {
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "blch-source",
+      "title": "Bloch source",
+      "layer": "SOURCE",
+      "category": "chains",
+      "assets": [
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Read indexed Bloch transactions and script references with a source snapshot cursor.",
+      "inputs": [
+        "Bloch public indexer"
+      ],
+      "outputs": [
+        "Snapshot anchor",
+        "Script / transaction records"
+      ],
+      "limits": "32 transactions and up to 3,000 records per page. Missing timestamps and unavailable finality remain explicit.",
+      "actions": [
+        "capture",
+        "constellation"
+      ],
+      "links_by_asset": {
+        "BLCH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "official-source",
+      "title": "Official list snapshots",
+      "layer": "SOURCE",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "prototype",
+      "access": "research",
+      "description": "Existing operator jobs capture official OFAC snapshot metadata for separate research.",
+      "inputs": [
+        "Versioned official files"
+      ],
+      "outputs": [
+        "Source checksum",
+        "Snapshot metadata"
+      ],
+      "limits": "The System Map does not query the private list store or perform identifier screening.",
+      "actions": [
+        "aml-preview"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ]
+      }
+    },
+    {
+      "id": "space-source",
+      "title": "Space observations",
+      "layer": "SOURCE",
+      "category": "ml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Open network overviews, block series and Bloch peer telemetry in Bloch Space.",
+      "inputs": [
+        "Space network APIs"
+      ],
+      "outputs": [
+        "Timestamped network series"
+      ],
+      "limits": "Series and Graphus graph samples are separate observations with different sampling windows.",
+      "actions": [
+        "space",
+        "science"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          },
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          },
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          },
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          },
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          },
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          }
+        ]
+      }
+    },
+    {
+      "id": "btc-normal",
+      "title": "UTXO normalization",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "BTC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Preserve observed input previous-output references and created outputs as separate record types.",
+      "inputs": [
+        "Bitcoin transaction sample"
+      ],
+      "outputs": [
+        "Reference → transaction edges",
+        "Transaction → reference edges"
+      ],
+      "limits": "An input does not identify an owner. Input and output amounts are not summed into transfer-volume claims.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=btc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "eth-normal",
+      "title": "Native ETH normalization",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "ETH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Keep successful native-value transfers with their transaction, receipt and block references.",
+      "inputs": [
+        "Finalized transaction",
+        "Successful matching receipt"
+      ],
+      "outputs": [
+        "Native-value events"
+      ],
+      "limits": "Internal contract calls and unreturned transactions are not represented.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "ETH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=eth"
+          }
+        ]
+      }
+    },
+    {
+      "id": "usdt-normal",
+      "title": "USDT normalization",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "USDT"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Preserve fixed-contract log identity, direction and exact integer token amounts.",
+      "inputs": [
+        "USDT Transfer logs"
+      ],
+      "outputs": [
+        "Typed ERC-20 events"
+      ],
+      "limits": "Zero-address endpoints are chain references, not holder identities.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "USDT": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdt"
+          }
+        ]
+      }
+    },
+    {
+      "id": "usdc-normal",
+      "title": "USDC normalization",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "USDC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Preserve block, transaction and log position for each returned token transfer.",
+      "inputs": [
+        "USDC Transfer logs"
+      ],
+      "outputs": [
+        "Typed ERC-20 events"
+      ],
+      "limits": "Amounts remain base-unit strings and are not converted to floating point.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "USDC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "blch-normal",
+      "title": "Bloch normalization",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Keep spent outpoint references and created outputs attached to their indexed transactions.",
+      "inputs": [
+        "Bloch transaction sample"
+      ],
+      "outputs": [
+        "Exact BLCH input/output records"
+      ],
+      "limits": "Script references do not imply beneficial ownership.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "BLCH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "list-normal",
+      "title": "Exact list matching",
+      "layer": "NORMALIZE",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "prototype",
+      "access": "research",
+      "description": "An existing private prototype compares exact identifiers against versioned official snapshots.",
+      "inputs": [
+        "Identifier and network",
+        "Official snapshot version"
+      ],
+      "outputs": [
+        "Potential exact-match evidence"
+      ],
+      "limits": "No screening result is returned by this public workbench. A source match would require separate verification.",
+      "actions": [
+        "aml-preview"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "aml-preview",
+            "label": "Open AML product preview",
+            "href": "https://aml-blochinc.xyz/"
+          }
+        ]
+      }
+    },
+    {
+      "id": "asset-registry",
+      "title": "Asset registry",
+      "layer": "NORMALIZE",
+      "category": "data",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Maintain the five supported assets and their network-specific interpretation.",
+      "inputs": [
+        "Network",
+        "Asset",
+        "Token contract where relevant"
+      ],
+      "outputs": [
+        "Typed asset identity",
+        "Base-unit definition"
+      ],
+      "limits": "Cross-chain symbols do not establish asset equivalence.",
+      "actions": [
+        "catalog"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "manifest",
+      "title": "Source manifest",
+      "layer": "DATA",
+      "category": "data",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Inspect the source, retrieval time, block anchor and sampling windows of the collected pages.",
+      "inputs": [
+        "Public source response"
+      ],
+      "outputs": [
+        "Source manifest",
+        "Observation timestamp"
+      ],
+      "limits": "The manifest reports the upstream observation; it is not independent consensus verification.",
+      "actions": [
+        "capture",
+        "catalog"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "events",
+      "title": "Canonical event sample",
+      "layer": "DATA",
+      "category": "data",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Validate reference endpoints, event IDs, exact amounts and block anchors before local analysis.",
+      "inputs": [
+        "Typed source records"
+      ],
+      "outputs": [
+        "Bounded validated dataset"
+      ],
+      "limits": "Graphus detects duplicate events and conflicting anchors; full-chain indexing is not implied.",
+      "actions": [
+        "capture",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=btc"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "quality",
+      "title": "Coverage diagnostics",
+      "layer": "DATA",
+      "category": "data",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Measure which returned records contain transaction, amount, block and timestamp fields.",
+      "inputs": [
+        "Captured source pages"
+      ],
+      "outputs": [
+        "Missing-field counts",
+        "Sample coverage diagnostics"
+      ],
+      "limits": "These are record-completeness checks. They do not estimate missing network activity.",
+      "actions": [
+        "capture"
+      ],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "snapshot",
+      "title": "Evidence export",
+      "layer": "DATA",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Export full or filtered public-chain collections with source lineage and compare a pinned baseline.",
+      "inputs": [
+        "Validated source pages",
+        "Source manifest"
+      ],
+      "outputs": [
+        "Exact JSON dataset",
+        "SHA-256 digest",
+        "Sample comparison"
+      ],
+      "limits": "The digest identifies exported bytes and does not establish source truth. No AML verdict or person data is generated.",
+      "actions": [
+        "capture"
+      ],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "private-context",
+      "title": "Private customer context",
+      "layer": "DATA",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "private",
+      "description": "A future separate store could hold purpose-bound customer context for explicitly authorized workflows.",
+      "inputs": [
+        "Authorized customer context"
+      ],
+      "outputs": [
+        "Restricted contextual records"
+      ],
+      "limits": "Identity resolution, customer uploads and IP-based inference are not implemented in this module.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "retention",
+      "title": "Dataset retention",
+      "layer": "DATA",
+      "category": "access",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "The BI-PoRB portal retains the latest 50 analyses per organization, including source and model metadata.",
+      "inputs": [
+        "Authenticated organization",
+        "Saved analyses"
+      ],
+      "outputs": [
+        "Tenant-scoped stored datasets"
+      ],
+      "limits": "Public workbench captures stay in memory until exported or cleared.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "corrections",
+      "title": "Correction lineage",
+      "layer": "DATA",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "private",
+      "description": "Track revisions, withdrawn observations and downstream findings that need recalculation.",
+      "inputs": [
+        "Corrected source version",
+        "Affected evidence IDs"
+      ],
+      "outputs": [
+        "Supersession lineage"
+      ],
+      "limits": "A case correction workflow has not been deployed.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "tx-node",
+      "title": "Transaction graph",
+      "layer": "GRAPH",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Inspect transaction identifiers, saved evidence collections and directed records in Constellation and the portal.",
+      "inputs": [
+        "Canonical event sample"
+      ],
+      "outputs": [
+        "Selectable transaction evidence",
+        "Exact reference totals",
+        "Local evidence import"
+      ],
+      "limits": "Graph adjacency does not establish continuity of value across different transactions.",
+      "actions": [
+        "constellation",
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=btc"
+          },
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=eth"
+          },
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          },
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          },
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=blch"
+          },
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "utxo-node",
+      "title": "UTXO reference graph",
+      "layer": "GRAPH",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Keep wallet/script references and transaction nodes distinct in input/output graphs.",
+      "inputs": [
+        "Observed outpoints",
+        "Created outputs"
+      ],
+      "outputs": [
+        "Typed UTXO graph"
+      ],
+      "limits": "Co-occurrence is not an ownership cluster.",
+      "actions": [
+        "constellation"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=btc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "account-node",
+      "title": "Account / token graph",
+      "layer": "GRAPH",
+      "category": "graph",
+      "assets": [
+        "ETH",
+        "USDT",
+        "USDC"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Explore recorded native and token events with per-asset graph boundaries.",
+      "inputs": [
+        "Account references",
+        "Transfer events"
+      ],
+      "outputs": [
+        "Directed account connections"
+      ],
+      "limits": "The current graph does not classify address holders or infer contract operators.",
+      "actions": [
+        "constellation",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "ETH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=eth"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdc"
+          }
+        ]
+      }
+    },
+    {
+      "id": "balances",
+      "title": "Observed balances",
+      "layer": "GRAPH",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Open Oculum for real balance queries, discovery samples and comparison of observations.",
+      "inputs": [
+        "Address or script",
+        "Selected asset"
+      ],
+      "outputs": [
+        "Exact source balance",
+        "Observation history in the tab"
+      ],
+      "limits": "Discovery is a bounded activity sample. It is not a complete global holder ranking.",
+      "actions": [
+        "oculum"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=btc"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=usdc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paths",
+      "title": "Directed paths",
+      "layer": "GRAPH",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Find bounded directed paths in the collected Constellation sample.",
+      "inputs": [
+        "Start reference",
+        "Destination reference",
+        "Collected graph"
+      ],
+      "outputs": [
+        "Paths up to six steps"
+      ],
+      "limits": "A topological path is not necessarily chronological or a continuous transfer of the same value.",
+      "actions": [
+        "constellation"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=btc"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bridge-node",
+      "title": "Bridge evidence",
+      "layer": "GRAPH",
+      "category": "research",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "prototype",
+      "access": "research",
+      "description": "Offline research requires source transaction, message, receipt and asset mapping for cross-chain edges.",
+      "inputs": [
+        "Source transaction",
+        "Message and destination receipt"
+      ],
+      "outputs": [
+        "Candidate corroborated bridge link"
+      ],
+      "limits": "No public cross-chain value bridge is inferred from timing alone.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "claim-node",
+      "title": "Claim separation",
+      "layer": "GRAPH",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "private",
+      "description": "Keep source facts, external assertions and analytic hypotheses as separate evidence types.",
+      "inputs": [
+        "Provenanced assertion",
+        "Evidence type"
+      ],
+      "outputs": [
+        "Typed private evidence links"
+      ],
+      "limits": "The live graph currently displays chain observations, without external identity or allegation labels.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "motifs",
+      "title": "Structural statistics",
+      "layer": "ANALYZE",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Analyze degree, connected components, concentration and observed graph shapes in Analytics.",
+      "inputs": [
+        "Bounded graph sample"
+      ],
+      "outputs": [
+        "Descriptive graph statistics",
+        "Sample charts"
+      ],
+      "limits": "Patterns describe the sample and carry no judgment about a reference.",
+      "actions": [
+        "analytics"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=btc"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "features",
+      "title": "Observation features",
+      "layer": "ANALYZE",
+      "category": "ml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Compute event counts, adjacent references, exact-amount transforms, directional balance and active blocks.",
+      "inputs": [
+        "Saved graph sample"
+      ],
+      "outputs": [
+        "Eight versioned descriptive features"
+      ],
+      "limits": "Source amounts remain exact; modeling transforms are sample-relative.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ml",
+      "title": "Isolation Forest",
+      "layer": "ANALYZE",
+      "category": "ml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "BI-PoRB computes descriptive structural isolation with 64 deterministic trees.",
+      "inputs": [
+        "At least 20 references",
+        "At least three distinct feature vectors"
+      ],
+      "outputs": [
+        "Red structural-isolation index",
+        "Model and sample metadata"
+      ],
+      "limits": "Red is not a validated AML, ownership or credit assessment. Insufficient cohorts return no Red value.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "blue",
+      "title": "Record completeness",
+      "layer": "ANALYZE",
+      "category": "ml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "BI-PoRB Blue summarizes observed block, transaction, amount and timestamp completeness.",
+      "inputs": [
+        "Returned record fields"
+      ],
+      "outputs": [
+        "Blue index and components"
+      ],
+      "limits": "Blue measures these returned fields, not truth, identity or full-chain coverage.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "timeseries",
+      "title": "Historical evaluation",
+      "layer": "ANALYZE",
+      "category": "ml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Explore Space series with rolling statistics, correlations, clustering and historical AR(1) evaluation.",
+      "inputs": [
+        "Network observations ordered by time"
+      ],
+      "outputs": [
+        "Historical model vs persistence results"
+      ],
+      "limits": "Missing observations and changes in telemetry coverage break training segments.",
+      "actions": [
+        "science",
+        "space"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          },
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          },
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          },
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          },
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "science",
+            "label": "Open private machine learning",
+            "href": "https://rednblue.space/portal/?view=science"
+          },
+          {
+            "action": "space",
+            "label": "Open Bloch Space",
+            "href": "https://bloch.space/"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aml-evidence",
+      "title": "AML evidence preparation",
+      "layer": "ANALYZE",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Assemble public transaction observations, coverage diagnostics and exact source records for subsequent authorized review.",
+      "inputs": [
+        "Network and asset",
+        "Captured public pages"
+      ],
+      "outputs": [
+        "Public evidence packet",
+        "Source-linked observations"
+      ],
+      "limits": "This preparation module produces data only. It does not perform sanctions matching or assign an AML judgment.",
+      "actions": [
+        "capture",
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aml-monitoring",
+      "title": "Monitoring rules",
+      "layer": "ANALYZE",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "private",
+      "description": "Future organization-defined rules can evaluate documented data conditions and route records for review.",
+      "inputs": [
+        "Versioned rule",
+        "Time-bounded observations"
+      ],
+      "outputs": [
+        "Auditable rule evaluation"
+      ],
+      "limits": "Automated monitoring schedules, alert delivery and validated detection rules are not deployed.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "zk",
+      "title": "ZK proof research",
+      "layer": "ANALYZE",
+      "category": "research",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "research",
+      "description": "Research a proof of a bounded deterministic transform or inference with pinned inputs.",
+      "inputs": [
+        "Private witness",
+        "Versioned computation"
+      ],
+      "outputs": [
+        "Proposed proof and public commitment"
+      ],
+      "limits": "No production proof generator or verifier is available. A proof would not establish source accuracy.",
+      "actions": [],
+      "links_by_asset": {
+        "BTC": [],
+        "ETH": [],
+        "USDT": [],
+        "USDC": [],
+        "BLCH": []
+      }
+    },
+    {
+      "id": "free",
+      "title": "Public explorer",
+      "layer": "DELIVER",
+      "category": "graph",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Open public chain-reference search, graph collection, source evidence and observed balances.",
+      "inputs": [
+        "Public address or script",
+        "Selected asset"
+      ],
+      "outputs": [
+        "Constellation",
+        "Oculum",
+        "Analytics"
+      ],
+      "limits": "Public views contain no private portal scores or customer cases.",
+      "actions": [
+        "constellation",
+        "oculum",
+        "analytics"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=btc"
+          },
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=btc"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=btc"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=eth"
+          },
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=eth"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=eth"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdt"
+          },
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=usdt"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdt"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=usdc"
+          },
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=usdc"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=usdc"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "constellation",
+            "label": "Open Constellation",
+            "href": "https://bloch-graphus.xyz/constellation.html?asset=blch"
+          },
+          {
+            "action": "oculum",
+            "label": "Open Oculum",
+            "href": "https://bloch-graphus.xyz/oculum.html?asset=blch"
+          },
+          {
+            "action": "analytics",
+            "label": "Open Analytics",
+            "href": "https://bloch-graphus.xyz/analytics.html?asset=blch"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scores",
+      "title": "Private Red / Blue",
+      "layer": "DELIVER",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Open the invitation-only BI-PoRB workspace for saved observations and descriptive Red/Blue results.",
+      "inputs": [
+        "Email and password",
+        "Organization membership"
+      ],
+      "outputs": [
+        "Tenant-scoped scores",
+        "Model details",
+        "Exact graph records"
+      ],
+      "limits": "Email invitation access is implemented; it does not constitute identity verification or AML certification.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "review",
+      "title": "Case review",
+      "layer": "DELIVER",
+      "category": "aml",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "design",
+      "access": "private",
+      "description": "A future case workspace can group evidence, reviewer actions and corrections without converting graph proximity into a finding.",
+      "inputs": [
+        "Authorized case",
+        "Source evidence"
+      ],
+      "outputs": [
+        "Review history",
+        "Evidence references"
+      ],
+      "limits": "Case creation, adjudication and appeals are not implemented. Source records can already be inspected in BI-PoRB.",
+      "actions": [
+        "portal-data"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-data",
+            "label": "Open private data & scores",
+            "href": "https://rednblue.space/portal/?view=analyses"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api-keys",
+      "title": "Integration API keys",
+      "layer": "DELIVER",
+      "category": "access",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Owners and admins create scoped, expiring API keys for their organization.",
+      "inputs": [
+        "Authenticated owner/admin",
+        "Password reauthentication"
+      ],
+      "outputs": [
+        "One-time key display",
+        "Scoped API access"
+      ],
+      "limits": "Keys expire after 1–90 days and can be revoked. A market-sector label grants no permissions.",
+      "actions": [
+        "portal-access"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ]
+      }
+    },
+    {
+      "id": "invitations",
+      "title": "Invitations & roles",
+      "layer": "DELIVER",
+      "category": "access",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Invite an email as administrator, analyst or viewer and manage organization membership.",
+      "inputs": [
+        "Owner/admin session",
+        "Invited email and role"
+      ],
+      "outputs": [
+        "Single-use invitation",
+        "Organization membership"
+      ],
+      "limits": "Invitations are email-bound and expire after 48 hours. Only owners can invite administrators.",
+      "actions": [
+        "portal-access"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ]
+      }
+    },
+    {
+      "id": "audit",
+      "title": "Access audit",
+      "layer": "DELIVER",
+      "category": "access",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "private",
+      "description": "Review recorded portal authentication, collection and administration events.",
+      "inputs": [
+        "Portal actions"
+      ],
+      "outputs": [
+        "Tenant-scoped audit history"
+      ],
+      "limits": "Raw passwords, API keys and request bodies are excluded from audit entries.",
+      "actions": [
+        "portal-access"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ]
+      }
+    },
+    {
+      "id": "daas",
+      "title": "Data APIs",
+      "layer": "DELIVER",
+      "category": "access",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Inspect public bounded chain APIs and the private BI-PoRB integration contract.",
+      "inputs": [
+        "Fixed supported asset",
+        "Bounded query parameters"
+      ],
+      "outputs": [
+        "JSON source observations",
+        "Tenant-scoped private analyses"
+      ],
+      "limits": "Public and private APIs have separate authorization and coverage.",
+      "actions": [
+        "api",
+        "daas",
+        "portal-access"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "api",
+            "label": "Inspect public API",
+            "href": "https://bloch-graphus.xyz/api/chain/network?asset=BTC"
+          },
+          {
+            "action": "daas",
+            "label": "Open data service",
+            "href": "https://bloch-graphus.xyz/daas.html"
+          },
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "api",
+            "label": "Inspect public API",
+            "href": "https://bloch-graphus.xyz/api/chain/network?asset=ETH"
+          },
+          {
+            "action": "daas",
+            "label": "Open data service",
+            "href": "https://bloch-graphus.xyz/daas.html"
+          },
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "api",
+            "label": "Inspect public API",
+            "href": "https://bloch-graphus.xyz/api/chain/network?asset=USDT"
+          },
+          {
+            "action": "daas",
+            "label": "Open data service",
+            "href": "https://bloch-graphus.xyz/daas.html"
+          },
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "api",
+            "label": "Inspect public API",
+            "href": "https://bloch-graphus.xyz/api/chain/network?asset=USDC"
+          },
+          {
+            "action": "daas",
+            "label": "Open data service",
+            "href": "https://bloch-graphus.xyz/daas.html"
+          },
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "api",
+            "label": "Inspect public API",
+            "href": "https://bloch-graphus.xyz/api/chain/network?asset=BLCH"
+          },
+          {
+            "action": "daas",
+            "label": "Open data service",
+            "href": "https://bloch-graphus.xyz/daas.html"
+          },
+          {
+            "action": "portal-access",
+            "label": "Open private access & API",
+            "href": "https://rednblue.space/portal/?view=access"
+          }
+        ]
+      }
+    },
+    {
+      "id": "catalog",
+      "title": "Field catalog",
+      "layer": "DELIVER",
+      "category": "data",
+      "assets": [
+        "BTC",
+        "ETH",
+        "USDT",
+        "USDC",
+        "BLCH"
+      ],
+      "status": "available",
+      "access": "public",
+      "description": "Browse Graphus field definitions and their source, access and coverage expectations.",
+      "inputs": [
+        "Field group",
+        "Search term"
+      ],
+      "outputs": [
+        "Field definitions"
+      ],
+      "limits": "A defined field is not a promise that every source supplies it.",
+      "actions": [
+        "catalog"
+      ],
+      "links_by_asset": {
+        "BTC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "ETH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDT": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "USDC": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ],
+        "BLCH": [
+          {
+            "action": "catalog",
+            "label": "Open field catalog",
+            "href": "https://bloch-graphus.xyz/catalog.html"
+          }
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "btc-source",
+      "to": "btc-normal",
+      "contract": "Source anchor + bounded transaction records"
+    },
+    {
+      "from": "btc-normal",
+      "to": "events",
+      "contract": "Typed events + exact integer amounts"
+    },
+    {
+      "from": "btc-source",
+      "to": "manifest",
+      "contract": "Source + retrieval time + sample coverage"
+    },
+    {
+      "from": "eth-source",
+      "to": "eth-normal",
+      "contract": "Source anchor + bounded transaction records"
+    },
+    {
+      "from": "eth-normal",
+      "to": "events",
+      "contract": "Typed events + exact integer amounts"
+    },
+    {
+      "from": "eth-source",
+      "to": "manifest",
+      "contract": "Source + retrieval time + sample coverage"
+    },
+    {
+      "from": "usdt-source",
+      "to": "usdt-normal",
+      "contract": "Source anchor + bounded transaction records"
+    },
+    {
+      "from": "usdt-normal",
+      "to": "events",
+      "contract": "Typed events + exact integer amounts"
+    },
+    {
+      "from": "usdt-source",
+      "to": "manifest",
+      "contract": "Source + retrieval time + sample coverage"
+    },
+    {
+      "from": "usdc-source",
+      "to": "usdc-normal",
+      "contract": "Source anchor + bounded transaction records"
+    },
+    {
+      "from": "usdc-normal",
+      "to": "events",
+      "contract": "Typed events + exact integer amounts"
+    },
+    {
+      "from": "usdc-source",
+      "to": "manifest",
+      "contract": "Source + retrieval time + sample coverage"
+    },
+    {
+      "from": "blch-source",
+      "to": "blch-normal",
+      "contract": "Source anchor + bounded transaction records"
+    },
+    {
+      "from": "blch-normal",
+      "to": "events",
+      "contract": "Typed events + exact integer amounts"
+    },
+    {
+      "from": "blch-source",
+      "to": "manifest",
+      "contract": "Source + retrieval time + sample coverage"
+    },
+    {
+      "from": "official-source",
+      "to": "list-normal",
+      "contract": "Versioned official source files · private research only"
+    },
+    {
+      "from": "list-normal",
+      "to": "claim-node",
+      "contract": "Potential exact-match evidence · future review gate"
+    },
+    {
+      "from": "asset-registry",
+      "to": "events",
+      "contract": "Network and asset identity"
+    },
+    {
+      "from": "manifest",
+      "to": "quality",
+      "contract": "Observation provenance"
+    },
+    {
+      "from": "events",
+      "to": "quality",
+      "contract": "Returned-record completeness"
+    },
+    {
+      "from": "quality",
+      "to": "snapshot",
+      "contract": "Coverage diagnostics"
+    },
+    {
+      "from": "events",
+      "to": "snapshot",
+      "contract": "Exact source records"
+    },
+    {
+      "from": "snapshot",
+      "to": "retention",
+      "contract": "Private portal storage uses a separate authenticated collection"
+    },
+    {
+      "from": "events",
+      "to": "tx-node",
+      "contract": "Typed transaction / reference relationships"
+    },
+    {
+      "from": "events",
+      "to": "utxo-node",
+      "contract": "Typed transaction / reference relationships"
+    },
+    {
+      "from": "events",
+      "to": "account-node",
+      "contract": "Typed transaction / reference relationships"
+    },
+    {
+      "from": "tx-node",
+      "to": "paths",
+      "contract": "Directed transaction adjacency"
+    },
+    {
+      "from": "utxo-node",
+      "to": "paths",
+      "contract": "Input / output reference edges"
+    },
+    {
+      "from": "account-node",
+      "to": "paths",
+      "contract": "Native or token transfer records"
+    },
+    {
+      "from": "account-node",
+      "to": "balances",
+      "contract": "Public references for separate balance queries"
+    },
+    {
+      "from": "tx-node",
+      "to": "motifs",
+      "contract": "Observed graph topology"
+    },
+    {
+      "from": "motifs",
+      "to": "features",
+      "contract": "Versioned structural measurements"
+    },
+    {
+      "from": "events",
+      "to": "features",
+      "contract": "Exact records for private sample features"
+    },
+    {
+      "from": "features",
+      "to": "ml",
+      "contract": "Eight transformed observation features"
+    },
+    {
+      "from": "quality",
+      "to": "blue",
+      "contract": "Returned field-completeness components"
+    },
+    {
+      "from": "space-source",
+      "to": "timeseries",
+      "contract": "Separately sampled ordered network observations"
+    },
+    {
+      "from": "snapshot",
+      "to": "aml-evidence",
+      "contract": "Public evidence packet and digest"
+    },
+    {
+      "from": "aml-evidence",
+      "to": "review",
+      "contract": "Future private review workflow"
+    },
+    {
+      "from": "claim-node",
+      "to": "review",
+      "contract": "Separately typed external assertions"
+    },
+    {
+      "from": "corrections",
+      "to": "review",
+      "contract": "Future revision / supersession records"
+    },
+    {
+      "from": "private-context",
+      "to": "review",
+      "contract": "Future authorized contextual records"
+    },
+    {
+      "from": "ml",
+      "to": "scores",
+      "contract": "Descriptive Red index + model metadata"
+    },
+    {
+      "from": "blue",
+      "to": "scores",
+      "contract": "Descriptive Blue index + components"
+    },
+    {
+      "from": "scores",
+      "to": "review",
+      "contract": "Optional observation context for future case workflows"
+    },
+    {
+      "from": "aml-monitoring",
+      "to": "review",
+      "contract": "Future auditable rule evaluations"
+    },
+    {
+      "from": "invitations",
+      "to": "api-keys",
+      "contract": "Current organization role"
+    },
+    {
+      "from": "invitations",
+      "to": "scores",
+      "contract": "Authenticated organization membership"
+    },
+    {
+      "from": "api-keys",
+      "to": "daas",
+      "contract": "Scoped private API authorization"
+    },
+    {
+      "from": "scores",
+      "to": "audit",
+      "contract": "Access / collection events"
+    },
+    {
+      "from": "api-keys",
+      "to": "audit",
+      "contract": "Creation and revocation events"
+    },
+    {
+      "from": "retention",
+      "to": "audit",
+      "contract": "Dataset lifecycle actions"
+    },
+    {
+      "from": "events",
+      "to": "free",
+      "contract": "Public chain facts"
+    },
+    {
+      "from": "manifest",
+      "to": "catalog",
+      "contract": "Source and field definitions"
+    },
+    {
+      "from": "features",
+      "to": "zk",
+      "contract": "Proposed bounded transform for research"
+    },
+    {
+      "from": "bridge-node",
+      "to": "paths",
+      "contract": "Research-only bridge evidence; absent from live graph paths"
+    }
+  ],
+  "capture": {
+    "endpoint": "https://bloch-graphus.xyz/api/chain/network",
+    "method": "GET",
+    "assets": [
+      "BTC",
+      "ETH",
+      "USDT",
+      "USDC",
+      "BLCH"
+    ],
+    "cursor_parameter": "cursor",
+    "collection_limits": {
+      "pages": 8,
+      "references": 1200,
+      "records": 4000,
+      "bytes": 3000000
+    },
+    "source_reported": true,
+    "independent_verification": false,
+    "identity_attribution": false,
+    "aml_scores": false
+  }
+}

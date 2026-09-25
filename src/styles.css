@@ -1166,3 +1166,8 @@ body { font-size: 1rem; background: var(--bg0); }
 .ribbon-block, .ribbon-pending { border-radius: 6px; }
 nav.mainnav a { border-radius: 6px; font-size: .875rem; }
 .table-wrap { border-radius: 8px; }
+/* The full desktop navigation exceeds the header at notebook widths. */
+@media (max-width: 1300px) {
+  header.topbar nav.mainnav { display: none; }
+  header.topbar .nav-toggle { display: inline-flex; }
+}

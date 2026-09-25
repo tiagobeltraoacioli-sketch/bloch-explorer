@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/tiagobeltraoacioli-sketch/bloch-inc-porb",
+  "revision": "fb68eb5",
+  "source_directory": "graphus/assets",
+  "sha256": {
+    "system_evidence.js": "d592c72258b8272951412da7b5bd77aa2ed3f33f068564bf42292603a1d249f0",
+    "analytics_engine.js": "232f0b35cf43a9d0c03bb9be54aa53ebdbf317a2b21ec47d8295343e6daf165d"
+  }
+}
