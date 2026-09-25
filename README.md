@@ -12,8 +12,8 @@ bundle served in production byte for byte.
 ## What it is
 
 - The native **[System Map](https://blochl1.com/system-map)** integrates the Graphus
-  module and public-chain APIs. Browse module dependencies, collect BTC, Ethereum,
-  token and Bloch samples, inspect reference graphs, filter exact records and
+  module and public-chain APIs for **Bloch mainnet only**. Browse Bloch module
+  dependencies, collect BLCH samples, inspect reference graphs, filter exact records and
   export full/filtered evidence with source anchors and dataset digests.
   See [API contracts, source boundaries and verification](docs/system-map-integration.md).
 

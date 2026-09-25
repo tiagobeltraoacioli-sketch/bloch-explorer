@@ -114,7 +114,7 @@ const ROUTES: NavRoute[] = [
   { pattern: "/mempool", nav: "Mempool", group: "Economy", hint: "pending transactions, bytes and admission", render: () => <MempoolPage /> },
   { pattern: "/network", nav: "Network", group: "Network", hint: "RPC nodes, build identities and API", render: () => <NetworkPage /> },
   { pattern: "/observability", desktop: false, nav: "Observability", group: "Network", hint: "Grafana, Prometheus, hosts and Kubernetes", render: () => <ObservabilityPage /> },
-  { pattern: "/system-map", nav: "System Map", desktop: false, group: "Lookup", hint: "Graphus modules and public evidence APIs", render: () => <SystemMapPage /> },
+  { pattern: "/system-map", nav: "System Map", desktop: false, group: "Lookup", hint: "Bloch modules, graphs and public evidence APIs", render: () => <SystemMapPage /> },
   { pattern: "/graphus/constellation", desktop: false, nav: "Graphus", group: "Lookup", hint: "Bloch transaction and eUTXO constellation", render: () => <GraphusConstellationPage /> },
   { pattern: "/fees", desktop: false, nav: "Fees", group: "Economy", hint: "the fee market and the mempool", render: () => <FeesPage /> },
   // `/hash/<64 hex>` is the canonical name of an eUTXO-set entry, and every

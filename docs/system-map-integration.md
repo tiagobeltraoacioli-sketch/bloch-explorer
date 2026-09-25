@@ -1,20 +1,20 @@
 # Graphus System Map in Bloch Explorer
 
-The native `/system-map` route is linked from the atlas, chain dashboard, navigation drawer and footer. It loads the central Graphus module registry through `GET https://bloch-graphus.xyz/api/system/map`. The schema has a version, module descriptions, asset support, implementation/access status, typed dependencies and per-asset action links. Status describes implementation, not continuous source health or an executed analysis. Private capabilities open the authenticated portal.
+The native `/system-map` route is linked from the atlas, chain dashboard, navigation drawer and footer. It loads the central Graphus module registry through `GET https://bloch-graphus.xyz/api/system/map`. The shared schema has a version, module descriptions, asset support, implementation/access status, typed dependencies and per-asset action links. The explorer projects it to Bloch mainnet before rendering: 35 compatible modules, their BLCH action links and connections whose endpoints both remain in the map. The asset-identity module has a local Bloch-specific description. There is no network selector, and legacy URLs naming other assets normalize to BLCH. Status describes implementation, not continuous source health or an executed analysis. Private capabilities open the authenticated portal.
 
 ## Source path
 
-Captures call `GET https://bloch-graphus.xyz/api/chain/network?asset=BTC|ETH|BLCH|USDT|USDC`, optionally with the returned `cursor`. These are direct browser requests with credentials omitted and redirects refused. Both public endpoints support read-only CORS. The explorer does not proxy a capture through its own Worker: Graphus's BLCH adapter reads `blochl1.com/indexer`, and a server-side proxy would create a circular Worker request. No account credentials, private scores or API keys cross this integration.
+Captures call `GET https://bloch-graphus.xyz/api/chain/network?asset=BLCH`, optionally with the returned `cursor`. These are direct browser requests with credentials omitted and redirects refused. Both public endpoints support read-only CORS. The explorer does not proxy a capture through its own Worker: Graphus's BLCH adapter reads `blochl1.com/indexer`, and a server-side proxy would create a circular Worker request. No account credentials, private scores or API keys cross this integration.
 
 The registry decoder bounds bytes, module/connection counts and strings, rejects unknown schema versions, duplicate IDs and unresolved dependencies, and restricts action links to the four known product origins. Captures use a 65-second request deadline and the same evidence validation as the Graphus workbench. Source failures remain explicit; no synthetic sample replaces a failed read.
 
 ## Features
 
-- Responsive module diagram and directory, asset/layer/status/search filters, selectable dependency contracts, input/output/coverage inspector, upstream/downstream navigation and shareable module links.
+- Responsive module diagram and directory, layer/status/search filters, selectable dependency contracts, input/output/coverage inspector, upstream/downstream navigation and shareable module links.
 - Fit, zoom, pan, selected-module focus and a native expanded-workspace dialog. Compact screens use a details dialog. Every module remains reachable without horizontal page overflow.
-- Manual capture of one, two or four source pages per batch; continuation is capped at eight pages, 1,200 references, 4,000 records and 3 MB. Partial failures and cancellation keep completed pages. Changing the capture asset clears the current collection and baseline and invalidates pending responses.
+- Manual capture of one, two or four source pages per batch; continuation is capped at eight pages, 1,200 references, 4,000 records and 3 MB. Partial failures and cancellation keep completed pages. Clearing a capture removes the collection and baseline and invalidates pending responses. The capture API wrapper is fixed to BLCH and validates the returned asset.
 - Source, retrieval time, highest sampled anchor, original page anchors, finality text, completeness counts and dataset SHA-256.
-- Search by public reference or transaction, record-type/direction/block-range filters, exact integer amount bounds, separate sums per record type and paginated source records. Bitcoin base58 matching remains case-sensitive. BLCH transaction links pin the selected block occurrence.
+- Search by public reference or transaction, record-type/direction/block-range filters, exact integer amount bounds, separate sums per record type and paginated source records. BLCH transaction links pin the selected block occurrence.
 - A graph of the matching captured records: up to 220 references and 800 directed event records. Addresses, scripts and transaction references remain distinct. Display omissions are counted; JSON exports retain all matching records. Graph links describe observed records, not ownership or continuity of value.
 - Full and filtered `graphus_network_collection` exports preserve exact base-unit strings and source lineage. Filtered packets include the parent digest and can be opened through Graphus's existing JSON import. No cross-origin session-storage handoff is claimed.
 - Immutable tab-memory baseline, record difference counts and baseline/comparison JSON exports. Absence from a bounded sample does not establish inactivity or deletion. Captures are not persisted across page closure/reload.
@@ -32,7 +32,7 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/verify-system-map.m
 EXPLORER_ORIGIN=https://blochl1.com PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node scripts/verify-system-map.mjs
 ```
 
-The local browser run uses clearly named fixtures at the API boundary. It checks the four viewport widths (1,440, 1,280, 1,024 and 390 px), module clicks/dialogs, no implicit source capture, all five asset contracts, validated exports, searches, graph inspection, themes, baseline comparison, partial failures, cancellation, asset-switch races and registry failure/retry. Production mode uses actual Graphus APIs. `SYSTEM_MAP_ASSETS` can select a comma-separated subset when repeating a source check. Screenshots are written outside the repository to `/private/tmp/bloch-system-map/`.
+The local browser run uses clearly named fixtures at the API boundary. It checks the four viewport widths (1,440, 1,280, 1,024 and 390 px), module clicks/dialogs, no implicit source capture, Bloch-only requests and normalization of legacy asset URLs, validated exports, searches, graph inspection, themes, baseline comparison, partial failures, cancellation, clear-during-capture races and registry failure/retry. Production mode uses actual Graphus APIs. Screenshots are written outside the repository to `/private/tmp/bloch-system-map/`.
 
 The existing explorer suite also verifies the unchanged RPC/indexer contracts. Node-source parity checks require a matching node checkout and are reported as skipped when unavailable. Production uses the existing `bloch-explorer` Pages project; deploy the Graphus API release before the explorer frontend.
 
@@ -63,3 +63,9 @@ Content verification fetched the production asset URLs from the served HTML and 
 | `index-D10mxTuo.js` | `3675d467106e42e2d0c09a6801c67a2c92406d73bb04d9debb43746e87fbab2b` |
 | `index-JSoYUbhk.css` | `2bc14ac96ceb49016117e3ce9529efe3b87d1db1d0a53f05f2d11a4da413019a` |
 | `SystemMap-Bk-tGsS_.js` | `f608e7a97f96cf4e82cd819990df89f90526aa3739e55639c5114bd2cff1cd84` |
+
+### Bloch-only scope — 2026-09-24
+
+The owner clarified that the Explorer integration should focus exclusively on Bloch. The native workspace now exposes 35 Bloch-compatible modules, fixes captures to BLCH at the API wrapper, removes both asset selectors, filters dependency navigation and action links, and normalizes old non-Bloch module/asset URLs. Homepage copy and the asset-identity inspector describe Bloch mainnet. Graphus continues to supply its central registry; the explorer applies the Bloch projection before rendering.
+
+Local verification passed: 190 tests, seven existing node-source parity checks skipped, no failures; TypeScript/Vite build; WebKit at 1,440, 1,280, 1,024 and 390 px. The browser checked old BTC deep links, absence of other source modules and selectors, only BLCH capture requests, exact exports, searches, graph inspection, baseline comparison, cancellation, clearing during capture and registry retry. All 35 modules fit without horizontal overflow. Local captures used explicit fixtures.

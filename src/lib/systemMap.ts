@@ -4,6 +4,7 @@ import type {EvidenceGraph} from './intelligence.ts';
 export type {Asset, EvidencePacket, EvidenceRecord};
 export const GRAPHUS = 'https://bloch-graphus.xyz';
 export const ASSETS: Asset[] = ['BTC','ETH','USDT','USDC','BLCH'];
+export const EXPLORER_ASSET = 'BLCH' as const;
 export interface ModuleLink {action: string; label: string; href: string}
 export interface SystemModule {id: string; title: string; layer: string; category: string; assets: Asset[]; status: string; access: string; description: string; inputs: string[]; outputs: string[]; limits: string; actions: string[]; links_by_asset: Partial<Record<Asset, ModuleLink[]>>}
 export interface ModuleConnection {from: string; to: string; contract: string}
@@ -35,10 +36,19 @@ export async function loadSystemManifest(signal: AbortSignal, fetcher=fetch): Pr
   if(!response.ok)throw new Error(`System Map catalog unavailable (HTTP ${response.status}).`);
   const reader=response.body?.getReader();if(!reader)throw new Error('Empty System Map response.');
   let size=0,raw='';const decoder=new TextDecoder();try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>250000)throw new Error('System Map catalog exceeds its limit.');raw+=decoder.decode(value,{stream:true});}raw+=decoder.decode();}finally{await reader.cancel().catch(()=>{});}
-  return parseSystemManifest(JSON.parse(raw));
+  return blochSystemManifest(parseSystemManifest(JSON.parse(raw)));
 }
-export function captureSystemPage(asset: Asset, cursor: string | null, signal: AbortSignal, fetcher=fetch) {
-  return fetchEvidence(asset,{cursor,signal,fetcher:((path,init)=>fetcher(GRAPHUS+String(path),{...init,credentials:'omit',mode:'cors',redirect:'error'})) as typeof fetch});
+/** Project the shared catalog before any map, inspector or dependency navigation. */
+export function blochSystemManifest(manifest: SystemManifest): SystemManifest {
+  const modules=manifest.modules.filter(n=>n.assets.includes(EXPLORER_ASSET)).map(n=>({
+    ...n,assets:[EXPLORER_ASSET],links_by_asset:{BLCH:n.links_by_asset.BLCH},
+    ...(n.id==='asset-registry'?{title:'Bloch asset identity',description:'Interpret Bloch mainnet records using the native BLCH asset and exact base units.',inputs:['Bloch mainnet','Native BLCH asset'],limits:'Amounts retain the source base-unit definition; script references do not identify holders.'}:{}),
+  }));
+  const ids=new Set(modules.map(n=>n.id));
+  return {...manifest,assets:[EXPLORER_ASSET],modules,connections:manifest.connections.filter(e=>ids.has(e.from)&&ids.has(e.to)),layers:manifest.layers.filter(layer=>modules.some(n=>n.layer===layer))};
+}
+export function captureSystemPage(cursor: string | null, signal: AbortSignal, fetcher=fetch) {
+  return fetchEvidence(EXPLORER_ASSET,{cursor,signal,fetcher:((path,init)=>fetcher(GRAPHUS+String(path),{...init,credentials:'omit',mode:'cors',redirect:'error'})) as typeof fetch});
 }
 export function sourceLink(asset: Asset, reference: string, transaction=false, blockHash?: string): string {
   if(asset==='BLCH')return transaction?`/tx/${encodeURIComponent(reference)}${blockHash?'?block='+encodeURIComponent(blockHash):''}`:`/graphus/constellation?script=${encodeURIComponent(reference)}`;

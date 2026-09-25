@@ -19,8 +19,8 @@ remains at `/chain`. Existing block, transaction, validator and Graphus routes r
   is cached for up to 60 seconds. No arbitrary URL, PromQL or query is accepted.
   The response explicitly names the shared producer and both public source URLs.
 - `/system-map`: native integration with the Graphus module catalog and bounded
-  real public-chain APIs. Captures are manual and include BTC, Ethereum, tokens and
-  Bloch. See [the integration contract](system-map-integration.md). Public captures
+  real public-chain APIs for Bloch mainnet only. Captures are manual and fixed to
+  BLCH; the map and all dependency actions use the Bloch catalog subset. See [the integration contract](system-map-integration.md). Public captures
   contain no holder attribution or private scores.
 
 Bloch Space shares the underlying network telemetry with the explorer. It is not
