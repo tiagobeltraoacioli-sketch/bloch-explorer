@@ -54,7 +54,7 @@ The supplied public keys confirm this mapping: first directory = index 0; second
   --checkpoint checkpoint.bin --signer-index 2 --out signerC.partial
 ```
 
-Each person returns only their `.partial` file. Everyone must verify the checkpoint before signing, as shown for A. Do not reuse the epoch 1536 signatures: they do not sign the new checkpoint.
+Each person returns only their `.partial` file. Everyone must verify the checkpoint before signing, as shown for A. Signatures from epoch 1536 or 3328 do not sign a new checkpoint payload.
 
 ## 3. Assemble and verify the envelope
 
@@ -68,11 +68,11 @@ On the coordinator’s machine, after receiving all three public files:
 
 ./bloch-pos ws-verify \
   --envelope ws-envelope.bin --signer-set signer-set.bin \
-  --genesis mainnet.manifest --rpc 139.180.166.5:8080
+  --genesis mainnet.manifest --rpc 139.180.166.5:8080 --require-fresh
 
 ./bloch-pos ws-verify \
   --envelope ws-envelope.bin --signer-set signer-set.bin \
-  --genesis mainnet.manifest --rpc 139.180.173.231:8080
+  --genesis mainnet.manifest --rpc 139.180.173.231:8080 --require-fresh
 ```
 
 Require all three signatures to be `VALID`, the verdict to be `ACCEPTED`, and the age to be `FRESH`. The envelope verifier queries the RPC epoch to calculate age; block comparison took place during extraction. Do not confuse cryptographic validity with absence of expiry.
@@ -88,4 +88,4 @@ shasum -a 256 -c SHA256SUMS.txt
 
 On Linux, use `sha256sum` and `sha256sum --check`. Also publish the WS digest and signer-set fingerprint through another independent trusted channel. Update the guide and deadline: initial synchronization refuses the checkpoint when `current_epoch - checkpoint_epoch >= 2016`. Never publish `signer.sk`, validator keys or a complete copy of the ceremony directories.
 
-The currently published checkpoint (epoch 1536) must be replaced before epoch 3552: September 22, 2026 at 08:43:19 UTC (05:43:19 Brasília time). Renewal requires new human signatures; these commands do not automate those signatures or publish files on their own.
+The September 30 distribution uses the existing historical checkpoint at epoch 3328. Its signatures were verified, but all three keys were used on one Mac and independent custody remains unverified; see the [verification record](/checkpoints/epoch-3328/verification.json). It must be replaced before epoch 5344: October 12, 2026 at 06:35:19.962 UTC (03:35:19.962 Brasília time). Signing a new checkpoint requires new human signatures; these commands do not automate those signatures or publish files on their own.

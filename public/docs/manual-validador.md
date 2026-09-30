@@ -1,12 +1,10 @@
 # How to run a Bloch validator
 
-Reviewed on September 14, 2026.
-
-[Complete onboarding instructions and release downloads](/docs/validator-onboarding.md).
+Updated September 30, 2026.
 
 ## 1. What this guide covers
 
-Operational guide for Bloch Genesis-4, reviewed on September 14, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit.
+Operational guide for Bloch Genesis-4, reviewed on September 30, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit.
 
 The fleet check at 21:01 UTC on September 14 confirmed 64 processes running the same binary, all within 0–1 slot of the network clock and with attestations logged. At that point, 44 had completed qualification and 20 were still under observation. This is a historical record, not a live availability indicator.
 
@@ -16,13 +14,13 @@ The installed binary schedules recovery at epoch 2880 (September 14, 2026, 21:31
 
 Use Linux x86_64 for the artifact identified below, persistent SSD storage, a synchronized clock and administrative access. The reference fleet uses seven 32 GB servers for 64 processes; this is neither a minimum requirement nor a guarantee for another machine. Size CPU, RAM and disk for replaying the complete history and monitor memory during synchronization.
 
-Download this release’s executable, mainnet.manifest and carryover.tsv.gz from /releases/2026-09-14/. The preparation script verifies their hashes and decompresses carryover.tsv. The complete onboarding instructions and download links appear above; section 3 covers the signed checkpoint. Do not substitute an arbitrary build of main or an old tag.
+Download the signed executable from /releases/2026-09-30/bloch-pos. It is byte-identical to the September 24 executable. Keep the genesis manifest and carryover files from /releases/2026-09-14/. The preparation script verifies hashes and the release signature, decompresses carryover.tsv and installs the epoch-3328 checkpoint. Read the checkpoint custody limits before use.
 
 ```text
-Commit: 58da5ce209acb6e293b3b381dfd826dedb8741fd
+Commit: 4d4c5075872c622fdd26aa418a9d249ec95fbcea
 Linux x86_64 · rustc 1.94.1
 SHA-256 bloch-pos:
-b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084
+fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a
 SHA-256 mainnet.manifest:
 7eef82a70ef9b0e1dd86f86d33cba11fc10cdfc7395c2e5f6669613fa1beb2dd
 SHA-256 carryover.tsv:
@@ -43,33 +41,33 @@ df -h
 
 ## 3. Choose a trusted source of history
 
-New machine: the initial genesis trust window has ended. The original epoch 1536 envelope and its signer set are published at /checkpoints/epoch-1536/. On September 14, 2026, this release’s binary verified three valid hybrid signatures from three distinct keys. The set requires 2 of 3 signatures and at least one external signer; all three are declared external. That declaration alone does not establish personal identity or independence.
+New machine: use the historical epoch-3328 envelope at /checkpoints/epoch-3328/. Three signatures verify against signer set ID 1, whose encoded policy is 2 of 3 with at least one external signer. All three keys were used on the same Mac; independent custody has not been established. The operator authorized use and publication of this existing envelope on September 30. This authorization does not prove independent signing.
 
-Both public RPCs agreed on checkpoint block d5b3a12207af3010a611b737be15877db476ce9629520e08c552b8995bf23d32 and state 84cceba212f6443cc5d9fd67ce578a3ae0f34cba5e5877d8082748b282db0780. The original signatures and bytes have been preserved. This verification does not replace a complete synchronization test from an empty machine. The validator_set_root field is the zero placeholder emitted and accepted by this release.
+The selected checkpoint records block root 386df5c04e116b755014e8e6b5aca0120be633401266b348ff1daf3f181896f9 and state root 09c0bfbe8cbe63127a27b9e80dd75a03792e2db6995abbfb1929dfb5202ba52c. Original bytes, issued_at and signatures are preserved. The validator_set_root field remains the all-zero placeholder accepted by this release. No new full mainnet replay from empty data is claimed.
 
-Deadline: at epoch 2878, the checkpoint was 1342 epochs old within the 2016-epoch window. It is accepted but already carries a STALE warning and needs renewal. Starting at epoch 3552, on September 22, 2026 at 08:43:19 UTC (05:43:19 Brasília time), it no longer authorizes initial synchronization. Check the current epoch; ACCEPTED from the cryptographic verifier does not override an EXPIRED age warning.
+Deadline: initial synchronization using this checkpoint expires at epoch 5344, October 12, 2026 at 06:35:19.962 UTC (03:35:19.962 Brasília time). The preparation script checks the host clock and uses ws-verify --require-fresh. Cryptographic acceptance alone does not override age.
 
 Download the files below and verify the WS digest and signer-set fingerprints through another independent trusted channel. Hashes downloaded from the same site only detect changes to bytes; they do not establish trust in the signers. verification.json records the result, fingerprints and verification limits.
 
 ```text
 Original signed WS digest:
-e329e6c61ccf91e9338d94a1c1c98e4984e92ad770e995b4ce44596edae2b801
+f4f067929ee881f671df54a5849edec4106c712f28b2286ab1a7fc58e587fbc0
 ```
 
 ```text
-mkdir -p checkpoint-1536
-cd checkpoint-1536
+mkdir -p checkpoint-3328
+cd checkpoint-3328
 for file in ws-envelope.bin signer-set.bin checkpoint.bin checkpoint.json verification.json SHA256SUMS.txt; do
-  curl --fail --show-error --location --output "$file" "https://blochl1.com/checkpoints/epoch-1536/$file" || exit 1
+  curl --fail --show-error --location --output "$file" "https://blochl1.com/checkpoints/epoch-3328/$file" || exit 1
 done
 sha256sum --check SHA256SUMS.txt
 cd ..
-./bloch-pos ws-verify --envelope checkpoint-1536/ws-envelope.bin --signer-set checkpoint-1536/signer-set.bin --genesis mainnet.manifest --rpc 139.180.166.5:8080
+./bloch-pos ws-verify --envelope checkpoint-3328/ws-envelope.bin --signer-set checkpoint-3328/signer-set.bin --genesis mainnet.manifest --rpc 139.180.166.5:8080 --require-fresh
 ```
 
 Copying a block hash, a ws_latest.bin file or a third-party snapshot is not equivalent to obtaining a signed checkpoint. Do not create your own signer set to bypass verification. The node still replays the complete history from genesis: the envelope supplies a trust anchor, not a snapshot that removes the need for replay.
 
-Existing operator: preserve your data directory, history, metadata, key and slashing_protection.bin. Use the canonical history already validated by your own node. Do not replace a newer local anchor with epoch 1536 or delete the signing record to make a restart succeed.
+Existing operator: preserve your data directory, history, metadata, key and slashing_protection.bin. Use the canonical history already validated by your own node. Do not replace a newer local anchor with epoch 3328 or delete the signing record to make a restart succeed.
 
 ## 4. Prepare the validator identity
 
@@ -131,11 +129,11 @@ WantedBy=multi-user.target
 ```
 
 ```text
-sudo install -m 644 checkpoint-1536/ws-envelope.bin /var/lib/bloch/checkpoint.envelope.bin
-sudo install -m 644 checkpoint-1536/signer-set.bin /var/lib/bloch/signer-set.bin
+sudo install -m 644 checkpoint-3328/ws-envelope.bin /var/lib/bloch/checkpoint.envelope.bin
+sudo install -m 644 checkpoint-3328/signer-set.bin /var/lib/bloch/signer-set.bin
 ```
 
-This ExecStart assumes your own history is already trusted. On a new node with valid trust files, append to the same ExecStart line: --ws-checkpoint /var/lib/bloch/checkpoint.envelope.bin --ws-signer-set /var/lib/bloch/signer-set.bin. Both files are public and must be readable by the bloch user. Never use an incomplete command containing ellipses in the service.
+This ExecStart assumes your own history is already trusted. On a new node with valid trust files, append to the same ExecStart line: --ws-checkpoint /var/lib/bloch/checkpoint.envelope.bin --ws-signer-set /var/lib/bloch/signer-set.bin --ws-signer-set-sha3 bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627. Both files are public and must be readable by the bloch user. Never use an incomplete command containing ellipses in the service.
 
 ```text
 sudo systemd-analyze verify /etc/systemd/system/bloch-validator.service
@@ -239,7 +237,3 @@ Exit does not release funds immediately. In this version, the exit delay is 32 e
 RPC refused during replay: monitor journalctl and wait for initialization. Key refused: check the sealed format, ownership and password-file permissions. Identity ineligible: query getvalidatorbykey and the queue. Persistent lag: check the clock, peers, CPU, disk and checkpoint. Duplicate-instance alert: stop signing and locate the other instance before restarting.
 
 This guide covers operation and preparation. A new participant still needs the trust artifacts and admission to be effectively open. The attached technical documents are references for the reviewed version and do not guarantee immediate entry. Renew the published checkpoint before the deadline in section 3.
-
-## Checkpoint renewal
-
-[Commands to extract, sign and publish the next checkpoint](/docs/renovar-checkpoint.md).

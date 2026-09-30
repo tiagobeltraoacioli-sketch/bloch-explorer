@@ -1,14 +1,14 @@
 # Start a Bloch validator — Genesis-4
 
-Guide updated September 17, 2026. Release: September 14, 2026. Linux x86_64. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
+Guide updated September 30, 2026. Distribution: September 30, 2026, with checkpoint 3328 and the byte-identical signed Linux x86_64 executable originally released September 24 (source `4d4c5075872c622fdd26aa418a9d249ec95fbcea`). This distribution updates bootstrap material without changing consensus code. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
 
 Deposits require at least **25,000 BLCH plus fees** in eligible native UTXOs. Registration must finalize; activation then waits at least **8 epochs (128 minutes)** and is limited to four new validators per epoch. Starting at 20:00 does not mean signing at 20:00.
 
 The full mainnet exit → withdrawal → payout-spend qualification is still pending. Withdrawal has a 2,048-epoch delay (about 22.8 days), following the 32-epoch exit delay. Protocol admission does not establish that this end-to-end qualification has completed. See [ADR-041](/docs/validator-exit-and-withdrawal.md) and the [remaining qualification procedure](/docs/validator-qualification.md).
 
-**Exchange observers:** follow only sections 1–2; no validator key or bond is required. The operator confirms the checkpoint ceremony occurred on September 4, 2026. The published record verifies signatures but does not independently attest the Phase-A signer identities or custody. See the [dated observer and admission status](/docs/observer-and-admission-status-2026-09-15.md) before relying on the checkpoint for deposit crediting.
+**Exchange observers:** follow only sections 1–2; no validator key or bond is required. Checkpoint 3328 preserves three valid historical signatures. All three secret keys were used on the same Mac, so independent custody is **not verified**. The operator authorized use and publication of this existing envelope on September 30; that decision does not establish independent signing or exchange production readiness. Review the [checkpoint verification record](/checkpoints/epoch-3328/verification.json) and compare its digest and signer-set fingerprint through your own trusted channel before accepting this history.
 
-**Checkpoint deadline:** the epoch-1536 checkpoint bundled with this release expires for initial synchronization at epoch 3552, **September 22, 2026 at 08:43:19 UTC**. After that instant, stop: obtain and independently verify the published renewal. Cryptographic signature acceptance does not override checkpoint age.
+**Checkpoint deadline:** epoch 3328 expires for initial synchronization at epoch **5344**, **October 12, 2026 at 06:35:19.962 UTC / 03:35:19.962 Brasília time**. After that instant, obtain and verify a renewal. The installer checks the synchronized host clock and runs `ws-verify --require-fresh`; cryptographic signature acceptance alone does not override checkpoint age. A full mainnet replay from empty data has not been repeated for this distribution.
 
 ## Platform command map
 
@@ -44,13 +44,13 @@ SSH and SCP examples above are for public installation material or normal admini
 
 Use Linux x86_64 with glibc 2.34 or newer (for example Ubuntu 22.04 or 24.04), persistent SSD storage and a synchronized clock. This executable is not a native macOS, Windows or Alpine/musl build. The earlier observer reference used 2+ vCPU, 8 GB RAM and 80 GB SSD; replay speed varies and a validator also needs resources for its duties. Check resource use during synchronization. Use a dedicated data directory and never duplicate an identity between running servers.
 
-Prerequisites: `bash`, `curl`, `gzip`, `sha256sum`, `python3`. On Ubuntu, install missing packages through your normal package manager. Check `timedatectl status`.
+Prerequisites: `bash`, `curl`, `gzip`, `sha256sum`, `python3`, `minisign` and GNU `date`. On Ubuntu, install missing packages through your normal package manager. Check `timedatectl status`.
 
 On a fresh **Ubuntu Linux validator server**, install these prerequisites and check the clock:
 
 ```sh
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl gzip python3
+sudo apt-get install -y ca-certificates curl gzip python3 minisign
 uname -m
 getconf GNU_LIBC_VERSION
 timedatectl status
@@ -66,26 +66,26 @@ Download the script, read it, then execute it. It downloads only public files an
 curl --fail --show-error --location \
   --output prepare-node.sh https://blochl1.com/downloads/prepare-node.sh
 printf '%s  %s\n' \
-  8fb3088e52d267dc922a8a01469663ee2e5eee393385a3401e87aee96104a95b \
+  1ae3c0410f958999c5c42bc13a4b013a9a178591c21a041c1a869b9de0e7c309 \
   prepare-node.sh | sha256sum --check
 less prepare-node.sh
-bash prepare-node.sh "$HOME/bloch-validator-20260914"
-cd "$HOME/bloch-validator-20260914"
+bash prepare-node.sh "$HOME/bloch-validator-20260930"
+cd "$HOME/bloch-validator-20260930"
 ./bloch-pos --version
 ```
 
 Direct downloads:
 
-- [Linux x86_64 executable](/releases/2026-09-14/bloch-pos-linux-x86_64)
+- [Linux x86_64 executable](/releases/2026-09-30/bloch-pos)
 - [Genesis manifest](/releases/2026-09-14/mainnet.manifest)
 - [Compressed carryover](/releases/2026-09-14/carryover.tsv.gz)
-- [Corresponding build source](/releases/2026-09-14/bloch-pos-source.tar.gz)
-- [Release metadata](/releases/2026-09-14/release.json) and [SHA-256 checksums](/releases/2026-09-14/SHA256SUMS.txt)
+- [Corresponding pinned build source](https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/4d4c5075872c622fdd26aa418a9d249ec95fbcea)
+- [Release metadata](/releases/2026-09-30/release.json), [signed SHA-256 checksums](/releases/2026-09-30/SHA256SUMS), [signature](/releases/2026-09-30/SHA256SUMS.minisig) and [public key](/releases/2026-09-30/bloch-release-20260922.pub)
 
 Binary SHA-256:
 
 ```text
-b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084
+fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a
 ```
 
 The preparation script pins the public checkpoint’s hashes, but trust in its signers must be checked independently. Compare the signer-set SHA3-256 fingerprint through another trusted channel:
@@ -94,7 +94,7 @@ The preparation script pins the public checkpoint’s hashes, but trust in its s
 bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627
 ```
 
-The epoch-1536 checkpoint expires for initial synchronization at epoch 3552, September 22 at 08:43:19 UTC. Obtain its renewal before that point. [Checkpoint details and downloads](/validators/guide#confianca).
+The epoch-3328 checkpoint expires for initial synchronization at epoch 5344, October 12 at 06:35:19.962 UTC. Obtain its renewal before that point. [Checkpoint details and downloads](/validators/guide#confianca).
 
 ### Install the Bloch CLI in your PATH
 
@@ -145,7 +145,7 @@ Download and review the helper on a connected staging machine, then transfer the
 curl --fail --show-error --location \
   --output prepare-identity.sh https://blochl1.com/downloads/prepare-identity.sh
 printf '%s  %s\n' \
-  1d2128fd02ac2aa12074d7d20c9f54f97015449fee56ecf7e4cae4c333188390 \
+  d78d25508743ed4b3700a9c3c4c60e5799d450fef10e6e4a854c0d53559a3ddb \
   prepare-identity.sh | sha256sum --check
 less prepare-identity.sh
 ```
@@ -282,7 +282,7 @@ Wait for registration finality and queued → active status. Keep the node synch
 
 ## 8. Keep the node running with systemd
 
-Use a dedicated non-root Linux account. The following example assumes the verified installation is `/home/bloch/bloch-validator-20260914`, owned by user `bloch`. Replace both paths and the service user consistently if your account differs. Do not paste an example account or path that does not exist.
+Use a dedicated non-root Linux account. The following example assumes the verified installation is `/home/bloch/bloch-validator-20260930`, owned by user `bloch`. Replace both paths and the service user consistently if your account differs. Do not paste an example account or path that does not exist.
 
 Complete observer synchronization before switching an already running observer to this service. Stop that foreground process cleanly. Install the validator key and password only through your custody procedure, as in section 4. Do not run the foreground launcher and the service at the same time.
 
@@ -297,10 +297,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=bloch
-WorkingDirectory=/home/bloch/bloch-validator-20260914
-Environment=BLOCH_KEYSTORE_PASSPHRASE_FILE=/home/bloch/bloch-validator-20260914/validator.pass
+WorkingDirectory=/home/bloch/bloch-validator-20260930
+Environment=BLOCH_KEYSTORE_PASSPHRASE_FILE=/home/bloch/bloch-validator-20260930/validator.pass
 UnsetEnvironment=BLOCH_NO_DOPPELGANGER BLOCH_KEYSTORE_ALLOW_PLAINTEXT
-ExecStart=/home/bloch/bloch-validator-20260914/run-node.sh
+ExecStart=/home/bloch/bloch-validator-20260930/run-node.sh
 Restart=on-failure
 RestartSec=10
 UMask=0077

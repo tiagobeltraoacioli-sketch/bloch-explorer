@@ -10,7 +10,7 @@ binary=$1
 identity_dir=$2
 [[ "$binary" == /* && "$identity_dir" == /* ]] || { echo 'Use absolute paths.' >&2; exit 1; }
 [[ ! -e "$identity_dir" ]] || { echo 'Identity directory already exists; refusing to overwrite keys.' >&2; exit 1; }
-printf '%s  %s\n' b3171d1227333284d65c7f60ac925d9e49123908d4c5fcb124ede3f1568a1084 "$binary" | sha256sum --check
+printf '%s  %s\n' fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a "$binary" | sha256sum --check
 printf '%s\n' 'This invokes the current keygen utility, which retains its devnet/throwaway label.' 'The utility is not an independently qualified production custody ceremony.' 'Only the human custodian should run it offline after reviewing the code and custody requirements.'
 read -r -p 'Type OFFLINE to confirm this is your private, offline terminal: ' confirmation
 [[ "$confirmation" == OFFLINE ]] || exit 1

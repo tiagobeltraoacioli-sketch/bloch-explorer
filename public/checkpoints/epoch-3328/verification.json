@@ -1,0 +1,159 @@
+{
+  "schema": "bloch.checkpoint.publication-verification.v1",
+  "verification_started_at_utc": "2026-09-30T15:06:32.854182+00:00",
+  "verified_at_utc": "2026-09-30T15:06:32.922540+00:00",
+  "scope": "Offline verification of public, existing historical artifacts. No signing, network query, node installation or deployment was performed by this verification.",
+  "checkpoint": {
+    "format": "bloch-ws-checkpoint",
+    "version": 1,
+    "network_id": 1228832244,
+    "genesis_root": "9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415",
+    "epoch": 3328,
+    "boundary_slot": 106493,
+    "block_root": "386df5c04e116b755014e8e6b5aca0120be633401266b348ff1daf3f181896f9",
+    "state_root": "09c0bfbe8cbe63127a27b9e80dd75a03792e2db6995abbfb1929dfb5202ba52c",
+    "validator_set_root": "0000000000000000000000000000000000000000000000000000000000000000",
+    "issued_at": 1789930007,
+    "signer_set_id": 1,
+    "ws_digest": "f4f067929ee881f671df54a5849edec4106c712f28b2286ab1a7fc58e587fbc0"
+  },
+  "artifacts": {
+    "checkpoint.bin": {
+      "bytes": 154,
+      "sha256": "ed34a420656f2e985a3daf950d5695a7f77509cf4f9fe25e33ee83d5931219a8",
+      "sha3_256": "72573035643c5acf71d001ec2511d4b105888ac8f091383245416cd02d5be906"
+    },
+    "checkpoint.json": {
+      "bytes": 555,
+      "sha256": "86cdfcd13cf3a627bfbc0c49ee8dfefa227249772af43c8f0163de6bef22c5d9",
+      "sha3_256": "9554d2610a2273565c37a49cf493337a642d323b1d1b258d3aa8603bf6e2a0c6"
+    },
+    "ws-envelope.bin": {
+      "bytes": 13912,
+      "sha256": "66c7f832e5d644388e439c965014810e283347624404dca9b343bb5ae4c1d18d",
+      "sha3_256": "372ec9d8f93dc35ac7988435161e96e113e2147d48e72dd071d9fdc73418d13f"
+    },
+    "signer-set.bin": {
+      "bytes": 11270,
+      "sha256": "b2ea7f0ca9356a3d82bcd2a3f6a1e1a1b997a809b3bc91a063c90d7852566643",
+      "sha3_256": "bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627"
+    },
+    "PUBLICATION-HOLD": {
+      "bytes": 617,
+      "sha256": "6b7506aa2fef65bf5ad37267c2bf61d8320e2cf89889741f34e8a336eb2a2a9e",
+      "sha3_256": "2dab46e1688f22e8b86a924838a6226a964989f60fee9d2c17450cc9adc4af49"
+    },
+    "partials/signer-0.partial": {
+      "bytes": 4621,
+      "sha256": "c4ca9f54840cf71fbe3f5aaf2689bc85ddd0ccfca70689899d2eadee04020342",
+      "sha3_256": "f452b26cc588f95f22d65f3d5ac07a4eb43c4430269a5c9c4c83b94a3184a3b9"
+    },
+    "partials/signer-1.partial": {
+      "bytes": 4619,
+      "sha256": "472c5419d6ccf27558234fcffec21378c59f19c9b70888b5582351172a1c1973",
+      "sha3_256": "7198f47b7cc85cdf3579bc013fd689f63928e51927861f71418e73e4d200f1e7"
+    },
+    "partials/signer-2.partial": {
+      "bytes": 4626,
+      "sha256": "584ec060bc65d4139fd22d8e384bf8c94d42854d037a6226b113833984a25f6d",
+      "sha3_256": "4f7f9a43e3de97d1a8995704d1c89cbf80882bbdaab6bd153a606b0e55aa3e26"
+    }
+  },
+  "verification_binary": {
+    "label": "bloch-pos-native-tested",
+    "sha256": "30413f4b4a328a47b48ce18176e97f852b304e1877ef3cb3907789dd2c6f463b",
+    "reported_version_and_source_identity": [
+      "bloch-pos-node 0.1.0-mainnet (f40a04c3ee36) (Genesis-4, block version 0xb10c0005)",
+      "source-digest sha3-256:693ad6ff4456dc4ed52ef83dec8c43e9488c4c5d84aa1f56f8a963fdfe4b9b87 (279 files, 7892334 bytes) commit-source:git tree:clean"
+    ],
+    "platform": "macOS x86_64",
+    "profile": "debug",
+    "is_published_linux_release_binary": false,
+    "limits": "The version/source string is a binary-reported claim; this report does not independently attest build provenance."
+  },
+  "genesis_manifest": {
+    "sha256": "7eef82a70ef9b0e1dd86f86d33cba11fc10cdfc7395c2e5f6669613fa1beb2dd",
+    "sha3_256": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+    "network_id": 1228832244,
+    "genesis_root": "9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415"
+  },
+  "current_epoch_reference": {
+    "epoch": 4295,
+    "source": "Previously captured public L1 JSON-RPC observation on 2026-09-30; supplied to the offline verifier with --now-epoch.",
+    "observed_at_utc": "2026-09-30T14:53:32.685189+00:00",
+    "captured_response_file_sha256": "ca63b1bc1cb30565264b9f63087d300b63adacb36b71ae85b667082a2dd5a18f",
+    "queried_again_by_this_verification": false,
+    "must_refresh_before_installation": true
+  },
+  "signer_set": {
+    "id": 1,
+    "quorum": 2,
+    "signer_count": 3,
+    "minimum_external_signers": 1,
+    "declared_external_signers": 3,
+    "distinct_public_keys": 3,
+    "adopted_epoch_encoded": 0,
+    "review_due_epoch": 32850,
+    "hard_stop_epoch": 41040,
+    "sha3_256": "bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627",
+    "external_roles_independently_verified": false
+  },
+  "checks": {
+    "checkpoint_metadata_signed_fields_match_binary": true,
+    "envelope_embeds_exact_checkpoint_bytes": true,
+    "partials_match_envelope_signature_bytes_and_digest": true,
+    "native_envelope_exit_status": 0,
+    "native_verdict": "ACCEPTED",
+    "verified_signatures": 3,
+    "signature_indices": [
+      0,
+      1,
+      2
+    ],
+    "freshness": "FRESH",
+    "age_epochs_at_reference": 967,
+    "window_epochs": 2016
+  },
+  "freshness_deadlines": {
+    "soft_stale_from_epoch": 4336,
+    "fresh_boot_refused_from_epoch": 5344,
+    "soft_stale_from_utc": "2026-10-01T01:47:19.962Z",
+    "fresh_boot_refused_from_utc": "2026-10-12T06:35:19.962Z",
+    "utc_derivation": "Exact genesis_time_ms and slot_duration_ms decoded from the pinned BPOSMAN1 genesis manifest, with 32 slots per epoch; current epoch must be refreshed before use.",
+    "genesis_time_ms": 1786656679962,
+    "slot_duration_ms": 30000,
+    "slots_per_epoch": 32
+  },
+  "publication": {
+    "status": "prepared_for_operator_authorized_historical_publication",
+    "operator_authorized_use": true,
+    "operator_decision_file": "PUBLICATION-DECISION-20260930.json",
+    "original_hold_file": "PUBLICATION-HOLD",
+    "original_hold_preserved": true,
+    "historical_signatures": true,
+    "new_signatures_produced": 0,
+    "independent_custody_verified": false,
+    "independent_publication_claim_allowed": false,
+    "deployment_performed_by_this_verification": false
+  },
+  "limitations": [
+    "The original hold states that all three signing keys were used on one Mac. Three valid keys and signatures do not establish independent custody.",
+    "Operator authorization permits publication/use of these historical bytes with this limitation disclosed; it does not discharge the original independent-custody evidence requirement.",
+    "The historical signer set labels all three entries external. These labels are not independent identity or custody attestations.",
+    "The offline signature verification made no network queries. A separate live-observation.json records two public RPC responses matching the anchor block/state; it does not supply a cryptographic ancestry proof. Boundary-slot metadata is not a field in the signed 154-byte checkpoint.",
+    "validator_set_root is the all-zero placeholder in this historical checkpoint.",
+    "Package hashes are integrity checks, not an independent publication channel or a new release signature.",
+    "This review does not test fresh-node replay or authorize operational activation of a validator."
+  ],
+  "live_observation": {
+    "file": "live-observation.json",
+    "sha256": "939547f58c3427d5389bf3cb12a9748b15472f192d357573af2421cc998fb21a",
+    "observed_at_utc": "2026-09-30T15:18:52.216414+00:00",
+    "observed_current_epoch": 4296,
+    "observed_finalized_epoch": 4294,
+    "anchor_block_and_state_match_both_public_rpcs": true,
+    "offline_signature_reference_epoch_unchanged": 4295,
+    "independent_operators_verified": false,
+    "cryptographic_ancestry_proof_collected": false
+  }
+}

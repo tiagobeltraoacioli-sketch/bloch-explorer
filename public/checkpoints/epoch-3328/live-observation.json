@@ -1,0 +1,121 @@
+{
+  "schema": "bloch.checkpoint.public-live-anchor-observation.v1",
+  "observed_at_utc": "2026-09-30T15:18:52.216414+00:00",
+  "checkpoint_epoch": 3328,
+  "queried_slot": 106493,
+  "checkpoint_ws_digest": "f4f067929ee881f671df54a5849edec4106c712f28b2286ab1a7fc58e587fbc0",
+  "expected_block_root": "386df5c04e116b755014e8e6b5aca0120be633401266b348ff1daf3f181896f9",
+  "expected_state_root": "09c0bfbe8cbe63127a27b9e80dd75a03792e2db6995abbfb1929dfb5202ba52c",
+  "source_report_sha256": "bdebde642e0b4b14a7d3f9639eb625bb2c56226b369f59fd5cfb5a4c4b5595de",
+  "calls": [
+    {
+      "endpoint": "archival-a",
+      "url": "http://139.180.166.5.nip.io:8080/",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "archival-a-getblockbyslot",
+        "method": "getblockbyslot",
+        "params": [
+          106493
+        ]
+      },
+      "started_at_utc": "2026-09-30T15:18:51.442849+00:00",
+      "completed_at_utc": "2026-09-30T15:18:52.211905+00:00",
+      "http_status": 200,
+      "response_sha256": "2a1c11b00bdda24119d53f902bd01799ce0d92b73cde3c08c3064da113b2d5f8",
+      "response_bytes": 1056,
+      "rpc_success": true
+    },
+    {
+      "endpoint": "archival-a",
+      "url": "http://139.180.166.5.nip.io:8080/",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "archival-a-getchaininfo",
+        "method": "getchaininfo",
+        "params": []
+      },
+      "started_at_utc": "2026-09-30T15:18:51.444914+00:00",
+      "completed_at_utc": "2026-09-30T15:18:52.212629+00:00",
+      "http_status": 200,
+      "response_sha256": "1e4916b58292e2cd18b06252fe98a5fb110bb2d1799cc39a5e06c46de0e6860a",
+      "response_bytes": 933,
+      "rpc_success": true
+    },
+    {
+      "endpoint": "archival-b",
+      "url": "http://139.180.173.231.nip.io:8080/",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "archival-b-getblockbyslot",
+        "method": "getblockbyslot",
+        "params": [
+          106493
+        ]
+      },
+      "started_at_utc": "2026-09-30T15:18:51.445471+00:00",
+      "completed_at_utc": "2026-09-30T15:18:52.215754+00:00",
+      "http_status": 200,
+      "response_sha256": "f16edcc960d0b31465f6529a750f7b72befd855ebde5284a570893a0e815d41e",
+      "response_bytes": 1056,
+      "rpc_success": true
+    },
+    {
+      "endpoint": "archival-b",
+      "url": "http://139.180.173.231.nip.io:8080/",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": "archival-b-getchaininfo",
+        "method": "getchaininfo",
+        "params": []
+      },
+      "started_at_utc": "2026-09-30T15:18:51.447553+00:00",
+      "completed_at_utc": "2026-09-30T15:18:52.212235+00:00",
+      "http_status": 200,
+      "response_sha256": "bf2c9de5415ae31344579d487756ab980f9a82f399e3f56ec060ac1b3e6ec778",
+      "response_bytes": 933,
+      "rpc_success": true
+    }
+  ],
+  "checks": {
+    "archival-a": {
+      "block_rpc_success": true,
+      "chain_rpc_success": true,
+      "block_id_matches_checkpoint": true,
+      "state_root_matches_checkpoint": true,
+      "block_slot_matches_106493": true,
+      "finalized_epoch_at_least_checkpoint": true,
+      "reported_current_epoch": 4296,
+      "reported_finalized_checkpoint": {
+        "epoch": 4294,
+        "root": "7e252824511ca089353831ea09b3d7476b2ec10adb95a2006a1a5d2af2eba623"
+      },
+      "reported_head_slot": 137494
+    },
+    "archival-b": {
+      "block_rpc_success": true,
+      "chain_rpc_success": true,
+      "block_id_matches_checkpoint": true,
+      "state_root_matches_checkpoint": true,
+      "block_slot_matches_106493": true,
+      "finalized_epoch_at_least_checkpoint": true,
+      "reported_current_epoch": 4296,
+      "reported_finalized_checkpoint": {
+        "epoch": 4294,
+        "root": "7e252824511ca089353831ea09b3d7476b2ec10adb95a2006a1a5d2af2eba623"
+      },
+      "reported_head_slot": 137494
+    }
+  },
+  "both_public_endpoints_match_checkpoint_and_report_later_finalization": true,
+  "independent_operators_verified": false,
+  "cryptographic_ancestry_proof_collected": false,
+  "independent_custody_verified": false,
+  "limits": [
+    "This is a separate live RPC consistency observation, not a rerun of the offline signature verification at reference epoch 4295.",
+    "Both public RPC endpoints may share administration; agreement does not establish independent operators.",
+    "The queried historical block and state match the signed checkpoint, and both nodes report finalized epoch 4294. No cryptographic ancestry proof connecting that checkpoint to current finality was collected.",
+    "HTTP JSON-RPC responses are source-reported observations, not independently authenticated consensus proofs.",
+    "This observation does not resolve the historical signer-custody limitation or produce new signatures."
+  ]
+}

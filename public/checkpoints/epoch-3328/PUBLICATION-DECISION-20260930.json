@@ -1,0 +1,14 @@
+{
+  "schema": "bloch.checkpoint.operator-publication-decision.v1",
+  "recorded_at_utc": "2026-09-30T15:06:32.922540+00:00",
+  "checkpoint_epoch": 3328,
+  "signer_set_id": 1,
+  "operator_authorized_use_of_existing_checkpoint": true,
+  "authorization_source": "Explicit user instruction in the active release conversation on 2026-09-30.",
+  "authorization_scope": "Publish and use the existing historically signed checkpoint 3328 while disclosing unverified independent custody. No new signature or new signer set is authorized by this record.",
+  "historical_publication_hold_preserved": true,
+  "operator_exception_to_historical_publication_hold": true,
+  "independent_custody_verified": false,
+  "new_signatures_produced": 0,
+  "is_cryptographic_authorization_attestation": false
+}

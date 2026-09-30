@@ -1,0 +1,6 @@
+PARTIAL SIGNATURE  partials/signer-2.partial
+  signer index      2
+  signed ws digest  f4f067929ee881f671df54a5849edec4106c712f28b2286ab1a7fc58e587fbc0
+  signature bytes   4581
+
+This file proves nothing on its own: the signature is checked only when the arrangement says which key sits at index 2. What it does tell you, before any assembly, is which checkpoint this signer actually signed.

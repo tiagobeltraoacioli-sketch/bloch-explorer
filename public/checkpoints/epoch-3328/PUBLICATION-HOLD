@@ -1,0 +1,11 @@
+DO NOT PUBLISH OR INSTALL AS INDEPENDENTLY SIGNED YET.
+
+The epoch-3328 envelope is cryptographically valid and contains three valid
+signatures, but all three secret keys were used on the same Mac. This does not
+establish three independent custodians or close the audit's operational signer
+independence requirement.
+
+Before publication, three independent custodians must each verify the exact
+checkpoint digest through an independent channel and return a BPOSWSP1 partial
+from their separately controlled signing environment. Reassemble and reverify
+the envelope, preserving the exact checkpoint bytes and issued_at.
