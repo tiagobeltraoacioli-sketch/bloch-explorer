@@ -10,6 +10,35 @@ const MAX_INFLIGHT = 16;
 let budget = new Bucket(40, 15, Date.now);
 const inflight = new Map();
 const uint = value => Number.isSafeInteger(value) && value >= 0;
+const uint32 = value => uint(value) && value <= 0xffff_ffff;
+const hash = value => typeof value === 'string' && HASH.test(value);
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const U64_MAX = '18446744073709551615';
+const U128_MAX = '340282366920938463463374607431768211455';
+
+// The indexer serializes satoshis as canonical decimal strings. Compare bounded
+// strings without converting to Number (which would round valid u64 amounts).
+function decimal(value, max) {
+  return typeof value === 'string' && value.length <= max.length &&
+    /^(0|[1-9][0-9]*)$/.test(value) &&
+    (value.length < max.length || value <= max);
+}
+
+function validIo(io) {
+  return object(io) && uint32(io.vout) && decimal(io.value_sat, U64_MAX) && hash(io.script_hash);
+}
+
+function validInputs(inputs) {
+  if (!Array.isArray(inputs)) return false;
+  const seen = new Set();
+  return inputs.every(io => {
+    if (!validIo(io) || !hash(io.txid)) return false;
+    const outpoint = io.txid.toLowerCase() + ':' + io.vout;
+    if (seen.has(outpoint)) return false;
+    seen.add(outpoint);
+    return true;
+  });
+}
 
 function failure(status, code, error, extra = {}) {
   const retryable = status === 503 || status === 429;
@@ -41,9 +70,18 @@ async function readReceipt(response, signal) {
 }
 
 function validReceipt(receipt, txid) {
-  return receipt && receipt.txid?.toLowerCase() === txid &&
-    HASH.test(receipt.block_id) && HASH.test(receipt.chain_tip) &&
-    Array.isArray(receipt.inputs) && Array.isArray(receipt.outputs) &&
+  return object(receipt) && hash(receipt.txid) && receipt.txid.toLowerCase() === txid &&
+    hash(receipt.block_id) && hash(receipt.chain_tip) && validInputs(receipt.inputs) &&
+    Array.isArray(receipt.outputs) && receipt.outputs.every((io, index) =>
+      validIo(io) && io.vout === index &&
+      (!Object.hasOwn(io, 'txid') || hash(io.txid) && io.txid.toLowerCase() === txid)) &&
+    // Auxiliary metadata and output txids remain optional at this API boundary.
+    // Validate supplied values; null fee means input valuation unavailable.
+    (!Object.hasOwn(receipt, 'fee_sat') || receipt.fee_sat === null || decimal(receipt.fee_sat, U128_MAX)) &&
+    (!Object.hasOwn(receipt, 'stake_sat') || decimal(receipt.stake_sat, U128_MAX)) &&
+    (!Object.hasOwn(receipt, 'index') || uint32(receipt.index)) &&
+    (!Object.hasOwn(receipt, 'size_bytes') || uint(receipt.size_bytes)) &&
+    (!Object.hasOwn(receipt, 'kind') || typeof receipt.kind === 'string' && receipt.kind.length > 0) &&
     uint(receipt.height) && uint(receipt.slot) && uint(receipt.as_of_height) &&
     uint(receipt.as_of_slot) && receipt.height <= receipt.as_of_height &&
     receipt.slot <= receipt.as_of_slot;

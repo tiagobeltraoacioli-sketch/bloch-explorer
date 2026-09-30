@@ -1,0 +1,197 @@
+{
+  "receipt_source": {
+    "url": "https://blochl1.com/api/v1/transactions/b68b74be02d0bc92d17fe4a7b7dfa69ffe720d84a9628ceb858d609af291a9f8",
+    "started_at_utc": "2026-09-30T18:38:03.314274+00:00",
+    "completed_at_utc": "2026-09-30T18:38:06.893719+00:00",
+    "http_status": 200,
+    "response_bytes": 1259,
+    "response_sha256": "950c2a22e0cdc058ba6b1b9abb7c6af3408f73fa0bb5636c85e69ba5c9f0dae7"
+  },
+  "receipt": {
+    "txid": "b68b74be02d0bc92d17fe4a7b7dfa69ffe720d84a9628ceb858d609af291a9f8",
+    "block_id": "fbea48d5c375f258f50c07107fdd7a798a6143154afaee9f860c6e7ee73827ed",
+    "slot": 121952,
+    "height": 92540,
+    "index": 0,
+    "kind": "transfer",
+    "size_bytes": 8489,
+    "fee_sat": "2167",
+    "stake_sat": "0",
+    "inputs": [
+      {
+        "txid": "88e5993db6ec39a3c25eda106c586d339c90399470cb6c9111d89c323a10e47c",
+        "vout": 1,
+        "value_sat": "1299995666",
+        "script_hash": "aa74fc1a7b72faff8905642e8f64e3a8a3e7a0f9000000000000000000000000"
+      }
+    ],
+    "outputs": [
+      {
+        "txid": "b68b74be02d0bc92d17fe4a7b7dfa69ffe720d84a9628ceb858d609af291a9f8",
+        "vout": 0,
+        "value_sat": "250000000",
+        "script_hash": "d8f3e00a2374cd86ba5f7f5572cecd6b2a4d0abf000000000000000000000000"
+      },
+      {
+        "txid": "b68b74be02d0bc92d17fe4a7b7dfa69ffe720d84a9628ceb858d609af291a9f8",
+        "vout": 1,
+        "value_sat": "1049993499",
+        "script_hash": "aa74fc1a7b72faff8905642e8f64e3a8a3e7a0f9000000000000000000000000"
+      }
+    ],
+    "as_of_slot": 137893,
+    "as_of_height": 107664,
+    "chain_tip": "36afc11f4b73354747821c185971a24fbf47f5d0c148d3476894a40022a9efdf",
+    "source": "archival-1 / canonical blocks.log",
+    "verification": "consensus replay and state-root verification",
+    "confirmations": 15125,
+    "status": "finalized",
+    "finalized": true,
+    "finalized_height": 107595,
+    "observed_head_height": 107664,
+    "observed_head_slot": 137893,
+    "corroboration": "corroborated"
+  },
+  "head_source": {
+    "url": "https://blochl1.com/rpc",
+    "started_at_utc": "2026-09-30T18:37:58.218142+00:00",
+    "completed_at_utc": "2026-09-30T18:38:03.026276+00:00",
+    "http_status": 200,
+    "response_bytes": 2217,
+    "response_sha256": "fc917c418b9013f93ad941c7121516e91147880e2e3fc68e549d8928a91ede16"
+  },
+  "head_response": {
+    "jsonrpc": "2.0",
+    "id": "p2b-explorer_rpc-0-getchaininfo",
+    "result": {
+      "block_id": "36afc11f4b73354747821c185971a24fbf47f5d0c148d3476894a40022a9efdf",
+      "slot": 137893,
+      "height": 107664,
+      "finalized_height": 107595,
+      "epoch": 4309,
+      "slot_in_epoch": 5,
+      "slots_per_epoch": 32,
+      "state_root": "6cdda6feaf6353c31b9e8d204e48f7ae7ffefeb8235b65714851871e8f035394",
+      "justified": {
+        "epoch": 4308,
+        "root": "190269786132a00ef96e1f7dd942b2f0f29b435f48970d7264eb5aeff0960d62"
+      },
+      "finalized": {
+        "epoch": 4307,
+        "root": "5d5d849a6e09e1a5ed93b6362a3cc7658314bd8e2121e259344f109ca5f22e11"
+      },
+      "previous_justified": {
+        "epoch": 4307,
+        "root": "5d5d849a6e09e1a5ed93b6362a3cc7658314bd8e2121e259344f109ca5f22e11"
+      },
+      "validators": {
+        "total": 140,
+        "active": 139
+      },
+      "total_active_stake_sat": "17776012511967071",
+      "base_fee_millisat_per_gas": "10",
+      "next_base_fee_millisat_per_gas": "10",
+      "mempool": 0,
+      "blocks_known": 107665,
+      "wall_slot": 137893,
+      "behind_by_slots": 0,
+      "transport": {
+        "name": "devnet",
+        "peers": {
+          "devnet": 81,
+          "libp2p": null
+        }
+      },
+      "corroboration": {
+        "level": "corroborated",
+        "archival_witnesses": 2,
+        "of": 2,
+        "fleet_witness": true,
+        "cache_salt": 177,
+        "witness": {
+          "available": true,
+          "age_ms": 2371,
+          "height": 107664,
+          "slot": 137893,
+          "finalized_epoch": 4307,
+          "finalized_root": "5d5d849a6e09e1a5ed93b6362a3cc7658314bd8e2121e259344f109ca5f22e11",
+          "finalized_height": 107595,
+          "reason": null
+        },
+        "plane": {
+          "certified": true,
+          "responding": 2,
+          "of": 2,
+          "agree_on_head": true,
+          "height": 107664,
+          "behind_by_slots": 0,
+          "behind_by_blocks": null,
+          "witness_certified": true,
+          "reason": null,
+          "detail": null,
+          "age_ms": 0
+        },
+        "reorg_events": [
+          {
+            "signal": "R4",
+            "kind": "receding_head",
+            "was": 86168,
+            "now": 86167,
+            "plane": "witness",
+            "at": 1790103658783
+          },
+          {
+            "signal": "BURN",
+            "kind": "cache_salt_burned",
+            "salt": 177,
+            "at": 1789308368670
+          },
+          {
+            "signal": "R4",
+            "kind": "receding_head",
+            "was": 65033,
+            "now": 54459,
+            "plane": "witness",
+            "at": 1789308368670
+          },
+          {
+            "signal": "R2",
+            "kind": "descending_finality",
+            "epoch": 2488,
+            "was": 2760,
+            "plane": "witness",
+            "at": 1789308368670
+          },
+          {
+            "signal": "BURN",
+            "kind": "cache_salt_burned",
+            "salt": 176,
+            "at": 1789308230151
+          },
+          {
+            "signal": "R4",
+            "kind": "receding_head",
+            "was": 65026,
+            "now": 54459,
+            "plane": "witness",
+            "at": 1789308230151
+          },
+          {
+            "signal": "R2",
+            "kind": "descending_finality",
+            "epoch": 2488,
+            "was": 2759,
+            "plane": "witness",
+            "at": 1789308230151
+          },
+          {
+            "signal": "BURN",
+            "kind": "cache_salt_burned",
+            "salt": 175,
+            "at": 1789174533285
+          }
+        ]
+      }
+    }
+  }
+}
