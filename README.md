@@ -100,7 +100,7 @@ A 404 means the transaction is absent from the archival index; it does not
 establish that a recently submitted transfer failed. A 503 means finality
 cannot be established safely and deposit crediting should pause.
 The current JavaScript SDK is available at
-`https://ops-blochinc.xyz/wallets/downloads/blochprotocol-genesis4-sdk-0.1.13.tgz`
+`https://ops-blochinc.xyz/wallets/downloads/blochprotocol-genesis4-sdk-0.1.14.tgz`
 with SHA-256 `fe1d4178b47baa628f7a2fc629f2a5536d580d0f8863206eed7bc88209f63b4b`.
 The older `/releases/genesis4-js/` archive remains a historical artifact.
 
