@@ -21,16 +21,12 @@ export function ValidatorGuidePage() {
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" id="delegation-preview" aria-label="Funded delegation preview">
-      <h2>October 1 funded delegation preview</h2>
-      <p><strong>Signed preview — qualification in progress.</strong> Two independent builds match, and the exact binary passed historical mainnet replay. The complete CLI/RPC mature-withdrawal rehearsal and network upgrade coordination remain pending. This publication does not approve a production rollout.</p>
-      <p>The candidate schedules delegation at <strong>epoch 4528, slot 144896</strong>: October 3, 2026 at <strong>04:59:19.962 UTC</strong> (01:59:19.962 in Brasília). Installing this executable arms that fixed boundary. Wait for completed qualification and a coordinated upgrade before installing it on mainnet.</p>
-      <div className="guide-actions"><a href="/releases/2026-10-01-delegation-preview/bloch-pos" download>Download signed preview · Linux x86-64</a><a href="/releases/2026-10-01-delegation-preview/README.md">Verification and activation notes</a></div>
-      <ul>
-        <li><a href="/releases/2026-10-01-delegation-preview/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-10-01-delegation-preview/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-10-01-delegation-preview/bloch-release-20260922.pub" download>Release public key</a></li>
-        <li><a href="/releases/2026-10-01-delegation-preview/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-10-01-delegation-preview/release.json">Qualification snapshot</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/funded-delegation-epoch-4528-preview">GitHub prerelease and qualification updates</a></li>
-      </ul>
-      <p>Expected SHA-256: <code>bd58e25faab8ed3fb1ba67096f64e48ec65e8a66e248b3fda8c5d7a814c95a06</code>.</p>
-      <p>The delegated-principal ceiling is 500,000,000 BLCH per validator. Operator commission changes require separate finalized transactions after activation; this download does not set commissions or delegate funds. Qualification details above describe the publication snapshot; follow the GitHub release for later results.</p>
+      <h2>Funded delegation — rescheduled to October 4</h2>
+      <p><strong>Qualification blocked; replacement preview verification is in progress.</strong> The complete CLI/RPC rehearsal failed its finality-lag check before mature withdrawal. Postponing activation does not resolve that failure. Mainnet rollout remains blocked on the complete lifecycle rehearsal and coordinated network readiness.</p>
+      <p>The new candidate schedules delegation at <strong>epoch 4669, slot 149408</strong>: October 4, 2026 at <strong>18:35:19.962 UTC</strong> (15:35:19.962 in Brasília), the first epoch boundary after 72 hours from the operator’s request.</p>
+      <p>The <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/funded-delegation-epoch-4528-preview">epoch-4528 preview is superseded</a> and must not be installed. Its fixed activation date cannot be changed through configuration. Its signed assets remain available only as historical evidence.</p>
+      <p>Two independent builds of the replacement match. Historical replay of the new executable is in progress; its signed preview will be linked here after verification. No production validator has been migrated by this release workflow.</p>
+      <p>The delegated-principal ceiling remains 500,000,000 BLCH per validator. The requested 5% operator commission requires separate finalized transactions after activation.</p>
     </section>
     <section className="guide-section" aria-label="Validator upgrade release">
       <h2>September 30 release with checkpoint 3328</h2>
