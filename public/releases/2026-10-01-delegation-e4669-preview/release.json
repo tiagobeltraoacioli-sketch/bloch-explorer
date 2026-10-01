@@ -1,0 +1,64 @@
+{
+  "source_commit": "da136d418c9a44575893ec9d596ab60555bfc67e",
+  "binary_sha256": "44f46b76caf5a30cd6bd19e3d3d4954529ff2317ce9d283ae02915386a1006bf",
+  "release_channel": "preview",
+  "qualification_status": "BLOCKED_LIFECYCLE_FINALITY_LAG",
+  "observed_at_utc": "2026-10-01T19:29:10.518198+00:00",
+  "proposed_activation_epoch": 4669,
+  "proposed_activation_slot": 149408,
+  "proposed_activation_utc": "2026-10-04T18:35:19.962000+00:00",
+  "proposed_activation_sao_paulo": "2026-10-04T15:35:19.962000-03:00",
+  "request_time_utc": "2026-10-01T18:31:30.865140+00:00",
+  "requested_delay_days": 3,
+  "rounding": "first epoch boundary at or after the requested instant",
+  "supersedes_epoch": 4528,
+  "mainnet_manifest_sha3": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+  "independent_builds": "PASS_BYTE_IDENTICAL",
+  "historical_replay": {
+    "status": "PASS",
+    "production_changed": false,
+    "source_commit": "da136d418c9a44575893ec9d596ab60555bfc67e",
+    "started_utc": "2026-10-01T18:42:43.223198+00:00",
+    "binary_sha256": "44f46b76caf5a30cd6bd19e3d3d4954529ff2317ce9d283ae02915386a1006bf",
+    "stop": [
+      "138751",
+      "108474",
+      "aa599c8f7c30d1633a5c9412b499db2e0d8edc8559ec1c3b4df7a4c7d790b088"
+    ],
+    "log_sha256": "92c286a689f5fc8f7c593cc46739a822e3b3937b2c26fcbda1b3de137e66eeed",
+    "completed_utc": "2026-10-01T19:06:18.875149+00:00"
+  },
+  "focused_committee_tests": {
+    "passed": 22,
+    "failed": 0
+  },
+  "full_lab_cli_rpc_lifecycle": {
+    "status": "FAIL",
+    "production_changed": false,
+    "activation_epoch": 8,
+    "slot_ms": 500,
+    "validator_count": 3,
+    "mode": "full-lifecycle",
+    "cooldown_epochs": 32,
+    "withdrawal_delay_epochs": 2048,
+    "transport": "devnet",
+    "normal_doppelganger_window": true,
+    "binary_sha256": {
+      "LAB-ONLY-funded-epoch8": "99f7bf1ebf1c38f19bdd78fca0097676d2b622af5a8927b4cdb52ac53ef26fb5",
+      "LAB-ONLY-baseline-unarmed": "3afab967ef766b17c58839f05d3e8ccaf633889bd146f71921aa444aa7fb98b2"
+    },
+    "maturity_epoch": 2095,
+    "error": "AssertionError('finality lag exceeds rehearsal budget')",
+    "elapsed_seconds": 14965.375
+  },
+  "lab_result_scope": "Prior epoch-8 laboratory binary; mature-payout qualification is unresolved. Rescheduling the mainnet gate is not a lifecycle fix.",
+  "production_rollout_authorized_by_qualification": false,
+  "installable_by_automation": false,
+  "production_validators_migrated": 0,
+  "network_upgrade_readiness": "UNRESOLVED_OUTSIDE_95_INVENTORY",
+  "delegation_cap_blch_per_validator": 500000000,
+  "requested_commission_bps": 500,
+  "commission_transactions_applied": false,
+  "fresh_bootstrap_qualified": false,
+  "p2b_internal_tests_confirmed": false
+}
