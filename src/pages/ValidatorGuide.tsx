@@ -16,10 +16,22 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the signed validator release.</p>
-      <p className="guide-date">Reviewed on September 30, 2026. Release and qualification records are timestamped observations.</p>
+      <p className="guide-date">Reviewed on October 1, 2026. Release and qualification records are timestamped observations.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
+    <section className="guide-section" id="delegation-preview" aria-label="Funded delegation preview">
+      <h2>October 1 funded delegation preview</h2>
+      <p><strong>Signed preview — qualification in progress.</strong> Two independent builds match, and the exact binary passed historical mainnet replay. The complete CLI/RPC mature-withdrawal rehearsal and network upgrade coordination remain pending. This publication does not approve a production rollout.</p>
+      <p>The candidate schedules delegation at <strong>epoch 4528, slot 144896</strong>: October 3, 2026 at <strong>04:59:19.962 UTC</strong> (01:59:19.962 in Brasília). Installing this executable arms that fixed boundary. Wait for completed qualification and a coordinated upgrade before installing it on mainnet.</p>
+      <div className="guide-actions"><a href="/releases/2026-10-01-delegation-preview/bloch-pos" download>Download signed preview · Linux x86-64</a><a href="/releases/2026-10-01-delegation-preview/README.md">Verification and activation notes</a></div>
+      <ul>
+        <li><a href="/releases/2026-10-01-delegation-preview/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-10-01-delegation-preview/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-10-01-delegation-preview/bloch-release-20260922.pub" download>Release public key</a></li>
+        <li><a href="/releases/2026-10-01-delegation-preview/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-10-01-delegation-preview/release.json">Qualification snapshot</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/funded-delegation-epoch-4528-preview">GitHub prerelease and qualification updates</a></li>
+      </ul>
+      <p>Expected SHA-256: <code>bd58e25faab8ed3fb1ba67096f64e48ec65e8a66e248b3fda8c5d7a814c95a06</code>.</p>
+      <p>The delegated-principal ceiling is 500,000,000 BLCH per validator. Operator commission changes require separate finalized transactions after activation; this download does not set commissions or delegate funds. Qualification details above describe the publication snapshot; follow the GitHub release for later results.</p>
+    </section>
     <section className="guide-section" aria-label="Validator upgrade release">
       <h2>September 30 release with checkpoint 3328</h2>
       <p>This distribution pairs checkpoint 3328 with the signed Linux x86-64 binary from commit <code>4d4c5075872c622fdd26aa418a9d249ec95fbcea</code>. The executable is byte-identical to September 24; no consensus change is introduced. Existing operators must preserve their chain data, keys, command-line arguments and slashing-protection records.</p>

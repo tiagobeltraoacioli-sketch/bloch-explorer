@@ -1,0 +1,40 @@
+{
+  "source_commit": "c43dbd667295fb8314c22a156c6e696b9f5c88c0",
+  "binary_sha256": "bd58e25faab8ed3fb1ba67096f64e48ec65e8a66e248b3fda8c5d7a814c95a06",
+  "release_channel": "preview",
+  "qualification_status": "IN_PROGRESS",
+  "observed_at_utc": "2026-10-01T13:01:21.975830+00:00",
+  "proposed_activation_epoch": 4528,
+  "proposed_activation_slot": 144896,
+  "proposed_activation_utc": "2026-10-03T04:59:19.962Z",
+  "proposed_activation_sao_paulo": "2026-10-03T01:59:19.962-03:00",
+  "mainnet_manifest_sha3": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+  "independent_builds": "PASS_BYTE_IDENTICAL",
+  "historical_replay": {
+    "status": "PASS",
+    "production_changed": false,
+    "source_commit": "c43dbd667295fb8314c22a156c6e696b9f5c88c0",
+    "started_utc": "2026-10-01T11:10:18.637727+00:00",
+    "binary_sha256": "bd58e25faab8ed3fb1ba67096f64e48ec65e8a66e248b3fda8c5d7a814c95a06",
+    "stop": [
+      "138751",
+      "108474",
+      "aa599c8f7c30d1633a5c9412b499db2e0d8edc8559ec1c3b4df7a4c7d790b088"
+    ],
+    "log_sha256": "cfd390613680a8be9e79df1f4522b639b729201d2d8a1099087d1241b0bafdd4",
+    "completed_utc": "2026-10-01T11:34:00.177449+00:00"
+  },
+  "full_lab_cli_rpc_lifecycle": "RUNNING_MATURE_PAYOUT_PENDING",
+  "last_observed_lab_epoch": 424,
+  "lab_maturity_epoch": 2095,
+  "lab_expected_maturity_utc": "2026-10-01T20:26:43.910000+00:00",
+  "earlier_stress_attempts": "FAILED: finality lag and transport timeouts; retained as failures",
+  "production_rollout_authorized_by_qualification": false,
+  "production_validators_migrated": 0,
+  "network_upgrade_readiness": "PENDING_COORDINATION",
+  "delegation_cap_blch_per_validator": 500000000,
+  "requested_commission_bps": 500,
+  "commission_transactions_applied": false,
+  "fresh_bootstrap_qualified": false,
+  "p2b_internal_tests_confirmed": false
+}
