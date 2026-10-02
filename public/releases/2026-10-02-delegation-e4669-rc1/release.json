@@ -1,0 +1,717 @@
+{
+  "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+  "binary_sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+  "release_channel": "release-candidate",
+  "qualification_status": "LAB_LIFECYCLE_AND_HISTORICAL_REPLAY_PASS_ROLLOUT_BLOCKED",
+  "observed_at_utc": "2026-10-02T01:37:13.699365+00:00",
+  "proposed_activation_epoch": 4669,
+  "proposed_activation_slot": 149408,
+  "proposed_activation_utc": "2026-10-04T18:35:19.962000+00:00",
+  "proposed_activation_sao_paulo": "2026-10-04T15:35:19.962000-03:00",
+  "mainnet_manifest_sha3": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+  "supersedes_tag": "funded-delegation-epoch-4669-preview",
+  "independent_builds": "PASS_BYTE_IDENTICAL",
+  "independent_builder_records": [
+    {
+      "status": "PASS",
+      "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+      "host": "host652474",
+      "started_utc": "2026-10-01T23:40:35.785692+00:00",
+      "production_changed": false,
+      "sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+      "buildinfo": {
+        "build_version": "0.1.0-mainnet (3a68f10bca501626dca54faab74a80a019057562)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "3a68f10bca501626dca54faab74a80a019057562",
+        "commit_source": "asserted",
+        "tree_state": "asserted-clean",
+        "source_digest": "c9421109e263fd204e28dddba0ef18f6e794d7a3c9af59dc71b523a64a4819d4",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "284",
+        "source_bytes": "7986798",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "414b3af460493e51ddc9826d9c4aedb9879e47e1103c895a4d56a7d5c37736a8",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "123",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      },
+      "completed_utc": "2026-10-01T23:43:42.838014+00:00"
+    },
+    {
+      "status": "PASS",
+      "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+      "host": "host652475",
+      "started_utc": "2026-10-01T23:41:47.674079+00:00",
+      "production_changed": false,
+      "sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+      "buildinfo": {
+        "build_version": "0.1.0-mainnet (3a68f10bca501626dca54faab74a80a019057562)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "3a68f10bca501626dca54faab74a80a019057562",
+        "commit_source": "asserted",
+        "tree_state": "asserted-clean",
+        "source_digest": "c9421109e263fd204e28dddba0ef18f6e794d7a3c9af59dc71b523a64a4819d4",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "284",
+        "source_bytes": "7986798",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "414b3af460493e51ddc9826d9c4aedb9879e47e1103c895a4d56a7d5c37736a8",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "123",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      },
+      "completed_utc": "2026-10-01T23:44:47.658330+00:00"
+    }
+  ],
+  "historical_replay": {
+    "status": "PASS",
+    "production_changed": false,
+    "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+    "started_utc": "2026-10-01T23:50:22.057234+00:00",
+    "binary_sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+    "stop": [
+      "138751",
+      "108474",
+      "aa599c8f7c30d1633a5c9412b499db2e0d8edc8559ec1c3b4df7a4c7d790b088"
+    ],
+    "log_sha256": "dcd5a2518114f4d4a6777bcfb7f1d7f6201514a3dd2baba28c8d4b9bb035a17a",
+    "completed_utc": "2026-10-02T00:43:56.558556+00:00"
+  },
+  "strict_cache_restart": {
+    "status": "PASS",
+    "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+    "production_changed": false,
+    "binary_sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+    "started_utc": "2026-10-01T23:50:36.424225+00:00",
+    "cache_sha256": "9fcd1f657ec0d7aeac44be444d2fff0fb93198b916e1359404879e8b84f9f6ea",
+    "stop": [
+      "138751",
+      "108474",
+      "aa599c8f7c30d1633a5c9412b499db2e0d8edc8559ec1c3b4df7a4c7d790b088"
+    ],
+    "recovery_mode": "local-cache",
+    "skipped_blocks": 108474,
+    "replayed_blocks": 0,
+    "recovery_elapsed_ms": 28695,
+    "wall_seconds": 173.918,
+    "log_sha256": "16fe574dab977bb3d86d39e4ced9af277d5a3ebe8fc4cecb9afec09ddfbe2624",
+    "completed_utc": "2026-10-02T00:47:18.536432+00:00"
+  },
+  "full_lab_cli_rpc_lifecycle": {
+    "status": "PASS",
+    "production_changed": false,
+    "activation_epoch": 8,
+    "slot_ms": 100,
+    "validator_count": 3,
+    "mode": "full-lifecycle",
+    "cooldown_epochs": 32,
+    "withdrawal_delay_epochs": 2048,
+    "transport": "devnet",
+    "normal_doppelganger_window": true,
+    "binary_sha256": {
+      "LAB-ONLY-funded-epoch8": "c900b9fd05d7a9f8e3147bfe8d95b0fe80b675beeaa8417c93adae6e89e42812",
+      "LAB-ONLY-baseline-unarmed": "3afab967ef766b17c58839f05d3e8ccaf633889bd146f71921aa444aa7fb98b2"
+    },
+    "runner_sha256": "b2546dfb9f663f7098d7bf973d20bf2c89781bb2845edcc8dac79129b785bca4",
+    "max_finality_lag_epochs": 8,
+    "max_behind_by_slots": 75,
+    "buildinfo": {
+      "LAB-ONLY-funded-epoch8": {
+        "build_version": "0.1.0-mainnet (3a68f10bca501626dca54faab74a80a019057562)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "3a68f10bca501626dca54faab74a80a019057562",
+        "commit_source": "asserted",
+        "tree_state": "unverified",
+        "source_digest": "98f7243c458df9b8246cf33b331c4e07e37e679491eb402ae347140a88c32d5a",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "284",
+        "source_bytes": "7986763",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "125",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      },
+      "LAB-ONLY-baseline-unarmed": {
+        "build_version": "0.1.0-mainnet (4d4c5075872c+dirty)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "4d4c5075872c",
+        "commit_source": "git",
+        "tree_state": "modified",
+        "source_digest": "7cfeaee8e5e3e792b0f9dbe418d5ab86eccb5980111b6ea19f0cafc16cde2ad0",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "279",
+        "source_bytes": "7892303",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "125",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      }
+    },
+    "last_chain_observation": [
+      {
+        "slot": 67201,
+        "epoch": 2100,
+        "height": 66911,
+        "finalized": {
+          "epoch": 2098,
+          "root": "13d7bb9531acf1e7b608ee796836f663fe11cebef1d91a409e994365c861b434"
+        },
+        "behind_by_slots": 1
+      },
+      {
+        "slot": 67201,
+        "epoch": 2100,
+        "height": 66911,
+        "finalized": {
+          "epoch": 2098,
+          "root": "13d7bb9531acf1e7b608ee796836f663fe11cebef1d91a409e994365c861b434"
+        },
+        "behind_by_slots": 1
+      },
+      {
+        "slot": 67201,
+        "epoch": 2100,
+        "height": 66911,
+        "finalized": {
+          "epoch": 2098,
+          "root": "13d7bb9531acf1e7b608ee796836f663fe11cebef1d91a409e994365c861b434"
+        },
+        "behind_by_slots": 1
+      }
+    ],
+    "maturity_epoch": 2095,
+    "last_liveness_check": {
+      "head_epoch": 2090,
+      "finalized_epoch": 2088,
+      "finality_lag_epochs": 2,
+      "behind_by_slots": 1,
+      "elapsed_s": 6704.52
+    },
+    "final_checkpoint": {
+      "block_id": "13d7bb9531acf1e7b608ee796836f663fe11cebef1d91a409e994365c861b434",
+      "version": 2970353669,
+      "parent": "7820fc97365d3450233284e350525fdbdfcf25848c0f85b1f8782c7472402883",
+      "slot": 67135,
+      "epoch": 2097,
+      "height": 66845,
+      "proposer_index": 0,
+      "timestamp": 1790904900,
+      "state_root": "cd9f5abf4a235820634dad71315215cfe0b03f30756249fdf2f780c42ce35953",
+      "body_root": "3d272a088c490760c4f7d74cb6c3d2275f884842ad4e6ccb9e40a34a9e5a8400",
+      "randao_reveal": "2cf20fbed855430dfb68742083b1a983eef60418570f2a4a7a397222d57df83f",
+      "randao_mix": "107020eee315fb923bbabc8a278a0206f3ebe040ca119742474795735f1f922e",
+      "justified_root": "5f1accb36abf45dcc1e039f52b142fdd51654f15e3610d94ed2ebdbc41168b59",
+      "finalized_root": "6df185630f12dec710ad7d149e02887dc15f30e25c902c487e934d138a6b2c65",
+      "attestation_root": "65617f7b01ac604f1325a4c7d4f87a26ed6278c8f11b20426f8515e7ec477989",
+      "coherence_root": "3ac97a48fe4c1dc2de33022b2473e76e609c85ce0c0bce96540851f682bccb56",
+      "finality": "finalized",
+      "finalized": true,
+      "tx_count": 0,
+      "attestation_count": 0
+    },
+    "old_node_head": {
+      "block_id": "61a20660e145611d9d8f670c645428e04d0551a3f02087a4f0a8291098e5d22f",
+      "slot": 257,
+      "height": 194,
+      "finalized_height": 128,
+      "epoch": 8,
+      "slot_in_epoch": 1,
+      "slots_per_epoch": 32,
+      "state_root": "4ff0cd2eac0f5e6c48ae00206ae80f48732a142d2c62a25b82e0c8d561ef7a10",
+      "justified": {
+        "epoch": 7,
+        "root": "e6c9d2fdc3e69a4f99b6fd84501c2435c7344c4fd3976fe5f78900ea977150e7"
+      },
+      "finalized": {
+        "epoch": 6,
+        "root": "2835c04b1644e65c9de35aad33ca88dda225601637f8611b976d0d25c00a0c22"
+      },
+      "previous_justified": {
+        "epoch": 6,
+        "root": "2835c04b1644e65c9de35aad33ca88dda225601637f8611b976d0d25c00a0c22"
+      },
+      "validators": {
+        "total": 3,
+        "active": 3
+      },
+      "total_active_stake_sat": "199391315400768",
+      "base_fee_millisat_per_gas": "10",
+      "next_base_fee_millisat_per_gas": "10",
+      "mempool": 0,
+      "blocks_known": 194,
+      "wall_slot": 67202,
+      "behind_by_slots": 66945,
+      "transport": {
+        "name": "devnet",
+        "peers": {
+          "devnet": 6,
+          "libp2p": null
+        }
+      }
+    },
+    "node_log_metrics": {
+      "0": {
+        "reorgs": 3,
+        "cache_writes": 2093,
+        "cache_write_max_ms": 56,
+        "cache_write_median_ms": 1
+      },
+      "1": {
+        "reorgs": 2,
+        "cache_writes": 2092,
+        "cache_write_max_ms": 13,
+        "cache_write_median_ms": 1.0
+      },
+      "2": {
+        "reorgs": 2,
+        "cache_writes": 2092,
+        "cache_write_max_ms": 74,
+        "cache_write_median_ms": 1.0
+      },
+      "3": {
+        "reorgs": 0,
+        "cache_writes": 6,
+        "cache_write_max_ms": 4,
+        "cache_write_median_ms": 3.0
+      }
+    },
+    "elapsed_seconds": 6735.693
+  },
+  "mature_payout_evidence": {
+    "name": "mature-payout-and-double-withdrawal-refusal",
+    "elapsed_s": 6735.506,
+    "value": {
+      "before": {
+        "position": 0,
+        "delegator": 0,
+        "validator": 0,
+        "owner_pubkey_hash": "b9b4ae10fdef211895fe8f3ab7a48ca349c4fa7afb594a2533060c4e9cf932ed",
+        "as_of_slot": 67091,
+        "principal_sat": "1000000000",
+        "activated_sat": "0",
+        "requested_epoch": 12,
+        "deactivate_epoch": 15,
+        "inactive_since": 47,
+        "withdrawable_epoch": 2095,
+        "withdrawn": false,
+        "mature": true,
+        "fee_rewards_sat": "0",
+        "issuance_rewards_sat": "142245182",
+        "slash_losses_sat": "0",
+        "next_base_fee_millisat_per_gas": "10"
+      },
+      "payout": {
+        "network_domain": "59dad81c295b6c7bedbe225afcd2f89625b9e5bb71eb34bef2b40e383bc04ef1",
+        "signing_root": "ea9a6e39fb308dccbebaee8a8bd3fd47d3bd5e6d7577847c6351f43bf7668a7b",
+        "txid": "79d5823d4e259ec44120497d8b739e73a4f81a266cb1e79df61f342ce6d298d5",
+        "signed": true,
+        "kind": "withdraw",
+        "delegator": 0,
+        "position": 0,
+        "epoch": 2097,
+        "funding_pubkey_hash": "b9b4ae10fdef211895fe8f3ab7a48ca349c4fa7afb594a2533060c4e9cf932ed",
+        "destination_script_hash": "9595959595959595959595959595959595959595959595959595959595959595",
+        "max_base_fee_millisat_per_gas": "100"
+      },
+      "utxo": {
+        "txid": "79d5823d4e259ec44120497d8b739e73a4f81a266cb1e79df61f342ce6d298d5",
+        "vout": 0,
+        "unspent": true,
+        "utxo": {
+          "txid": "79d5823d4e259ec44120497d8b739e73a4f81a266cb1e79df61f342ce6d298d5",
+          "vout": 0,
+          "value_sat": "1142243054",
+          "script_hash": "9595959595959595959595959595959595959595959595959595959595959595"
+        },
+        "at_slot": 67200
+      },
+      "expected_payout_sat": "1142243054",
+      "repeat_response": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "error": {
+          "code": -32008,
+          "message": "lifecycle transaction fails committed-state validation \u2014 this transaction cannot be admitted; retrying the same bytes will not help"
+        }
+      },
+      "checkpoint": {
+        "block_id": "13d7bb9531acf1e7b608ee796836f663fe11cebef1d91a409e994365c861b434",
+        "version": 2970353669,
+        "parent": "7820fc97365d3450233284e350525fdbdfcf25848c0f85b1f8782c7472402883",
+        "slot": 67135,
+        "epoch": 2097,
+        "height": 66845,
+        "proposer_index": 0,
+        "timestamp": 1790904900,
+        "state_root": "cd9f5abf4a235820634dad71315215cfe0b03f30756249fdf2f780c42ce35953",
+        "body_root": "3d272a088c490760c4f7d74cb6c3d2275f884842ad4e6ccb9e40a34a9e5a8400",
+        "randao_reveal": "2cf20fbed855430dfb68742083b1a983eef60418570f2a4a7a397222d57df83f",
+        "randao_mix": "107020eee315fb923bbabc8a278a0206f3ebe040ca119742474795735f1f922e",
+        "justified_root": "5f1accb36abf45dcc1e039f52b142fdd51654f15e3610d94ed2ebdbc41168b59",
+        "finalized_root": "6df185630f12dec710ad7d149e02887dc15f30e25c902c487e934d138a6b2c65",
+        "attestation_root": "65617f7b01ac604f1325a4c7d4f87a26ed6278c8f11b20426f8515e7ec477989",
+        "coherence_root": "3ac97a48fe4c1dc2de33022b2473e76e609c85ce0c0bce96540851f682bccb56",
+        "finality": "finalized",
+        "finalized": true,
+        "tx_count": 0,
+        "attestation_count": 0
+      }
+    }
+  },
+  "lab_result_scope": "Three candidate validators and an old observer, loopback devnet, fresh keys and balances. Historical gates compressed to epochs 1/2 and delegation to epoch 8. Actual 32/2048 epoch delays retained; 100 ms laboratory slots. Production gate is epoch 4669 with the unchanged mainnet slot duration.",
+  "prior_failed_lifecycles": [
+    {
+      "status": "FAIL",
+      "production_changed": false,
+      "activation_epoch": 8,
+      "slot_ms": 500,
+      "validator_count": 3,
+      "mode": "full-lifecycle",
+      "cooldown_epochs": 32,
+      "withdrawal_delay_epochs": 2048,
+      "transport": "devnet",
+      "normal_doppelganger_window": true,
+      "binary_sha256": {
+        "LAB-ONLY-funded-epoch8": "99f7bf1ebf1c38f19bdd78fca0097676d2b622af5a8927b4cdb52ac53ef26fb5",
+        "LAB-ONLY-baseline-unarmed": "3afab967ef766b17c58839f05d3e8ccaf633889bd146f71921aa444aa7fb98b2"
+      },
+      "maturity_epoch": 2095,
+      "error": "AssertionError('finality lag exceeds rehearsal budget')",
+      "elapsed_seconds": 14965.375
+    },
+    {
+      "status": "FAIL",
+      "production_changed": false,
+      "activation_epoch": 8,
+      "slot_ms": 50,
+      "validator_count": 3,
+      "mode": "full-lifecycle",
+      "cooldown_epochs": 32,
+      "withdrawal_delay_epochs": 2048,
+      "transport": "devnet",
+      "normal_doppelganger_window": true,
+      "binary_sha256": {
+        "LAB-ONLY-funded-epoch8": "29560d51dbe1d3291d682c5fa74059bae31715a0e098ddfc809943e6aa88b6e9",
+        "LAB-ONLY-baseline-unarmed": "3afab967ef766b17c58839f05d3e8ccaf633889bd146f71921aa444aa7fb98b2"
+      },
+      "runner_sha256": "b2546dfb9f663f7098d7bf973d20bf2c89781bb2845edcc8dac79129b785bca4",
+      "max_finality_lag_epochs": 23,
+      "max_behind_by_slots": 65,
+      "buildinfo": {
+        "LAB-ONLY-funded-epoch8": {
+          "build_version": "0.1.0-mainnet (3af4181ce38e04f3f838229d1d11a00f2e746bbe)",
+          "package_version": "0.1.0-mainnet",
+          "commit": "3af4181ce38e04f3f838229d1d11a00f2e746bbe",
+          "commit_source": "asserted",
+          "tree_state": "unverified",
+          "source_digest": "20a2f5fa0cc54f8a1b6f3111565a1ef4e8d198caa127b07147ad91af8d71727a",
+          "source_digest_alg": "sha3-256",
+          "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+          "source_files": "283",
+          "source_bytes": "7972807",
+          "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+          "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+          "profile": "release",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+          "build_environment_digest_alg": "sha3-256",
+          "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+          "build_environment_fields": "125",
+          "build_tool_binaries_hashed": "2",
+          "build_sysroot_components_hashed": "5",
+          "build_configured_tool_binaries_hashed": "0",
+          "build_default_linker_binaries_hashed": "1",
+          "build_linker_binaries_hashed": "1",
+          "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+        },
+        "LAB-ONLY-baseline-unarmed": {
+          "build_version": "0.1.0-mainnet (4d4c5075872c+dirty)",
+          "package_version": "0.1.0-mainnet",
+          "commit": "4d4c5075872c",
+          "commit_source": "git",
+          "tree_state": "modified",
+          "source_digest": "7cfeaee8e5e3e792b0f9dbe418d5ab86eccb5980111b6ea19f0cafc16cde2ad0",
+          "source_digest_alg": "sha3-256",
+          "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+          "source_files": "279",
+          "source_bytes": "7892303",
+          "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+          "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+          "profile": "release",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+          "build_environment_digest_alg": "sha3-256",
+          "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+          "build_environment_fields": "125",
+          "build_tool_binaries_hashed": "2",
+          "build_sysroot_components_hashed": "5",
+          "build_configured_tool_binaries_hashed": "0",
+          "build_default_linker_binaries_hashed": "1",
+          "build_linker_binaries_hashed": "1",
+          "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+        }
+      },
+      "last_chain_observation": [
+        {
+          "slot": 16116,
+          "epoch": 503,
+          "height": 12335,
+          "finalized": {
+            "epoch": 481,
+            "root": "d546236c9c9b5d9606192354860ebcb46d4d3f554cd0d7db02f9ce83045b46aa"
+          },
+          "behind_by_slots": 2
+        },
+        {
+          "slot": 16118,
+          "epoch": 503,
+          "height": 12336,
+          "finalized": {
+            "epoch": 481,
+            "root": "d546236c9c9b5d9606192354860ebcb46d4d3f554cd0d7db02f9ce83045b46aa"
+          },
+          "behind_by_slots": 1
+        },
+        {
+          "slot": 16001,
+          "epoch": 500,
+          "height": 12287,
+          "finalized": {
+            "epoch": 481,
+            "root": "d546236c9c9b5d9606192354860ebcb46d4d3f554cd0d7db02f9ce83045b46aa"
+          },
+          "behind_by_slots": 124
+        }
+      ],
+      "maturity_epoch": 2095,
+      "last_liveness_check": {
+        "head_epoch": 504,
+        "finalized_epoch": 481,
+        "finality_lag_epochs": 23,
+        "behind_by_slots": 1,
+        "elapsed_s": 821.99
+      },
+      "error": "AssertionError('finality lag exceeds rehearsal budget')",
+      "node_log_metrics": {
+        "0": {
+          "reorgs": 337,
+          "cache_writes": 719,
+          "cache_write_max_ms": 15,
+          "cache_write_median_ms": 1
+        },
+        "1": {
+          "reorgs": 363,
+          "cache_writes": 746,
+          "cache_write_max_ms": 19,
+          "cache_write_median_ms": 1.0
+        },
+        "2": {
+          "reorgs": 330,
+          "cache_writes": 710,
+          "cache_write_max_ms": 1,
+          "cache_write_median_ms": 1.0
+        },
+        "3": {
+          "reorgs": 8,
+          "cache_writes": 13,
+          "cache_write_max_ms": 4,
+          "cache_write_median_ms": 2
+        }
+      },
+      "elapsed_seconds": 822.037
+    },
+    {
+      "status": "FAIL",
+      "production_changed": false,
+      "activation_epoch": 8,
+      "slot_ms": 100,
+      "validator_count": 3,
+      "mode": "full-lifecycle",
+      "cooldown_epochs": 32,
+      "withdrawal_delay_epochs": 2048,
+      "transport": "devnet",
+      "normal_doppelganger_window": true,
+      "binary_sha256": {
+        "LAB-ONLY-funded-epoch8": "29560d51dbe1d3291d682c5fa74059bae31715a0e098ddfc809943e6aa88b6e9",
+        "LAB-ONLY-baseline-unarmed": "3afab967ef766b17c58839f05d3e8ccaf633889bd146f71921aa444aa7fb98b2"
+      },
+      "runner_sha256": "b2546dfb9f663f7098d7bf973d20bf2c89781bb2845edcc8dac79129b785bca4",
+      "max_finality_lag_epochs": 12,
+      "max_behind_by_slots": 160,
+      "buildinfo": {
+        "LAB-ONLY-funded-epoch8": {
+          "build_version": "0.1.0-mainnet (3af4181ce38e04f3f838229d1d11a00f2e746bbe)",
+          "package_version": "0.1.0-mainnet",
+          "commit": "3af4181ce38e04f3f838229d1d11a00f2e746bbe",
+          "commit_source": "asserted",
+          "tree_state": "unverified",
+          "source_digest": "20a2f5fa0cc54f8a1b6f3111565a1ef4e8d198caa127b07147ad91af8d71727a",
+          "source_digest_alg": "sha3-256",
+          "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+          "source_files": "283",
+          "source_bytes": "7972807",
+          "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+          "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+          "profile": "release",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+          "build_environment_digest_alg": "sha3-256",
+          "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+          "build_environment_fields": "125",
+          "build_tool_binaries_hashed": "2",
+          "build_sysroot_components_hashed": "5",
+          "build_configured_tool_binaries_hashed": "0",
+          "build_default_linker_binaries_hashed": "1",
+          "build_linker_binaries_hashed": "1",
+          "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+        },
+        "LAB-ONLY-baseline-unarmed": {
+          "build_version": "0.1.0-mainnet (4d4c5075872c+dirty)",
+          "package_version": "0.1.0-mainnet",
+          "commit": "4d4c5075872c",
+          "commit_source": "git",
+          "tree_state": "modified",
+          "source_digest": "7cfeaee8e5e3e792b0f9dbe418d5ab86eccb5980111b6ea19f0cafc16cde2ad0",
+          "source_digest_alg": "sha3-256",
+          "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+          "source_files": "279",
+          "source_bytes": "7892303",
+          "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+          "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+          "profile": "release",
+          "target": "x86_64-unknown-linux-gnu",
+          "build_environment_digest": "a1c966ba826cb060fd0a89c497265d72eabb2e7b9e279a9f9727e1e445a36745",
+          "build_environment_digest_alg": "sha3-256",
+          "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+          "build_environment_fields": "125",
+          "build_tool_binaries_hashed": "2",
+          "build_sysroot_components_hashed": "5",
+          "build_configured_tool_binaries_hashed": "0",
+          "build_default_linker_binaries_hashed": "1",
+          "build_linker_binaries_hashed": "1",
+          "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+        }
+      },
+      "last_chain_observation": [
+        {
+          "slot": 30722,
+          "epoch": 960,
+          "height": 29384,
+          "finalized": {
+            "epoch": 948,
+            "root": "db62a6d6c5136f56e080dfed5204a8db371745656dd2daf711ab61d9fcb93c82"
+          },
+          "behind_by_slots": 158
+        },
+        {
+          "slot": 30873,
+          "epoch": 964,
+          "height": 29495,
+          "finalized": {
+            "epoch": 961,
+            "root": "8799d99aa444370930dcddcdd7ceff4902e597febe1525aa536c5cd051dc2f11"
+          },
+          "behind_by_slots": 10
+        },
+        {
+          "slot": 30881,
+          "epoch": 965,
+          "height": 29497,
+          "finalized": {
+            "epoch": 961,
+            "root": "8799d99aa444370930dcddcdd7ceff4902e597febe1525aa536c5cd051dc2f11"
+          },
+          "behind_by_slots": 2
+        }
+      ],
+      "maturity_epoch": 2095,
+      "last_liveness_check": {
+        "head_epoch": 960,
+        "finalized_epoch": 948,
+        "finality_lag_epochs": 12,
+        "behind_by_slots": 160,
+        "elapsed_s": 3104.308
+      },
+      "error": "AssertionError('finality lag exceeds rehearsal budget')",
+      "node_log_metrics": {
+        "0": {
+          "reorgs": 39,
+          "cache_writes": 956,
+          "cache_write_max_ms": 6,
+          "cache_write_median_ms": 1.0
+        },
+        "1": {
+          "reorgs": 35,
+          "cache_writes": 956,
+          "cache_write_max_ms": 4,
+          "cache_write_median_ms": 1.0
+        },
+        "2": {
+          "reorgs": 37,
+          "cache_writes": 958,
+          "cache_write_max_ms": 44,
+          "cache_write_median_ms": 1.0
+        },
+        "3": {
+          "reorgs": 0,
+          "cache_writes": 6,
+          "cache_write_max_ms": 5,
+          "cache_write_median_ms": 3.0
+        }
+      },
+      "elapsed_seconds": 3104.409
+    }
+  ],
+  "prior_failed_lifecycle_disposition": "All three prior failures remain FAIL. The cache correction alone failed at both 50 ms and 100 ms cadence. This candidate also indexes fork-choice inputs while preserving the exact historical vote order and tie breaks. The completed run qualifies only its recorded setup; it does not qualify 50 ms operation.",
+  "production_rollout_authorized_by_qualification": false,
+  "installable_by_automation": false,
+  "production_validators_migrated": 0,
+  "network_upgrade_readiness": "UNRESOLVED_OUTSIDE_95_INVENTORY",
+  "delegation_cap_blch_per_validator": 500000000,
+  "requested_commission_bps": 500,
+  "commission_transactions_applied": false,
+  "fresh_bootstrap_qualified": false,
+  "p2b_internal_tests_confirmed": false
+}
