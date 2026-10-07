@@ -275,34 +275,83 @@ export function tallyByState(rows: ValidatorRow[]): StateTally[] {
 }
 
 /**
- * Weight a validator has permanently lost to the inactivity leak.
+ * The genesis cohort: the validators registered in the genesis block.
  *
- * `own_stake_sat` is the bond in the registry. `effective_stake_sat` is what
- * the consensus roster actually carries, and the node computes it as
- * `own - leaked(index)` — see `with_leak_applied`. So the gap between the two
- * is not a rounding artefact or an effective-balance cap: it is consensus
- * weight the validator no longer has.
+ * `genesis_cohort.rs` caps their COMBINED consensus weight at a share of the
+ * total that tapers from 100% to 33.33% over a year. It is identified here by
+ * activation epoch 0, which no deposit made after genesis can have.
+ */
+export function isGenesisCohort(v: G4Validator): boolean {
+  return v.activation_epoch === 0;
+}
+
+/**
+ * The factor the cohort cap currently scales every cohort member by, 0..1.
  *
- * That it is PERMANENT is a property of the chain as deployed, not of the
- * design. The accumulator has a single write path that only ever adds, and the
- * zeroing that would let it recover sits behind a flag day set to `u64::MAX`
- * — inert, because applying new leak rules to historical epochs would make a
- * replaying node compute a state root the existing headers do not carry.
+ * Consensus scales the cohort pro-rata (`apply_cohort_cap`), so every member
+ * without delegated stake carries the same effective/own ratio. The node does
+ * not serve the factor, so it is read back as the MEDIAN of that ratio across
+ * the cohort: a member with delegations sits above it, and one that has also
+ * leaked sits below it, and neither moves the median. 1 when the cap does not
+ * bind (or the roster has no cohort members).
+ */
+export function cohortScale(rows: ValidatorRow[]): number {
+  const ratios = rows
+    .filter((r): r is G4Validator => !isGap(r) && isGenesisCohort(r) && r.effective_stake_sat !== null)
+    .filter((v) => BigInt(v.own_stake_sat) > 0n)
+    .map((v) => Number((BigInt(v.effective_stake_sat!) * 1_000_000n) / BigInt(v.own_stake_sat)) / 1_000_000)
+    .sort((a, b) => a - b);
+  if (!ratios.length) return 1;
+  return Math.min(1, ratios[Math.floor(ratios.length / 2)]);
+}
+
+/** A cohort member's own stake after the cohort cap, before any leak. */
+function cappedOwn(v: G4Validator, scale: number): bigint {
+  const own = BigInt(v.own_stake_sat);
+  if (!isGenesisCohort(v) || scale >= 1) return own;
+  return (own * BigInt(Math.round(scale * 1_000_000))) / 1_000_000n;
+}
+
+/**
+ * Weight the genesis-cohort cap is holding back from this validator.
+ *
+ * A protocol rule, not a penalty: own stake (the bond, which keeps earning and
+ * is what a withdrawal pays) is untouched; only the share of consensus weight
+ * it carries is scaled down, identically for every cohort member. Zero for
+ * validators outside the cohort.
+ */
+export function cohortCapSat(v: G4Validator, scale: number): bigint {
+  return BigInt(v.own_stake_sat) - cappedOwn(v, scale);
+}
+
+/**
+ * Weight a validator has lost to the inactivity leak.
+ *
+ * `effective_stake_sat` is the roster weight after the cohort cap and after
+ * `with_leak_applied`. The leak is what is missing on top of the cap: for a
+ * cohort member, the capped own stake minus the effective stake; for anyone
+ * else, own minus effective. Delegated stake raises effective weight, so a
+ * delegated validator can show zero here while having leaked a little — this
+ * reading never overstates the leak.
+ *
+ * The leak only runs after more than `INACTIVITY_LEAK_THRESHOLD_EPOCHS` epochs
+ * without finality, only against validators that did not vote, and it never
+ * debits the bond (`staked_sat`).
  *
  * Returns null when the node reported no effective stake at all, which means
  * "not in the active roster this epoch" and is a different statement from
  * zero weight.
  */
-export function leakedSat(v: G4Validator): bigint | null {
+export function leakedSat(v: G4Validator, scale = 1): bigint | null {
   if (v.effective_stake_sat === null || v.effective_stake_sat === undefined) return null;
-  const own = BigInt(v.own_stake_sat);
+  const capped = cappedOwn(v, scale);
   const eff = BigInt(v.effective_stake_sat);
-  return own > eff ? own - eff : 0n;
+  return capped > eff ? capped - eff : 0n;
 }
 
-/** Fraction of its own bond a validator has lost to the leak, 0..1. */
-export function leakedFraction(v: G4Validator): number | null {
-  const lost = leakedSat(v);
+/** Fraction of its own bond's weight a validator has lost to the leak, 0..1. */
+export function leakedFraction(v: G4Validator, scale = 1): number | null {
+  const lost = leakedSat(v, scale);
   if (lost === null) return null;
   const own = BigInt(v.own_stake_sat);
   if (own === 0n) return null;

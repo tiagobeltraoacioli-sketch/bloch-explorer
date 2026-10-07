@@ -25,6 +25,9 @@ import {
   giniBps,
   leakedFraction,
   leakedSat,
+  cohortScale,
+  cohortCapSat,
+  isGenesisCohort,
   isGap,
   ValidatorSet,
   ValidatorRow,
@@ -105,7 +108,14 @@ export function ValidatorsPage() {
   const states = tallyByState(set.validators);
 
   const ownTotal = live.reduce((a, v) => a + BigInt(v.own_stake_sat), 0n);
-  const leakTotal = live.reduce((a, v) => a + (leakedSat(v) ?? 0n), 0n);
+  // Two different things reduce weight below the bond: the genesis-cohort cap
+  // (a protocol rule that scales the 64 genesis validators pro-rata) and the
+  // inactivity leak (only during non-finality, only against non-voters).
+  const scale = cohortScale(live);
+  const capTotal = live.reduce((a, v) => a + cohortCapSat(v, scale), 0n);
+  const capPct = ownTotal === 0n ? 0 : Number((capTotal * 10_000n) / ownTotal) / 100;
+  const cohortCount = live.filter(isGenesisCohort).length;
+  const leakTotal = live.reduce((a, v) => a + (leakedSat(v, scale) ?? 0n), 0n);
   const leakPct = ownTotal === 0n ? 0 : Number((leakTotal * 10_000n) / ownTotal) / 100;
   const maxOwn = live.reduce((m, v) => (BigInt(v.own_stake_sat) > m ? BigInt(v.own_stake_sat) : m), 0n);
 
@@ -119,7 +129,7 @@ export function ValidatorsPage() {
   // median leak fraction is the fleet's shared history, and an outlier above
   // it has missed epochs the others did not.
   const fracs = live
-    .map((v) => ({ v, f: leakedFraction(v) }))
+    .map((v) => ({ v, f: leakedFraction(v, scale) }))
     .filter((x): x is { v: G4Validator; f: number } => x.f !== null);
   const sortedF = [...fracs].map((x) => x.f).sort((a, b) => a - b);
   const medianF = sortedF.length ? sortedF[Math.floor(sortedF.length / 2)] : 0;
@@ -175,9 +185,14 @@ export function ValidatorsPage() {
           <span className="g4-dim">what the roster actually carries</span>
         </div>
         <div className="g4-stat">
-          <span className="g4-k">Leaked away</span>
-          <span className="g4-v bad-fg">{fmtNum(leakPct, 1)}%</span>
-          <span className="g4-dim">{fmtBloch(leakTotal, 0)} BLCH, permanently</span>
+          <span className="g4-k">Held by the cohort cap</span>
+          <span className="g4-v">{fmtNum(capPct, 1)}%</span>
+          <span className="g4-dim">{fmtBloch(capTotal, 0)} BLCH of genesis weight · a rule, not a loss</span>
+        </div>
+        <div className="g4-stat">
+          <span className="g4-k">Inactivity leak</span>
+          <span className={leakTotal > 0n ? "g4-v bad-fg" : "g4-v"}>{fmtNum(leakPct, 1)}%</span>
+          <span className="g4-dim">{fmtBloch(leakTotal, 0)} BLCH of weight</span>
         </div>
         <div className="g4-stat">
           <span className="g4-k">Head</span>
@@ -188,7 +203,7 @@ export function ValidatorsPage() {
 
       {/* ── The bond, and what is left of it ───────────────────────────── */}
       <section className="card">
-        <h2 className="snap-h2">Half of every bond is no longer consensus weight</h2>
+        <h2 className="snap-h2">Why consensus weight is smaller than the bonds</h2>
         <p>
           Each validator was bonded at exactly{" "}
           <strong>{fmtBloch(bondEach, 0)} BLCH</strong> at genesis — {fmtInt(live.length)} of them,{" "}
@@ -199,26 +214,38 @@ export function ValidatorsPage() {
         <p>
           Bonds have since grown on proposal rewards, to{" "}
           <strong>{fmtBloch(ownTotal, 0)} BLCH</strong>. But the roster carries only{" "}
-          <strong>{fmtBloch(total, 0)} BLCH</strong> of it. The difference —{" "}
-          <strong>{fmtBloch(leakTotal, 0)} BLCH, {fmtNum(leakPct, 1)}% of the whole</strong> — is
-          weight the inactivity leak took during past epochs of non-finality.
+          <strong>{fmtBloch(total, 0)} BLCH</strong> of weight. Almost all of the difference —{" "}
+          <strong>{fmtBloch(capTotal, 0)} BLCH, {fmtNum(capPct, 1)}% of the whole</strong> — is the{" "}
+          <strong>genesis-cohort cap</strong>: the {fmtInt(cohortCount)} validators registered at
+          genesis may together carry at most {fmtNum(capBpsNow / 100, 2)}% of consensus weight this
+          epoch, a ceiling that tapers to 33.33% over the first year so that the chain stops
+          depending on its founder. Every cohort member is scaled by the same factor (
+          {fmtNum(scale * 100, 1)}% of its bond right now). Their bonds are untouched: they keep
+          earning and are what a withdrawal pays. The figure grows every epoch by design, as the
+          ceiling comes down.
+        </p>
+        <p>
+          The inactivity leak is a different thing. It only runs after more than{" "}
+          {PARAMS.inactivityLeakThresholdEpochs.value} epochs without finality, only against
+          validators that did not vote, and it reduces quorum weight rather than coins. What this
+          page attributes to it now is{" "}
+          <strong>{fmtBloch(leakTotal, 0)} BLCH ({fmtNum(leakPct, 1)}%)</strong>.
         </p>
         <p className="notebox-inline">
           <strong>Two totals that look interchangeable and are not.</strong> The figure{" "}
           <code>getchaininfo</code> reports as <code>total_active_stake_sat</code> is summed over
-          the roster <em>before</em> the leak is subtracted — it is the bonded number above, not
-          the weight one. The <code>effective_stake_sat</code> on each validator is the leaked one.
+          the roster <em>before</em> the leak is subtracted — it is not the weight number. The{" "}
+          <code>effective_stake_sat</code> on each validator is the final weight, after the cohort
+          cap and after any leak.
           Dividing one by the other, which is the obvious thing to do, understates every
           validator's share of consensus weight by about half. Every share on this page is taken
-          against the sum of the same post-leak records it came from.
+          against the sum of the same final-weight records it came from.
         </p>
         <p className="notebox-inline">
-          <strong>It does not come back.</strong> The leak accumulator has one write path and only
-          ever adds; the code that would zero it on recovery sits behind a flag day set to{" "}
-          <code>u64::MAX</code>, which means inert. It is switched off for a concrete reason:
-          re-scoring historical epochs under new leak rules would make a replaying node compute a
-          state root that the blocks already written do not carry, and the chain would stop. So
-          this is a permanent reduction, not a temporary penalty.
+          <strong>Neither one burns coins.</strong> The cohort cap only redistributes consensus
+          weight away from the genesis set; the leak only discounts the quorum weight of validators
+          that were absent while finality was stalled. Bonds (<code>own_stake_sat</code>) are not
+          debited by either.
         </p>
       </section>
 
@@ -416,8 +443,8 @@ export function ValidatorsPage() {
               return `${fmtNum(sh * 100, 3)}%`;
             })()}
           </strong>{" "}
-          — smaller, because past non-finality already leaked away more of validator 63's weight
-          than the fleet median. Both numbers are true; only the second one is the one a quorum
+          — smaller, because validator 63 is a genesis-cohort member and its weight is scaled down
+          by the cohort cap. Both numbers are true; only the second one is the one a quorum
           feels.
         </p>
         <p className="lookup-hint">
@@ -432,8 +459,8 @@ export function ValidatorsPage() {
         <section className="card">
           <h2 className="snap-h2">Counted active, and not keeping up</h2>
           <p>
-            The fleet's shared history shows as a common leak fraction — the median validator has
-            lost {fmtNum(medianF * 100, 1)}% of its bond to past non-finality. These carry
+            After separating out the genesis-cohort cap, the median validator shows{" "}
+            {fmtNum(medianF * 100, 1)}% of its bond lost to the inactivity leak. These carry
             noticeably more, which means they were absent for epochs the others attested through:
           </p>
           <ul className="outliers">
@@ -485,7 +512,7 @@ export function ValidatorsPage() {
           </thead>
           <tbody>
             {set.validators.map((r) => (
-              <ValidatorRowView key={r.index} row={r} total={total} maxOwn={maxOwn} rec={rec} maxProp={maxProp} />
+              <ValidatorRowView key={r.index} row={r} total={total} maxOwn={maxOwn} rec={rec} maxProp={maxProp} scale={scale} />
             ))}
           </tbody>
         </table>
@@ -517,12 +544,14 @@ function ValidatorRowView({
   maxOwn,
   rec,
   maxProp,
+  scale,
 }: {
   row: ValidatorRow;
   total: bigint;
   maxOwn: bigint;
   rec: ProposalRecord | null;
   maxProp: number;
+  scale: number;
 }) {
   if (isGap(row)) {
     return (
@@ -538,7 +567,7 @@ function ValidatorRowView({
   }
   const own = BigInt(row.own_stake_sat);
   const eff = row.effective_stake_sat === null ? null : BigInt(row.effective_stake_sat);
-  const lost = leakedFraction(row);
+  const lost = leakedFraction(row, scale);
   const share = eff === null || total === 0n ? null : Number((eff * 1_000_000n) / total) / 1_000_000;
   return (
     <tr>

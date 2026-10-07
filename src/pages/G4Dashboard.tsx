@@ -450,13 +450,12 @@ export function G4Dashboard() {
           k="Duty stake"
           v={duty !== null ? fmtCompactBloch(duty) : "—"}
           unit={duty !== null ? "BLCH" : undefined}
-          sub={duty !== null ? `${fmtBloch(duty, 0)} BLCH bonded, before the leak` : "bonded roster before the leak"}
+          sub={duty !== null ? `${fmtBloch(duty, 0)} BLCH bonded, before the cohort cap and any leak` : "bonded roster before the cohort cap and any leak"}
         />
         <Kpi
-          k="Leaked away"
+          k="Not carried as weight"
           v={leakPct !== null ? `${fmtNum(leakPct, 1)}%` : "—"}
-          tone={leakPct !== null && leakPct > 0 ? "crit" : undefined}
-          sub={leakPct !== null ? "of the bond, permanently — see validators" : "needs both stake totals"}
+          sub={leakPct !== null ? "genesis-cohort cap (a rule) plus any inactivity leak — see validators" : "needs both stake totals"}
         />
         <Kpi
           k="Mempool entries"
@@ -624,9 +623,12 @@ export function G4Dashboard() {
           <p className="lookup-hint">
             {leakPct !== null ? (
               <>
-                The hatched part — <strong>{fmtNum(leakPct, 1)}%</strong> of every bond — is weight
-                the inactivity leak took during past epochs of non-finality. It does not come back:
-                the recovery path is compiled in and held behind an inert flag day.{" "}
+                The hatched part — <strong>{fmtNum(leakPct, 1)}%</strong> of bonded stake — is not
+                carried as consensus weight. Almost all of it is the genesis-cohort cap: the
+                validators registered at genesis may together hold only a share of total weight
+                that tapers to 33.33% over the first year, so this part grows every epoch by design.
+                The inactivity leak, which only runs during non-finality, is shown separately on the
+                validators page. Neither debits the bonds.{" "}
               </>
             ) : null}
             Every one of the {fmtInt(vals?.total ?? G4.validators)} validators declares the same

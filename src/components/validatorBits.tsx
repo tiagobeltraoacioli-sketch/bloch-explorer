@@ -86,7 +86,7 @@ export function CorroborationLine({ c, at }: { c?: Corroboration; at: number }) 
 
 /**
  * A horizontal bar of one validator's stake, split into weight it still has
- * and weight the leak has taken.
+ * and the bond weight not carried (genesis-cohort cap and/or inactivity leak).
  *
  * Drawn as one bar rather than two numbers because the split is the point: the
  * bond and the consensus weight are different quantities on this chain today,
@@ -106,7 +106,7 @@ export function StakeBar({
   const eff = effective ?? 0n;
   const lost = own > eff ? own - eff : 0n;
   return (
-    <span className="stakebar" title={`${fmtBloch(eff, 0)} effective · ${fmtBloch(lost, 0)} leaked`}>
+    <span className="stakebar" title={`${fmtBloch(eff, 0)} effective · ${fmtBloch(lost, 0)} not carried as weight (genesis-cohort cap and/or inactivity leak)`}>
       <span className="stakebar-eff" style={{ width: `${pct(eff)}%` }} />
       <span className="stakebar-leak" style={{ width: `${pct(lost)}%` }} />
     </span>

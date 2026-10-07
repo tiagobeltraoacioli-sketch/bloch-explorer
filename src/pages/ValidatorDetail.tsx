@@ -15,7 +15,7 @@
 // validator actually proposed in a bounded recent window.
 import { useEffect, useState } from "react";
 import { G4Validator } from "../lib/g4";
-import { leakedSat, leakedFraction, fetchValidatorSet, stakeShares } from "../lib/validators";
+import { leakedSat, leakedFraction, fetchValidatorSet, stakeShares, cohortScale, cohortCapSat, isGenesisCohort } from "../lib/validators";
 import {
   recentWindow,
   proposalRecord,
@@ -37,6 +37,8 @@ interface Loaded {
   counts: { total: number; active: number; total_active_stake_sat: string };
   /** Sum of POST-leak effective stakes — the only valid share denominator. */
   rosterWeight: bigint;
+  /** Current genesis-cohort cap factor, read back from the whole roster. */
+  scale: number;
   head: { epoch: number; slot: number; height: number };
   source: string;
   generatedAt: number;
@@ -80,6 +82,7 @@ export function ValidatorDetailPage({ index }: { index: number }) {
           v: found as G4Validator,
           counts: set.counts,
           rosterWeight: total,
+          scale: cohortScale(set.validators),
           head: set.head,
           source: set.source,
           generatedAt: set.generatedAt,
@@ -116,8 +119,10 @@ export function ValidatorDetailPage({ index }: { index: number }) {
   const { v } = d;
   const own = BigInt(v.own_stake_sat);
   const eff = v.effective_stake_sat === null ? null : BigInt(v.effective_stake_sat);
-  const lost = leakedSat(v);
-  const lostFrac = leakedFraction(v);
+  const lost = leakedSat(v, d.scale);
+  const lostFrac = leakedFraction(v, d.scale);
+  const cohort = isGenesisCohort(v);
+  const capped = cohortCapSat(v, d.scale);
   const total = d.rosterWeight;
   const share = eff === null || total === 0n ? null : Number((eff * 1_000_000n) / total) / 1_000_000;
   const bonded = BigInt(d.counts.total_active_stake_sat);
@@ -156,15 +161,24 @@ export function ValidatorDetailPage({ index }: { index: number }) {
             {share === null ? "" : `${fmtNum(share * 100, 3)}% of consensus weight`}
           </span>
         </div>
+        {cohort && (
+          <div className="g4-stat">
+            <span className="g4-k">Held by the cohort cap</span>
+            <span className="g4-v">{fmtNum((1 - d.scale) * 100, 1)}%</span>
+            <span className="g4-dim">{fmtBloch(capped, 0)} BLCH of weight · genesis rule, not a loss</span>
+          </div>
+        )}
         <div className="g4-stat">
-          <span className="g4-k">Leaked</span>
-          <span className="g4-v bad-fg">{lostFrac === null ? "—" : `${fmtNum(lostFrac * 100, 1)}%`}</span>
-          <span className="g4-dim">{lost === null ? "" : `${fmtBloch(lost, 0)} BLCH, permanently`}</span>
+          <span className="g4-k">Inactivity leak</span>
+          <span className={lost !== null && lost > 0n ? "g4-v bad-fg" : "g4-v"}>
+            {lostFrac === null ? "—" : `${fmtNum(lostFrac * 100, 1)}%`}
+          </span>
+          <span className="g4-dim">{lost === null ? "" : `${fmtBloch(lost, 0)} BLCH of weight`}</span>
         </div>
         <div className="g4-stat">
           <span className="g4-k">Share of bonded stake</span>
           <span className="g4-v">{bondShare === null ? "—" : `${fmtNum(bondShare * 100, 3)}%`}</span>
-          <span className="g4-dim">before the leak is subtracted</span>
+          <span className="g4-dim">before the cohort cap and any leak</span>
         </div>
         <div className="g4-stat">
           <span className="g4-k">Commission</span>
@@ -212,10 +226,13 @@ export function ValidatorDetailPage({ index }: { index: number }) {
         <StakeBar own={own} effective={eff} max={own} />
         <p className="lookup-hint">
           The full bar is this validator's bond of {fmtBloch(own, 0)} BLCH. The filled part is what
-          the consensus roster carries; the rest was taken by the inactivity leak during epochs the
-          chain did not finalise, and does not return — the recovery path is compiled in but held
-          behind an inert flag day, because re-scoring past epochs would make replaying nodes
-          compute a state root the existing blocks do not carry.
+          the consensus roster carries.{" "}
+          {cohort
+            ? `This is a genesis-cohort validator: the cohort's combined weight is capped (a ceiling that tapers to 33.33% over the first year), so every member carries ${fmtNum(d.scale * 100, 1)}% of its bond as weight right now. The bond itself keeps earning and is what a withdrawal pays. `
+            : ""}
+          Anything missing beyond that is the inactivity leak, which only runs after more than four
+          epochs without finality and only against validators that did not vote. Neither debits
+          the bond.
         </p>
       </section>
 
