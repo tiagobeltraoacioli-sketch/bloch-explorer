@@ -1,0 +1,32 @@
+{
+  "schema": "bloch.checkpoint.publication-verification.v1",
+  "epoch": 5120,
+  "boundary_slot": 163839,
+  "block_root": "9e5601c3c761853b7f7a71bb90215a5eb707b14e2da090fd055afa0f4d6a3a1f",
+  "ws_digest": "9d70b55b98d692184d0e190ba2b92e0ffe9915e2364f5aeb417b54aef0f754d9",
+  "signer_set_id": 1,
+  "signer_set_sha3": "bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627",
+  "signatures": {
+    "valid": 3,
+    "listed": 3,
+    "external": 3,
+    "quorum": "2-of-3, at least 1 external"
+  },
+  "verdict": "ACCEPTED by ws::verify_envelope",
+  "freshness": "FRESH at epoch 5148 (age 28 of 2016)",
+  "usable_until_epoch": 7136,
+  "usable_until_utc": "2026-11-01T04:27:19.962Z",
+  "derived_from_rpc": [
+    "139.180.166.5:8080",
+    "139.180.173.231:8080",
+    "80.240.16.185:8080"
+  ],
+  "custody": "All three keys were used on the same machine; independent custody is NOT verified.",
+  "verified_at_utc": "2026-10-10T02:25:00Z",
+  "files": {
+    "ws-envelope.bin": "d7e3c73223617d24cb23eb9898a6e855e915450c6474815d55e121a8fcfc9cb5",
+    "signer-set.bin": "b2ea7f0ca9356a3d82bcd2a3f6a1e1a1b997a809b3bc91a063c90d7852566643",
+    "checkpoint.bin": "800146311cd0c4639f49d53884eb6abe2a5d77112a6f2832ea405c99fe2de8cd",
+    "checkpoint.json": "eb07d4c5b1816e42b8096e6a0c3bcb97d5a7ccec6f86ec5a040bc91b2d5ae2c9"
+  }
+}

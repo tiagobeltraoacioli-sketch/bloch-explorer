@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / 'public/downloads/prepare-node.sh'
 GENESIS_MS = 1786656679962
 EPOCH_MS = 960000
-EXPIRES_MS = GENESIS_MS + 5344 * EPOCH_MS
+EXPIRES_MS = GENESIS_MS + 7136 * EPOCH_MS
 PUBKEY = 'RWT3XpXEpZZdGtghC5SmyRj2VRTAGUfO5KxBucYVTRfriNE13wsXhfj6'
 SHIM = r'''#!/usr/bin/env python3
 import hashlib, json, os, pathlib, shutil, sys
@@ -44,9 +44,9 @@ elif name == 'curl':
     base = 'https://blochl1.com/'
     release = ['bloch-pos', 'SHA256SUMS', 'SHA256SUMS.minisig']
     genesis = ['mainnet.manifest', 'carryover.tsv.gz']
-    allowed = {base + 'releases/2026-09-30/' + x: x for x in release}
+    allowed = {base + 'releases/2026-10-09/' + x: x for x in release}
     allowed.update({base + 'releases/2026-09-14/' + x: x for x in genesis})
-    allowed.update({base + 'checkpoints/epoch-3328/' + x: x for x in ['ws-envelope.bin', 'signer-set.bin']})
+    allowed.update({base + 'checkpoints/epoch-5120/' + x: x for x in ['ws-envelope.bin', 'signer-set.bin']})
     assert allowed[args[-1]] == output
     assert args[args.index('--proto') + 1] == '=https'
     assert args[args.index('--proto-redir') + 1] == '=https'
@@ -70,7 +70,7 @@ elif name == 'bloch-pos':
         for flag, value in [('--envelope', 'ws-envelope.bin'), ('--signer-set', 'signer-set.bin'), ('--genesis', 'mainnet.manifest')]:
             assert args[args.index(flag) + 1] == value
         assert '--require-fresh' in args and '--rpc' not in args
-        assert 3328 <= int(args[args.index('--now-epoch') + 1]) < 5344
+        assert 5120 <= int(args[args.index('--now-epoch') + 1]) < 7136
         if os.environ.get('MOCK_REFUSE_ENVELOPE'):
             sys.exit('envelope refused')
     if args[0] == 'run':
@@ -87,7 +87,7 @@ def digest(data):
 
 class PrepareNodeTests(unittest.TestCase):
     def run_helper(self, *, corrupt=None, bad_signature=False, refuse_envelope=False,
-                   now=GENESIS_MS + 4295 * EPOCH_MS, now_after=None,
+                   now=GENESIS_MS + 5148 * EPOCH_MS, now_after=None,
                    existing=False, dangling=False, launch=False):
         with tempfile.TemporaryDirectory(prefix='bloch-prepare-node-') as tmp:
             root = Path(tmp)
@@ -112,11 +112,11 @@ class PrepareNodeTests(unittest.TestCase):
                 'signer-set.bin': b'synthetic signer-set fixture',
             }
             substitutions = {
-                'fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a': digest(binary),
-                '1e012588489461abe88609c4cd52c31d58978dc0827b81426143ed0cbba0ad32': digest(files['SHA256SUMS']),
+                '22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba': digest(binary),
+                'b6815db586afedf258065f417bb76385db92814a5a7b406ea5be6bf180ac13b1': digest(files['SHA256SUMS']),
                 '4d1e2738baec39ec25e2e33968f72a47abb261f271de62fb48a33be55bfc83be': digest(files['carryover.tsv.gz']),
                 '84ddbbac2afdd5c78618096a7d4f66cf5b04a3e5757a03fe90550e50096183f6': digest(carryover),
-                '66c7f832e5d644388e439c965014810e283347624404dca9b343bb5ae4c1d18d': digest(files['ws-envelope.bin']),
+                'd7e3c73223617d24cb23eb9898a6e855e915450c6474815d55e121a8fcfc9cb5': digest(files['ws-envelope.bin']),
                 'b2ea7f0ca9356a3d82bcd2a3f6a1e1a1b997a809b3bc91a063c90d7852566643': digest(files['signer-set.bin']),
             }
             source = HELPER.read_text()
@@ -162,7 +162,7 @@ class PrepareNodeTests(unittest.TestCase):
         self.assertTrue(launcher)
         node = [c for c in calls if c[0] == 'bloch-pos']
         self.assertEqual([c[1] for c in node], ['selfcheck', 'ws-verify', 'run'])
-        self.assertEqual(node[1][node[1].index('--now-epoch') + 1], '4295')
+        self.assertEqual(node[1][node[1].index('--now-epoch') + 1], '5148')
         self.assertLess(next(i for i, c in enumerate(calls) if c[0] == 'minisign'),
                         next(i for i, c in enumerate(calls) if c[0] == 'bloch-pos'))
 
@@ -207,7 +207,7 @@ class PrepareNodeTests(unittest.TestCase):
 
     def test_invalid_or_earlier_clock_never_downloads(self):
         for now in ['1790000000%3N', '999999999999999999999999', GENESIS_MS - 1,
-                    GENESIS_MS + 3328 * EPOCH_MS - 1]:
+                    GENESIS_MS + 5120 * EPOCH_MS - 1]:
             with self.subTest(now=now):
                 result, calls, launcher, work = self.run_helper(now=now)
                 self.assertNotEqual(result.returncode, 0)
@@ -225,11 +225,11 @@ class PrepareNodeTests(unittest.TestCase):
 
     def test_production_pins_bind_published_artifacts_and_manifest_clock(self):
         source = HELPER.read_text()
-        release = ROOT / 'public/releases/2026-09-24'
+        release = ROOT / 'public/releases/2026-10-09'
         for name in ['bloch-pos', 'SHA256SUMS']:
             self.assertIn(digest((release / name).read_bytes()), source)
         self.assertIn(PUBKEY, (release / 'bloch-release-20260922.pub').read_text())
-        checkpoint = ROOT / 'public/checkpoints/epoch-3328'
+        checkpoint = ROOT / 'public/checkpoints/epoch-5120'
         for name in ['ws-envelope.bin', 'signer-set.bin']:
             self.assertIn(digest((checkpoint / name).read_bytes()), source)
         self.assertIn(hashlib.sha3_256((checkpoint / 'signer-set.bin').read_bytes()).hexdigest(), source)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 export const validatorGuide = {
   "title": "How to run a Bloch validator",
-  "updated": "September 30, 2026",
+  "updated": "October 9, 2026",
   "sections": [
     {
       "id": "escopo",
@@ -9,7 +9,7 @@ export const validatorGuide = {
       "blocks": [
         {
           "kind": "p",
-          "text": "Operational guide for Bloch Genesis-4, reviewed on September 30, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit."
+          "text": "Operational guide for Bloch Genesis-4, reviewed on October 9, 2026. An observer verifies the chain without signing. A validator also needs its own registered, eligible key on the chain. Installing the executable does not create a validator slot or a deposit."
         },
         {
           "kind": "p",
@@ -31,11 +31,11 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Download the signed executable from /releases/2026-09-30/bloch-pos. It is byte-identical to the September 24 executable. Keep the genesis manifest and carryover files from /releases/2026-09-14/. The preparation script verifies hashes and the release signature, decompresses carryover.tsv and installs the epoch-3328 checkpoint. Read the checkpoint custody limits before use."
+          "text": "Download the signed executable from /releases/2026-10-09/bloch-pos. It is the funded-delegation node (source 3a68f10b), byte-identical to the 2026-10-02 release candidate; required since epoch 4669. Keep the genesis manifest and carryover files from /releases/2026-09-14/. The preparation script verifies hashes and the release signature, decompresses carryover.tsv and installs the epoch-5120 checkpoint. Read the checkpoint custody limits before use."
         },
         {
           "kind": "code",
-          "text": "Commit: 4d4c5075872c622fdd26aa418a9d249ec95fbcea\nLinux x86_64 · rustc 1.94.1\nSHA-256 bloch-pos:\nfb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a\nSHA-256 mainnet.manifest:\n7eef82a70ef9b0e1dd86f86d33cba11fc10cdfc7395c2e5f6669613fa1beb2dd\nSHA-256 carryover.tsv:\n84ddbbac2afdd5c78618096a7d4f66cf5b04a3e5757a03fe90550e50096183f6"
+          "text": "Commit: 3a68f10bca501626dca54faab74a80a019057562\nLinux x86_64 · canonical container, Debian snapshot 20260917\nSHA-256 bloch-pos:\n22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba\nSHA-256 mainnet.manifest:\n7eef82a70ef9b0e1dd86f86d33cba11fc10cdfc7395c2e5f6669613fa1beb2dd\nSHA-256 carryover.tsv:\n84ddbbac2afdd5c78618096a7d4f66cf5b04a3e5757a03fe90550e50096183f6"
         },
         {
           "kind": "p",
@@ -53,7 +53,7 @@ export const validatorGuide = {
       "blocks": [
         {
           "kind": "p",
-          "text": "New machine: use the historical epoch-3328 envelope at /checkpoints/epoch-3328/. Three signatures verify against signer set ID 1, whose encoded policy is 2 of 3 with at least one external signer. All three keys were used on the same Mac; independent custody has not been established. The operator authorized use and publication of this existing envelope on September 30. This authorization does not prove independent signing."
+          "text": "New machine: use the epoch-5120 envelope at /checkpoints/epoch-5120/. Three signatures verify against signer set ID 1, whose encoded policy is 2 of 3 with at least one external signer. All three keys were used on the same Mac; independent custody has not been established. This publication does not prove independent signing."
         },
         {
           "kind": "p",
@@ -61,7 +61,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Deadline: initial synchronization using this checkpoint expires at epoch 5344, October 12, 2026 at 06:35:19.962 UTC (03:35:19.962 Brasília time). The preparation script checks the host clock and uses ws-verify --require-fresh. Cryptographic acceptance alone does not override age."
+          "text": "Deadline: initial synchronization using this checkpoint expires at epoch 7136, November 1, 2026 at 04:27:19.962 UTC (01:27:19.962 Brasília time). The preparation script checks the host clock and uses ws-verify --require-fresh. Cryptographic acceptance alone does not override age."
         },
         {
           "kind": "p",
@@ -73,7 +73,7 @@ export const validatorGuide = {
         },
         {
           "kind": "code",
-          "text": "mkdir -p checkpoint-3328\ncd checkpoint-3328\nfor file in ws-envelope.bin signer-set.bin checkpoint.bin checkpoint.json verification.json SHA256SUMS.txt; do\n  curl --fail --show-error --location --output \"$file\" \"https://blochl1.com/checkpoints/epoch-3328/$file\" || exit 1\ndone\nsha256sum --check SHA256SUMS.txt\ncd ..\n./bloch-pos ws-verify --envelope checkpoint-3328/ws-envelope.bin --signer-set checkpoint-3328/signer-set.bin --genesis mainnet.manifest --rpc 139.180.166.5:8080 --require-fresh"
+          "text": "mkdir -p checkpoint-5120\ncd checkpoint-5120\nfor file in ws-envelope.bin signer-set.bin checkpoint.bin checkpoint.json verification.json SHA256SUMS.txt; do\n  curl --fail --show-error --location --output \"$file\" \"https://blochl1.com/checkpoints/epoch-5120/$file\" || exit 1\ndone\nsha256sum --check SHA256SUMS.txt\ncd ..\n./bloch-pos ws-verify --envelope checkpoint-5120/ws-envelope.bin --signer-set checkpoint-5120/signer-set.bin --genesis mainnet.manifest --rpc 139.180.166.5:8080 --require-fresh"
         },
         {
           "kind": "p",
@@ -81,7 +81,7 @@ export const validatorGuide = {
         },
         {
           "kind": "p",
-          "text": "Existing operator: preserve your data directory, history, metadata, key and slashing_protection.bin. Use the canonical history already validated by your own node. Do not replace a newer local anchor with epoch 3328 or delete the signing record to make a restart succeed."
+          "text": "Existing operator: preserve your data directory, history, metadata, key and slashing_protection.bin. Use the canonical history already validated by your own node. Do not replace a newer local anchor with epoch 5120 or delete the signing record to make a restart succeed."
         }
       ]
     },
@@ -137,7 +137,7 @@ export const validatorGuide = {
         },
         {
           "kind": "code",
-          "text": "sudo install -m 644 checkpoint-3328/ws-envelope.bin /var/lib/bloch/checkpoint.envelope.bin\nsudo install -m 644 checkpoint-3328/signer-set.bin /var/lib/bloch/signer-set.bin"
+          "text": "sudo install -m 644 checkpoint-5120/ws-envelope.bin /var/lib/bloch/checkpoint.envelope.bin\nsudo install -m 644 checkpoint-5120/signer-set.bin /var/lib/bloch/signer-set.bin"
         },
         {
           "kind": "p",

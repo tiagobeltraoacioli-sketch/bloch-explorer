@@ -1,14 +1,14 @@
 # Start a Bloch validator — Genesis-4
 
-Guide updated September 30, 2026. Distribution: September 30, 2026, with checkpoint 3328 and the byte-identical signed Linux x86_64 executable originally released September 24 (source `4d4c5075872c622fdd26aa418a9d249ec95fbcea`). This distribution updates bootstrap material without changing consensus code. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
+Guide updated October 9, 2026. Distribution: October 9, 2026, with checkpoint 5120 and the signed Linux x86_64 executable from source `3a68f10bca501626dca54faab74a80a019057562` (funded delegation, active since epoch 4669). **Required upgrade:** earlier executables reject the first funded-delegation block (slot 155,538, October 6, 21:40:19 UTC) and leave the canonical chain. Admission was scheduled for epoch **2884**, September 14 at **22:35:19 UTC / 19:35:19 Brasília time**. Confirm `active: true` on your own synchronized node before submitting a deposit. The live status is displayed in the [validator guide](/validators/guide). Both public archivals confirmed active admission at 22:35:55 UTC and again at 22:36:28 UTC on September 14. [Deployment and test record](/releases/2026-09-14/onboarding-verification.json).
 
 Deposits require at least **25,000 BLCH plus fees** in eligible native UTXOs. Registration must finalize; activation then waits at least **8 epochs (128 minutes)** and is limited to four new validators per epoch. Starting at 20:00 does not mean signing at 20:00.
 
 The full mainnet exit → withdrawal → payout-spend qualification is still pending. Withdrawal has a 2,048-epoch delay (about 22.8 days), following the 32-epoch exit delay. Protocol admission does not establish that this end-to-end qualification has completed. See [ADR-041](/docs/validator-exit-and-withdrawal.md) and the [remaining qualification procedure](/docs/validator-qualification.md).
 
-**Exchange observers:** follow only sections 1–2; no validator key or bond is required. Checkpoint 3328 preserves three valid historical signatures. All three secret keys were used on the same Mac, so independent custody is **not verified**. The operator authorized use and publication of this existing envelope on September 30; that decision does not establish independent signing or exchange production readiness. Review the [checkpoint verification record](/checkpoints/epoch-3328/verification.json) and compare its digest and signer-set fingerprint through your own trusted channel before accepting this history.
+**Exchange observers:** follow only sections 1–2; no validator key or bond is required. Checkpoint 5120 has three valid signatures (signed October 9, 2026). All three secret keys were used on the same Mac, so independent custody is **not verified**. Publication does not establish independent signing or exchange production readiness. Review the [checkpoint verification record](/checkpoints/epoch-5120/verification.json) and compare its digest and signer-set fingerprint through your own trusted channel before accepting this history.
 
-**Checkpoint deadline:** epoch 3328 expires for initial synchronization at epoch **5344**, **October 12, 2026 at 06:35:19.962 UTC / 03:35:19.962 Brasília time**. After that instant, obtain and verify a renewal. The installer checks the synchronized host clock and runs `ws-verify --require-fresh`; cryptographic signature acceptance alone does not override checkpoint age. A full mainnet replay from empty data has not been repeated for this distribution.
+**Checkpoint deadline:** epoch 5120 expires for initial synchronization at epoch **7136**, **November 1, 2026 at 04:27:19.962 UTC / 01:27:19.962 Brasília time**. After that instant, obtain and verify a renewal. The installer checks the synchronized host clock and runs `ws-verify --require-fresh`; cryptographic signature acceptance alone does not override checkpoint age. A full mainnet replay from empty data has not been repeated for this distribution.
 
 ## Platform command map
 
@@ -76,16 +76,16 @@ cd "$HOME/bloch-validator-20260930"
 
 Direct downloads:
 
-- [Linux x86_64 executable](/releases/2026-09-30/bloch-pos)
+- [Linux x86_64 executable](/releases/2026-10-09/bloch-pos)
 - [Genesis manifest](/releases/2026-09-14/mainnet.manifest)
 - [Compressed carryover](/releases/2026-09-14/carryover.tsv.gz)
-- [Corresponding pinned build source](https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/4d4c5075872c622fdd26aa418a9d249ec95fbcea)
-- [Release metadata](/releases/2026-09-30/release.json), [signed SHA-256 checksums](/releases/2026-09-30/SHA256SUMS), [signature](/releases/2026-09-30/SHA256SUMS.minisig) and [public key](/releases/2026-09-30/bloch-release-20260922.pub)
+- [Corresponding pinned build source](https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/3a68f10bca501626dca54faab74a80a019057562)
+- [Release metadata](/releases/2026-10-09/release.json), [signed SHA-256 checksums](/releases/2026-10-09/SHA256SUMS), [signature](/releases/2026-10-09/SHA256SUMS.minisig) and [public key](/releases/2026-10-09/bloch-release-20260922.pub)
 
 Binary SHA-256:
 
 ```text
-fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a
+22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba
 ```
 
 The preparation script pins the public checkpoint’s hashes, but trust in its signers must be checked independently. Compare the signer-set SHA3-256 fingerprint through another trusted channel:
@@ -94,7 +94,7 @@ The preparation script pins the public checkpoint’s hashes, but trust in its s
 bccb7c5ee127f806ac7da69a6dfab0a0b1c3d2750d6224bbfb652baa3322d627
 ```
 
-The epoch-3328 checkpoint expires for initial synchronization at epoch 5344, October 12 at 06:35:19.962 UTC. Obtain its renewal before that point. [Checkpoint details and downloads](/validators/guide#confianca).
+The epoch-5120 checkpoint expires for initial synchronization at epoch 7136, November 1 at 04:27:19.962 UTC. Obtain its renewal before that point. [Checkpoint details and downloads](/validators/guide#confianca).
 
 ### Install the Bloch CLI in your PATH
 

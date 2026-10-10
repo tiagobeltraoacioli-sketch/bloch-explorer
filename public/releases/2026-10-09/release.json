@@ -1,0 +1,103 @@
+{
+  "release": "2026-10-09",
+  "release_channel": "stable",
+  "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+  "binary_sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+  "target": "x86_64-unknown-linux-gnu",
+  "mainnet_manifest_sha3": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+  "funded_delegation_activation_epoch": 4669,
+  "status": "REQUIRED: the network has run funded delegation since epoch 4669. Nodes on earlier releases reject the first funded-delegation block (slot 155,538, 2026-10-06 21:40:19 UTC) and leave the canonical chain.",
+  "supersedes": [
+    "2026-09-30",
+    "2026-09-24",
+    "2026-09-22",
+    "2026-09-14",
+    "2026-10-02-delegation-e4669-rc1"
+  ],
+  "same_binary_as": "2026-10-02-delegation-e4669-rc1",
+  "independent_builds": "PASS_BYTE_IDENTICAL",
+  "independent_builder_records": [
+    {
+      "status": "PASS",
+      "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+      "host": "host652474",
+      "started_utc": "2026-10-01T23:40:35.785692+00:00",
+      "production_changed": false,
+      "sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+      "buildinfo": {
+        "build_version": "0.1.0-mainnet (3a68f10bca501626dca54faab74a80a019057562)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "3a68f10bca501626dca54faab74a80a019057562",
+        "commit_source": "asserted",
+        "tree_state": "asserted-clean",
+        "source_digest": "c9421109e263fd204e28dddba0ef18f6e794d7a3c9af59dc71b523a64a4819d4",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "284",
+        "source_bytes": "7986798",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "414b3af460493e51ddc9826d9c4aedb9879e47e1103c895a4d56a7d5c37736a8",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "123",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      },
+      "completed_utc": "2026-10-01T23:43:42.838014+00:00"
+    },
+    {
+      "status": "PASS",
+      "source_commit": "3a68f10bca501626dca54faab74a80a019057562",
+      "host": "host652475",
+      "started_utc": "2026-10-01T23:41:47.674079+00:00",
+      "production_changed": false,
+      "sha256": "22478fc5797ff673d390ed91b5b6a5120aa389b9bdbf798cf6b1abf99e60f7ba",
+      "buildinfo": {
+        "build_version": "0.1.0-mainnet (3a68f10bca501626dca54faab74a80a019057562)",
+        "package_version": "0.1.0-mainnet",
+        "commit": "3a68f10bca501626dca54faab74a80a019057562",
+        "commit_source": "asserted",
+        "tree_state": "asserted-clean",
+        "source_digest": "c9421109e263fd204e28dddba0ef18f6e794d7a3c9af59dc71b523a64a4819d4",
+        "source_digest_alg": "sha3-256",
+        "source_digest_scope": "workspace crates dir: rs, toml, c, h, S, s, macros; plus workspace Cargo.toml, Cargo.lock and rust-toolchain.toml; relative paths, sorted, length-prefixed",
+        "source_files": "284",
+        "source_bytes": "7986798",
+        "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+        "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+        "profile": "release",
+        "target": "x86_64-unknown-linux-gnu",
+        "build_environment_digest": "414b3af460493e51ddc9826d9c4aedb9879e47e1103c895a4d56a7d5c37736a8",
+        "build_environment_digest_alg": "sha3-256",
+        "build_environment_scope": "rustc and cargo executable bytes plus version output; selected rustc driver and target libstd sysroot components; explicitly configured linker/compiler/archive/wrapper bytes, including an unambiguous compiler delegated by known wrappers plus the C compiler and archiver selected by cc-rs even when unconfigured, selected freestanding or WASI native input-tree contents, and either the explicitly selected linker (including effective Rust flags) or the platform default linker observed from a target link probe; host; target; profile; selected Rust/C codegen, implicit native search and dynamic loader variables, including absent exact host/target forms; sorted, length-prefixed; values hashed, not directly disclosed",
+        "build_environment_fields": "123",
+        "build_tool_binaries_hashed": "2",
+        "build_sysroot_components_hashed": "5",
+        "build_configured_tool_binaries_hashed": "0",
+        "build_default_linker_binaries_hashed": "1",
+        "build_linker_binaries_hashed": "1",
+        "digest_note": "different digests prove different source trees; equal digests are evidence of the same source, not proof \u2014 whoever can edit the source can edit the build script that hashes it"
+      },
+      "completed_utc": "2026-10-01T23:44:47.658330+00:00"
+    }
+  ],
+  "weak_subjectivity_checkpoint": {
+    "epoch": 5120,
+    "url": "https://blochl1.com/checkpoints/epoch-5120/",
+    "ws_digest": "9d70b55b98d692184d0e190ba2b92e0ffe9915e2364f5aeb417b54aef0f754d9",
+    "usable_until_epoch_approx": 7136
+  },
+  "bootnodes": [
+    "139.180.166.5:19100",
+    "139.180.173.231:19100"
+  ],
+  "transport": "devnet",
+  "release_signing_key": "bloch-release-20260922.pub"
+}
