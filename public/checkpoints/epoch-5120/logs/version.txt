@@ -1,0 +1,2 @@
+bloch-pos-node 0.1.0-mainnet (46e2f4d2998a) (Genesis-4, block version 0xb10c0005)
+source-digest sha3-256:074aa404b303a236e4ce90c704dea7ee95b079cf0e788d6a98576077847da131 (284 files, 7995178 bytes) commit-source:git tree:clean

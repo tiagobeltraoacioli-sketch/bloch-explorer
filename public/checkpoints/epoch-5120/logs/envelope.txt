@@ -1,0 +1,31 @@
+ENVELOPE  ws-envelope.bin
+  format version    1
+  network id        0x493e7df4
+  genesis root      9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415
+  epoch             5120
+  block root        9e5601c3c761853b7f7a71bb90215a5eb707b14e2da090fd055afa0f4d6a3a1f
+  state root        bb88f7d440aa2cfc1fa1c03d4459757ad6fef85e834b386f99e0e8c8ddea6e27
+  validator set     0000000000000000000000000000000000000000000000000000000000000000   (all-zero placeholder — see the note below)
+  issued at         1791599115
+  signer set id     1
+  WS DIGEST         9d70b55b98d692184d0e190ba2b92e0ffe9915e2364f5aeb417b54aef0f754d9
+
+ARRANGEMENT  signer-set.bin
+  quorum            2-of-3, at least 1 external
+  adopted at epoch  0
+  review due        epoch 32850 (envelopes warn after this)
+  hard stop         epoch 41040 (envelopes REFUSED after this — §6.3)
+
+SIGNATURES  (3 listed)
+  index 0   EXTERNAL  VALID
+  index 1   EXTERNAL  VALID
+  index 2   EXTERNAL  VALID
+  3 valid of 3 listed; 3 external of ≥1 required
+
+FRESHNESS  epoch 5120 vs now 5148: age 28 of 2016 epochs (~22 days) — FRESH
+
+VERDICT: ACCEPTED by ws::verify_envelope.
+
+Before trusting it, compare this digest against a SECOND independent publication channel:
+  9d70b55b98d692184d0e190ba2b92e0ffe9915e2364f5aeb417b54aef0f754d9
+Agreement across independent channels is the evidence. The artifact's own say-so is not.

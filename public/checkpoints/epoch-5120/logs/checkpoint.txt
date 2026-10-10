@@ -1,0 +1,14 @@
+CHECKPOINT  /Users/tiagobulhoes/worktrees/explorer-cohort-cap-20261007/public/checkpoints/epoch-5120/checkpoint.bin  (154 bytes)
+  format version    1
+  network id        0x493e7df4
+  genesis root      9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415
+  epoch             5120
+  block root        9e5601c3c761853b7f7a71bb90215a5eb707b14e2da090fd055afa0f4d6a3a1f
+  state root        bb88f7d440aa2cfc1fa1c03d4459757ad6fef85e834b386f99e0e8c8ddea6e27
+  validator set     0000000000000000000000000000000000000000000000000000000000000000   (all-zero placeholder)
+  issued at         1791599115
+  signer set id     1
+  WS DIGEST         9d70b55b98d692184d0e190ba2b92e0ffe9915e2364f5aeb417b54aef0f754d9
+
+Compare that digest against the one the coordinator announced, through a channel that is not the one this file arrived on. If they differ, STOP — do not sign.
+Note that `issued at` is inside the digest, so two mints of the SAME epoch at different times are two different artifacts. A node that stored one and is later given the other refuses to boot (WS_CONFLICT). Sign the mint you were given; do not re-mint.
