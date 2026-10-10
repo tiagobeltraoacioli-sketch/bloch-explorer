@@ -93,7 +93,9 @@ GRAFANA_PROM_USER = "3605138"
 # upstream must be a hostname that resolves DNS-only to the origin, which is
 # what the nip.io wildcard does. Same form the site's g4rpc proxy uses.
 EXPLORER_ARCHIVALS = "http://139.180.166.5.nip.io:8080/ http://139.180.173.231.nip.io:8080/"
-EXPLORER_FLEET = "http://139.84.201.52.nip.io:8080/ http://139.84.202.139.nip.io:8080/ http://139.84.204.46.nip.io:8080/ http://139.84.205.54.nip.io:8080/ http://149.28.180.128.nip.io:8080/ http://67.219.108.230.nip.io:8080/ http://67.219.108.96.nip.io:8080/"
+# 2026-10-09: the validators moved off the seven 32 GB hosts (decommissioned and wiped) to the
+# 128 GB hosts; each runs bloch-witness-8080 (socat :8080 -> a local validator RPC).
+EXPLORER_FLEET = "http://80.240.16.185.nip.io:8080/ http://199.247.22.8.nip.io:8080/ http://45.77.67.251.nip.io:8080/"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RETIRED: BLOCH_RPC_URL
