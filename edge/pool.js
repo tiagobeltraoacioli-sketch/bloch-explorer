@@ -46,9 +46,12 @@
  * silently promote the fleet to the data plane, which is the one thing this
  * file exists to prevent.
  */
+// 2026-10-13 INCIDENT (temporary): the archivals 139.180.166.5 / 139.180.173.231
+// were on the abandoned fork A. Every page that reads DEFAULT_ARCHIVALS directly
+// (g4/slots, g4/validators) follows the fork-B hosts until they are resynced.
 export const DEFAULT_ARCHIVALS = [
-  'http://139.180.166.5.nip.io:8080/',
-  'http://139.180.173.231.nip.io:8080/',
+  'http://80.240.16.185.nip.io:8080/',
+  'http://45.77.67.251.nip.io:8080/',
 ];
 
 /**
