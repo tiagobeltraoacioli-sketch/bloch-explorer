@@ -56,9 +56,14 @@
 // sslip.io names return an HTML 403 response rather than node JSON-RPC.
 import { DEFAULT_ARCHIVALS } from "../edge/pool.js";
 
+// 2026-10-13 INCIDENT (temporary): the two archivals (139.180.166.5 and
+// 139.180.173.231, DEFAULT_ARCHIVALS) are on the abandoned fork A. Until they
+// are resynced onto fork B, read from the fork-B validator hosts, the same pair
+// wrangler.toml's EXPLORER_ARCHIVALS names. Restore DEFAULT_ARCHIVALS afterwards.
+void DEFAULT_ARCHIVALS;
 const ARCHIVALS = [
-  { id: "archival-a", ip: "139.180.166.5", url: DEFAULT_ARCHIVALS[0] },
-  { id: "archival-b", ip: "139.180.173.231", url: DEFAULT_ARCHIVALS[1] },
+  { id: "archival-a", ip: "80.240.16.185", url: "http://80.240.16.185.nip.io:8080/" },
+  { id: "archival-b", ip: "45.77.67.251", url: "http://45.77.67.251.nip.io:8080/" },
 ];
 
 /**
