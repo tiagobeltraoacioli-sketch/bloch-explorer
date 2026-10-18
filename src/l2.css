@@ -1,0 +1,13 @@
+/* Bloch L2 explorer pages (/l2). Reuses the explorer's cards, tables and pills. */
+.l2 .l2-top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; margin: 18px 0 6px; }
+.l2 .l2-brand { font-family: var(--font-ui); font-weight: 600; text-decoration: none; color: var(--fg); display: inline-flex; gap: 10px; align-items: center; }
+.l2 .l2-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 380px; max-width: 640px; }
+.l2 .l2-search input { flex: 1 1 260px; min-width: 0; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-2, transparent); color: var(--fg); font-family: var(--font-mono); font-size: .8125rem; }
+.l2 .l2-search-msg { flex-basis: 100%; color: var(--warn); font-size: .8125rem; }
+.l2 .card { margin-bottom: 14px; }
+.l2 .l2-finality { margin-bottom: 14px; }
+.l2 .l2-pager { display: flex; gap: 18px; margin-top: 10px; }
+.l2 .kv code, .l2 .l2-input { overflow-wrap: anywhere; word-break: break-all; }
+.l2 .l2-input { display: block; max-height: 240px; overflow: auto; margin-top: 6px; font-size: .75rem; }
+.l2 .tbl td { white-space: nowrap; }
+.l2 .page-title .pill { vertical-align: middle; margin-left: 8px; }
