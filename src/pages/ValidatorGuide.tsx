@@ -16,21 +16,21 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Reviewed on September 24, 2026. Release and qualification records are timestamped observations.</p>
+      <p className="guide-date">Upgrade release updated October 21, 2026. Other qualification records retain their original dates.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>September 24 validator upgrade</h2>
-      <p>Existing synchronized Genesis-4 validators can upgrade to the signed Linux x86-64 binary built from commit <code>4d4c5075872c622fdd26aa418a9d249ec95fbcea</code>. Preserve the current command-line arguments, validator key environment, chain data and slashing-protection records. This package does not contain keys or a current bootstrap checkpoint.</p>
-      <div className="guide-actions"><a href="/releases/2026-09-24/bloch-pos" download>Download signed binary</a><a href="/releases/2026-09-24/README.md">Upgrade and verification instructions</a></div>
+      <h2>October 21 validator upgrade</h2>
+      <p>Signed Linux x86-64 release from commit <code>1708953d839d55d461afed80802abacfdb8360c2</code>, with host-level signer locking, durable signing-history protection and node reliability improvements. This release schedules no new hard fork.</p>
+      <div className="guide-actions"><a href="/releases/2026-10-21-node-hardening/bloch-pos" download>Download signed binary</a><a href="/releases/2026-10-21-node-hardening/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-09-24/SHA256SUMS">Signed checksum manifest</a> · <a href="/releases/2026-09-24/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-09-24/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-09-24/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-09-24/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/tree/main/releases/bloch-pos-2026-09-24">Repository copy</a></li>
+        <li><a href="/releases/2026-10-21-node-hardening/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-10-21-node-hardening/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-10-21-node-hardening/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-10-21-node-hardening/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-10-21-node-hardening/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-1708953d-node-hardening">GitHub release</a></li>
       </ul>
-      <p>Expected SHA-256: <code>fb8a65cbd9721d794bd4c2151b50d82d85a7df2299d59d7bad44a7635c30b46a</code>.</p>
-      <p>Before restarting, verify the signer-set pin required by <code>--ws-signer-set-sha3</code>. After replay, allow the two-epoch doppelganger observation before expecting validator activation. See the upgrade instructions for the complete checks.</p>
-      <p><a href="/releases/2026-09-22/README.md">Previous signed release — September 22</a></p>
+      <p>Expected SHA-256: <code>d540e0e446cb7f6761b705bf38d2c348e954954e46d055ced2f4fbbfc604a444</code>.</p>
+      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. Verify the signature before installation and allow the normal 64-slot observation before expecting a new attestation. This upgrade bundle contains no keys or fresh bootstrap checkpoint.</p>
+      <p><a href="/releases/2026-10-14-l2-e5850/README.md">Previous signed release — October 14</a></p>
     </section>
     <section className="guide-section" aria-label="Start a new validator">
       <h2>Start a new validator</h2>
