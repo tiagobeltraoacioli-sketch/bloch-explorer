@@ -9,6 +9,11 @@
 // `finalized` (its settlement lies in an FFG-finalized L1 block, verified by
 // replaying the L1 from genesis). These pages display those tags; they never
 // promote a block to a stronger level than the RPC reports.
+//
+// Settled-only: the explorer shows blocks, transactions, receipts, logs and
+// state at or below the RPC's `safe` block only (the /l2rpc edge enforces the
+// same bound; see edge/l2rpc.js). A block the sequencer executed but whose
+// settlement the L1 has not accepted is not shown.
 
 export const L2_CHAIN_ID = 700770;
 export const NATIVE_SYMBOL = "BLCH";
@@ -16,6 +21,20 @@ export const NATIVE_DECIMALS = 18;
 
 /** keccak256("Transfer(address,address,uint256)") — ERC-20 and ERC-721. */
 export const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+/** The public L2 RPC for wallets (shown on the pages; config-driven at build time). */
+export function publicRpcUrl(): string {
+  let env: { VITE_L2_PUBLIC_RPC_URL?: string } | undefined;
+  try {
+    env = (import.meta as unknown as { env?: { VITE_L2_PUBLIC_RPC_URL?: string } }).env;
+  } catch {
+    env = undefined;
+  }
+  return env?.VITE_L2_PUBLIC_RPC_URL || "https://l2rpc.blochl1.com/";
+}
+
+/** Error code /l2rpc uses for a read above the settled bound. */
+export const NOT_SETTLED = -32001;
 
 /** System contracts of the Bloch L2 (bloch-l2-evm src/chainspec.rs, src/withdrawal.rs). */
 export const PREDEPLOYS: Record<string, string> = {
@@ -177,6 +196,9 @@ export interface FinalityLevels {
   safeCommitment: string | null;
   safeL2Number: number | null;
   trust: string | null;
+  /** The follower verified the L1 block that installed this L2 genesis as FFG-final. */
+  genesisFinalized: boolean | null;
+  verifiedL1Blocks: number | null;
 }
 
 /** Per-block settlement location, from `bloch_settlement` when served. */
@@ -244,6 +266,8 @@ export function parseFinality(raw: unknown, latestNumber?: number | null): Final
     safeCommitment: ss && typeof ss.commitment === "string" ? ss.commitment : null,
     safeL2Number: ss ? num(ss.l2_number) : null,
     trust: typeof r.trust === "string" ? r.trust : null,
+    genesisFinalized: r.l2_genesis && typeof r.l2_genesis.finalized === "boolean" ? r.l2_genesis.finalized : null,
+    verifiedL1Blocks: num(l1.verified_blocks),
   };
 }
 
@@ -392,6 +416,7 @@ export const SELECTORS: Record<string, string> = {
   "0x23b872dd": "transferFrom(address,address,uint256)",
   "0xd0e30db0": "deposit()",
   "0x2e1a7d4d": "withdraw(uint256)",
+  "0xb769844a": "initiateWithdrawal(bytes32)",
 };
 
 export function methodOf(input: string | null | undefined): string {
@@ -411,26 +436,41 @@ export function txStatus(r: Pick<L2Receipt, "status"> | null | undefined): "succ
 
 // ─── reads used by several pages ────────────────────────────────────────────
 
-/** Head number and finality levels in one round trip. */
-export async function readHead(fetchImpl: typeof fetch = fetch): Promise<{ head: number; chainId: number; finality: FinalityLevels; finalityServed: boolean }> {
-  const [bn, fin, cid] = await l2Batch([{ method: "eth_blockNumber" }, { method: "bloch_finality" }, { method: "eth_chainId" }], fetchImpl);
-  const head = hexNum(ok<string>(bn));
+export interface Head {
+  /** The newest block the explorer shows: the RPC's `safe` block (null: nothing settled yet). */
+  head: number | null;
+  chainId: number;
+  finality: FinalityLevels;
+  finalityServed: boolean;
+}
+
+/** The settled bound: `safe`, else `finalized`, else null. Never `latest`. */
+export function settledTip(f: FinalityLevels | null): number | null {
+  if (!f) return null;
+  return f.safe ?? f.finalized ?? null;
+}
+
+/**
+ * Settled head and finality levels in one round trip. The head is the
+ * `safe` block, not the sequencer's latest one.
+ */
+export async function readHead(fetchImpl: typeof fetch = fetch): Promise<Head> {
+  const [fin, cid, s, f] = await l2Batch(
+    [
+      { method: "bloch_finality" },
+      { method: "eth_chainId" },
+      { method: "eth_getBlockByNumber", params: ["safe", false] },
+      { method: "eth_getBlockByNumber", params: ["finalized", false] },
+    ],
+    fetchImpl,
+  );
   const chainId = hexNum(ok<string>(cid));
-  if (fin instanceof L2RpcError) {
-    // Fall back to the standard tags if the extension is not served.
-    const [s, f] = await l2Batch(
-      [{ method: "eth_getBlockByNumber", params: ["safe", false] }, { method: "eth_getBlockByNumber", params: ["finalized", false] }],
-      fetchImpl,
-    );
-    const n = (b: unknown) => (b && !(b instanceof L2RpcError) ? hexNum((b as L2Block).number) : null);
-    return {
-      head,
-      chainId,
-      finalityServed: false,
-      finality: { ...parseFinality(null, head), safe: n(s), finalized: n(f) },
-    };
-  }
-  return { head, chainId, finality: parseFinality(fin, head), finalityServed: true };
+  const n = (b: unknown) => (b && !(b instanceof L2RpcError) ? hexNum((b as L2Block).number) : null);
+  const tags = { safe: n(s), finalized: n(f) };
+  const served = !(fin instanceof L2RpcError) && fin !== null;
+  // The tags the RPC serves are the bound; bloch_finality adds the L1 anchors.
+  const finality = served ? { ...parseFinality(fin), ...tags } : { ...parseFinality(null), ...tags };
+  return { head: settledTip(finality), chainId, finality, finalityServed: served };
 }
 
 /** Optional per-block settlement location; null when the RPC does not serve it. */
@@ -474,7 +514,7 @@ export async function scanAddressTxs(addr: string, from: number, to: number, fet
 /** ERC-20/721 transfers touching `addr` (all history, via eth_getLogs). */
 export async function readAddressTransfers(addr: string, fetchImpl: typeof fetch = fetch): Promise<TokenTransfer[]> {
   const t = addrTopic(addr);
-  const filter = (topics: (string | null)[]) => ({ method: "eth_getLogs", params: [{ fromBlock: "0x0", toBlock: "latest", topics }] });
+  const filter = (topics: (string | null)[]) => ({ method: "eth_getLogs", params: [{ fromBlock: "0x0", toBlock: "safe", topics }] });
   const [out, inn] = await l2Batch([filter([TRANSFER_TOPIC, t]), filter([TRANSFER_TOPIC, null, t])], fetchImpl);
   const seen = new Set<string>();
   const all: TokenTransfer[] = [];
@@ -502,7 +542,7 @@ export interface TokenMeta {
 export async function readTokenMeta(addrs: string[], fetchImpl: typeof fetch = fetch): Promise<Map<string, TokenMeta>> {
   const calls: Call[] = [];
   for (const a of addrs) {
-    for (const data of ["0x06fdde03", "0x95d89b41", "0x313ce567", "0x18160ddd"]) calls.push({ method: "eth_call", params: [{ to: a, data }, "latest"] });
+    for (const data of ["0x06fdde03", "0x95d89b41", "0x313ce567", "0x18160ddd"]) calls.push({ method: "eth_call", params: [{ to: a, data }, "safe"] });
   }
   const rs = await l2BatchAll(calls, 100, fetchImpl);
   const out = new Map<string, TokenMeta>();
@@ -522,7 +562,7 @@ export async function readTokenMeta(addrs: string[], fetchImpl: typeof fetch = f
 
 export async function readTokenBalances(owner: string, tokens: string[], fetchImpl: typeof fetch = fetch): Promise<Map<string, bigint | null>> {
   const data = "0x70a08231" + "0".repeat(24) + owner.toLowerCase().replace(/^0x/, "");
-  const rs = await l2BatchAll(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "latest"] })), 100, fetchImpl);
+  const rs = await l2BatchAll(tokens.map((t) => ({ method: "eth_call", params: [{ to: t, data }, "safe"] })), 100, fetchImpl);
   const out = new Map<string, bigint | null>();
   tokens.forEach((t, i) => {
     const r = rs[i];
@@ -534,4 +574,44 @@ export async function readTokenBalances(owner: string, tokens: string[], fetchIm
 export function tokenAmount(v: bigint, meta: TokenMeta | undefined): string {
   if (!meta || meta.decimals === null) return v.toString();
   return fmtUnits(v, meta.decimals, 6) + (meta.symbol ? " " + meta.symbol : "");
+}
+
+// ─── withdrawals (L2 → L1 outbox) ───────────────────────────────────────────
+
+/** The outbox predeploy (bloch-l2-evm src/withdrawal.rs). */
+export const OUTBOX = "0x4200000000000000000000000000000000000102";
+/** keccak256("WithdrawalInitiated(uint256,bytes32,address,uint256)"). */
+export const WITHDRAWAL_INITIATED_TOPIC = "0xce2e3b3c3607f63db6a4e9c3d50ce0b37e10456bce8dcb9b5d9cecd1c28a69d2";
+
+export interface Withdrawal {
+  nonce: number;
+  /** The L1 owner script hash the claim pays (32 bytes, hex without 0x). */
+  l1Recipient: string;
+  sender: string;
+  amountWei: bigint;
+  txHash: string;
+  block: number;
+}
+
+/** Decode an outbox `WithdrawalInitiated` log, or null. */
+export function decodeWithdrawal(log: L2Log): Withdrawal | null {
+  if (!log || log.address?.toLowerCase() !== OUTBOX || !Array.isArray(log.topics) || log.topics.length !== 3) return null;
+  if (log.topics[0]?.toLowerCase() !== WITHDRAWAL_INITIATED_TOPIC) return null;
+  if (!/^0x[0-9a-fA-F]{128}$/.test(log.data) || !/^0x0{24}/.test(log.data)) return null;
+  const nonce = hexBig(log.topics[1]);
+  if (nonce > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+  return {
+    nonce: Number(nonce),
+    l1Recipient: log.topics[2].slice(2).toLowerCase(),
+    sender: "0x" + log.data.slice(26, 66).toLowerCase(),
+    amountWei: hexBig("0x" + log.data.slice(66)),
+    txHash: log.transactionHash,
+    block: hexNum(log.blockNumber),
+  };
+}
+
+/** Settled withdrawals (newest first), optionally only those sent by `sender`. */
+export async function readWithdrawals(fetchImpl: typeof fetch = fetch): Promise<Withdrawal[]> {
+  const logs = await l2Call<L2Log[]>("eth_getLogs", [{ fromBlock: "0x0", toBlock: "safe", address: OUTBOX, topics: [WITHDRAWAL_INITIATED_TOPIC] }], fetchImpl);
+  return (logs ?? []).map(decodeWithdrawal).filter((w): w is Withdrawal => !!w).sort((a, b) => b.nonce - a.nonce);
 }

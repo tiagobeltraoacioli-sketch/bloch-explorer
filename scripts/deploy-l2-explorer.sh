@@ -30,18 +30,27 @@ preflight() {
   echo "L2_RPC_URL=$rpc  L2_CHAIN_ID=$want"
   [ -z "$(git status --porcelain)" ] || { echo "tree is dirty; commit first" >&2; exit 1; }
   got=$(probe "$rpc")
+  if [ "$got" != "$hexwant" ] && [ "${ALLOW_RPC_NOT_LIVE:-0}" = 1 ]; then
+    echo "L2 RPC $rpc is not live (answered '${got:-nothing}'); ALLOW_RPC_NOT_LIVE=1: /l2 will show the L1 record and say the RPC is not live." >&2
+    npm test || echo "WARNING: full suite has failures; three g4-errors tests already fail on 3e2e3fc. Review before deploying." >&2
+    npm run test:l2
+    return 0
+  fi
   if [ "$got" != "$hexwant" ]; then
     echo "L2 RPC $rpc answered chain id '${got:-nothing}', expected $hexwant." >&2
-    echo "Wait for the public L2 RPC (agent 5 gateway) or change L2_RPC_URL in wrangler.toml." >&2
+    echo "Wait for the public L2 RPC or set ALLOW_RPC_NOT_LIVE=1 to publish the not-yet-live state." >&2
     exit 1
   fi
   head=$(curl -sS -m 15 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' "$rpc" | python3 -c 'import json,sys; print(int(json.load(sys.stdin)["result"],16))')
-  echo "L2 RPC ok: chain $want, head block $head"
+  echo "L2 RPC ok: chain $want, settled head block $head"
   npm test || echo "WARNING: full suite has failures; on d4780b5 three g4-errors tests already fail (fork-B pins). Review before deploying." >&2
   L2_LIVE_URL="$rpc" L2_LIVE_CHAIN_ID="$want" npm run test:l2
 }
 
 verify() {
+  echo "GET $site/l2status"
+  curl -sS -m 30 "$site/l2status" | python3 -c 'import json,sys; d=json.load(sys.stdin); print({k: d[k] for k in ("responding","agreeing","corroborated")}); assert d["corroborated"] and d["settlement"]["chain_id"]=='"$want"
+  if [ "${ALLOW_RPC_NOT_LIVE:-0}" = 1 ]; then echo "OK: $site/l2status is corroborated (L2 RPC not checked)"; return 0; fi
   echo "GET $site/l2rpc"
   curl -sS -m 15 "$site/l2rpc" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d); assert d["configured"] and d["chainId"]=='"$want"
   got=$(probe "$site/l2rpc")

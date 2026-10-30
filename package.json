@@ -13,7 +13,7 @@
     "test:lab": "node edge/tests/live-lab.mjs",
     "check:fees": "node scripts/check-fees.mjs",
     "verify": "node --experimental-strip-types scripts/verify-address-pages.mjs",
-    "test:l2": "node --experimental-strip-types --test edge/tests/l2.test.mjs",
+    "test:l2": "node --experimental-strip-types --test edge/tests/l2.test.mjs edge/tests/l2-settled.test.mjs",
     "preview:l2": "node scripts/l2-explorer-preview.mjs"
   },
   "dependencies": {

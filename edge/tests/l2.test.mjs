@@ -76,9 +76,9 @@ test('eth_getLogs needs a filter and a bounded numeric range', () => {
   assert.equal(checkCall(call('eth_getLogs', [{ address: A, limit: 5 }])).error.error.code, -32602);
 });
 
-test('forwarding: one batch upstream with a chain-id probe, answers in caller order', async () => {
+test('forwarding (settled-only off): one batch upstream with a chain-id probe, answers in caller order', async () => {
   const f = upstream();
-  const res = await handleL2Rpc(req([call('eth_blockNumber', [], 7), call('eth_sendRawTransaction', ['0x00'], 8), call('eth_getBalance', [A, 'latest'], 'x')]), ENV, f);
+  const res = await handleL2Rpc(req([call('eth_blockNumber', [], 7), call('eth_sendRawTransaction', ['0x00'], 8), call('eth_getBalance', [A, 'latest'], 'x')]), { ...ENV, L2_SETTLED_ONLY: '0' }, f);
   assert.equal(res.status, 200);
   const out = await res.json();
   assert.deepEqual(out.map((o) => o.id), [7, 8, 'x']);

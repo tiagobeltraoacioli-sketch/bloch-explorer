@@ -133,5 +133,12 @@ G4_ARCHIVAL_2 = "http://45.77.67.251.nip.io:8080/"
 # a hostname, never a bare IP. If the gateway is a Worker on this zone it must
 # be on a Custom Domain (a Worker cannot fetch a same-zone Worker route).
 # See docs/L2-EXPLORER.md.
+# Placeholder: l2rpc.blochl1.com has no DNS record yet (2026-10-30); until it
+# answers, /l2 shows the L1 settlement record and says the RPC is not live.
 L2_RPC_URL = "https://l2rpc.blochl1.com/"
 L2_CHAIN_ID = "700770"
+# Settled-only reads (default on): latest/pending are read as safe and nothing
+# above the upstream's safe block is served. "0" turns the bound off.
+L2_SETTLED_ONLY = "1"
+# GET /l2status reads getl2settlement from EXPLORER_ARCHIVALS + EXPLORER_FLEET
+# above and serves it with the number of observers that agree (quorum 2).

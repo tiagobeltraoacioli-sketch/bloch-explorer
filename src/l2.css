@@ -11,3 +11,6 @@
 .l2 .l2-input { display: block; max-height: 240px; overflow: auto; margin-top: 6px; font-size: .75rem; }
 .l2 .tbl td { white-space: nowrap; }
 .l2 .page-title .pill { vertical-align: middle; margin-left: 8px; }
+.l2 .l2-live { border-left: 4px solid var(--warn, #b7791f); }
+.l2 .l2-live.l2-live-ok { border-left-color: var(--ok, #2f855a); }
+.l2 .l2-live p { margin: 6px 0 0; }

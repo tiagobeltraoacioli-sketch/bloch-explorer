@@ -20,6 +20,14 @@
 //     mainnet explorer reading a devnet by misconfiguration is the failure
 //     that would otherwise be silent.
 //  3. Bounds: request size, batch size, upstream timeout, response size.
+//  4. Settled-only reads (default; `L2_SETTLED_ONLY=0` turns it off). The
+//     explorer shows only what the L1 has accepted: `latest` and `pending`
+//     are read as `safe`, and any block, transaction, receipt or log above
+//     the upstream's `safe` block is answered as absent. Every forwarded
+//     batch carries one `eth_getBlockByNumber("safe")` probe for that bound.
+//     State reads (balance, nonce, code, eth_call) take only a tag or a
+//     block number at or below `safe`, never a block hash, because a hash
+//     cannot be placed against the bound before the call is made.
 
 export const DEFAULT_CHAIN_ID = 700770;
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -182,6 +190,91 @@ export function chainId(env) {
 }
 
 const CHAIN_PROBE_ID = '__l2_chain_id_guard__';
+const SAFE_PROBE_ID = '__l2_safe_bound__';
+
+/** Settled-only mode is on unless `L2_SETTLED_ONLY` is 0/false/off. */
+export function settledOnly(env) {
+  return !/^(0|false|off|no)$/i.test(String(env?.L2_SETTLED_ONLY ?? '1').trim());
+}
+
+/** Error code for a read above the settled bound. */
+export const NOT_SETTLED = -32001;
+
+const STATE_METHODS = new Set(['eth_getBalance', 'eth_getTransactionCount', 'eth_getCode', 'eth_call']);
+const unsettledTag = (v) => v === 'latest' || v === 'pending';
+
+/**
+ * Rewrite a checked call for settled-only mode: `latest`/`pending` become
+ * `safe`. Returns `{ call }` or `{ error }` (a state read by block hash).
+ */
+export function settleCall(call) {
+  const p = call.params.slice();
+  const m = call.method;
+  const tagAt = (i) => { if (unsettledTag(p[i])) p[i] = 'safe'; };
+  if (m === 'eth_getBlockByNumber' || m === 'eth_getBlockReceipts' || m === 'eth_getBlockTransactionCountByNumber') tagAt(0);
+  if (STATE_METHODS.has(m)) {
+    tagAt(1);
+    if (typeof p[1] !== 'string' || H32.test(p[1])) {
+      return { error: rpcError(call.id, -32602, 'state reads take a block tag or number in settled-only mode') };
+    }
+  }
+  if (m === 'eth_getLogs') {
+    const f = { ...p[0] };
+    if (f.blockHash === undefined) {
+      f.fromBlock = unsettledTag(f.fromBlock ?? 'latest') ? 'safe' : f.fromBlock;
+      f.toBlock = unsettledTag(f.toBlock ?? 'latest') ? 'safe' : f.toBlock;
+    }
+    p[0] = f;
+  }
+  return { call: { ...call, params: p } };
+}
+
+const qtyOf = (v) => (typeof v === 'string' && QTY.test(v) ? Number(BigInt(v)) : null);
+
+/**
+ * Apply the settled bound to one upstream answer. `safe` is the upstream's
+ * safe block number, or null when it has none (nothing is settled).
+ */
+export function boundAnswer(call, answer, safe) {
+  if (!answer || 'error' in answer) return answer;
+  const above = (n) => n === null || safe === null || n > safe;
+  const r = answer.result;
+  const none = { jsonrpc: '2.0', id: call.id, result: null };
+  switch (call.method) {
+    case 'eth_blockNumber':
+      return safe === null
+        ? rpcError(call.id, NOT_SETTLED, 'no L2 block is settled on the L1 yet')
+        : { jsonrpc: '2.0', id: call.id, result: '0x' + safe.toString(16) };
+    case 'eth_getBlockByNumber':
+    case 'eth_getBlockByHash':
+      return r && above(qtyOf(r.number)) ? none : answer;
+    case 'eth_getTransactionByHash':
+    case 'eth_getTransactionReceipt':
+      return r && above(qtyOf(r.blockNumber)) ? none : answer;
+    case 'eth_getBlockReceipts': {
+      const n = qtyOf(call.params[0]);
+      if (n !== null && above(n)) return none;
+      if (Array.isArray(r) && r.some((x) => above(qtyOf(x?.blockNumber)))) return none;
+      return answer;
+    }
+    case 'eth_getBlockTransactionCountByNumber': {
+      const n = qtyOf(call.params[0]);
+      return n !== null && above(n) ? none : answer;
+    }
+    case 'eth_getLogs':
+      return Array.isArray(r) ? { ...answer, result: r.filter((l) => !above(qtyOf(l?.blockNumber))) } : answer;
+    default:
+      return answer;
+  }
+}
+
+/** State reads at an explicit block number above the bound are refused. */
+function stateAboveBound(call, safe) {
+  if (!STATE_METHODS.has(call.method)) return false;
+  const n = qtyOf(call.params[1]);
+  if (call.params[1] === 'safe' || call.params[1] === 'finalized') return safe === null;
+  return n !== null && (safe === null || n > safe);
+}
 
 function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), {
@@ -213,8 +306,10 @@ async function readCapped(res, cap) {
   return new TextDecoder().decode(all);
 }
 
-async function forwardOnce(url, calls, expectChain, fetchImpl) {
-  const batch = [{ jsonrpc: '2.0', id: CHAIN_PROBE_ID, method: 'eth_chainId', params: [] }, ...calls];
+async function forwardOnce(url, calls, expectChain, fetchImpl, settled) {
+  const probes = [{ jsonrpc: '2.0', id: CHAIN_PROBE_ID, method: 'eth_chainId', params: [] }];
+  if (settled) probes.push({ jsonrpc: '2.0', id: SAFE_PROBE_ID, method: 'eth_getBlockByNumber', params: ['safe', false] });
+  const batch = [...probes, ...calls];
   const res = await fetchImpl(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -232,10 +327,19 @@ async function forwardOnce(url, calls, expectChain, fetchImpl) {
     err.chainMismatch = true;
     throw err;
   }
+  let safe = null;
+  if (settled) {
+    const sp = byId.get(SAFE_PROBE_ID);
+    const n = sp && sp.result ? qtyOf(sp.result.number) : null;
+    safe = Number.isSafeInteger(n) ? n : null;
+  }
   return calls.map((c) => {
     const r = byId.get(c.id);
     if (!r) return rpcError(c.id, -32603, 'upstream returned no answer for this call');
-    return 'error' in r ? { jsonrpc: '2.0', id: c.id, error: r.error } : { jsonrpc: '2.0', id: c.id, result: r.result ?? null };
+    const a = 'error' in r ? { jsonrpc: '2.0', id: c.id, error: r.error } : { jsonrpc: '2.0', id: c.id, result: r.result ?? null };
+    if (!settled) return a;
+    if (stateAboveBound(c, safe)) return rpcError(c.id, NOT_SETTLED, 'that L2 block is not settled on the L1 yet');
+    return boundAnswer(c, a, safe);
   });
 }
 
@@ -260,11 +364,12 @@ export async function handleL2Rpc(request, env, fetchImpl = fetch) {
   if (items.length === 0 || items.length > MAX_BATCH) {
     return json(rpcError(null, -32600, `batch must hold 1 to ${MAX_BATCH} calls`), 400);
   }
-  const checked = items.map(checkCall);
+  const settled = settledOnly(env);
+  const checked = items.map(checkCall).map((c) => (settled && c.call ? settleCall(c.call) : c));
   const ids = new Set();
   for (const c of checked) {
     if (!c.call) continue;
-    if (ids.has(c.call.id) || c.call.id === CHAIN_PROBE_ID) return json(rpcError(null, -32600, 'duplicate or reserved id in batch'), 400);
+    if (ids.has(c.call.id) || c.call.id === CHAIN_PROBE_ID || c.call.id === SAFE_PROBE_ID) return json(rpcError(null, -32600, 'duplicate or reserved id in batch'), 400);
     ids.add(c.call.id);
   }
   const calls = checked.filter((c) => c.call).map((c) => c.call);
@@ -273,7 +378,7 @@ export async function handleL2Rpc(request, env, fetchImpl = fetch) {
     let lastError = null;
     for (const url of urls) {
       try {
-        answers = await forwardOnce(url, calls, chainId(env), fetchImpl);
+        answers = await forwardOnce(url, calls, chainId(env), fetchImpl, settled);
         lastError = null;
         break;
       } catch (e) {
@@ -301,5 +406,6 @@ export function describeL2Rpc(env) {
     upstreamHosts: urls.map((u) => new URL(u).host),
     methods: ALLOWED_METHODS,
     maxBatch: MAX_BATCH,
+    settledOnly: settledOnly(env),
   });
 }

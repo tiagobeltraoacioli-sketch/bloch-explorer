@@ -19,6 +19,7 @@ const L2BlocksPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L
 const L2BlockPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2BlockPage })));
 const L2TxPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2TxPage })));
 const L2AddressPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2AddressPage })));
+const L2BridgePage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2BridgePage })));
 const TxAnswerPage = lazy(() => import("./pages/TxAnswer").then((m) => ({ default: m.TxAnswerPage })));
 const BalancePage = lazy(() => import("./pages/Balance").then((m) => ({ default: m.BalancePage })));
 const HashPage = lazy(() => import("./pages/Hash").then((m) => ({ default: m.HashPage })));
@@ -110,7 +111,8 @@ const ROUTES: NavRoute[] = [
   { pattern: "/chain", nav: "Chain", desktop: false, group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
   // The Bloch L2 (EVM, chain id 700770), read through /l2rpc. See src/pages/L2.tsx.
-  { pattern: "/l2", nav: "L2", group: "Chain", hint: "the EVM rollup: blocks, transactions, addresses", render: () => <L2HomePage /> },
+  { pattern: "/l2", nav: "L2", group: "Chain", hint: "the EVM rollup: settlement, blocks, transactions, addresses", render: () => <L2HomePage /> },
+  { pattern: "/l2/bridge", render: () => <L2BridgePage /> },
   {
     pattern: "/l2/blocks/:from",
     render: (p) => <L2BlocksPage from={Number(p.from)} />,
