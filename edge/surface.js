@@ -308,6 +308,36 @@ export const EDGE_ABSENT = [
     'getnewaddress',
     'the node routes this to a permanent NO_WALLET refusal. Same reasoning.',
   ],
+  [
+    'getblockraw',
+    'raw block bytes for operators and syncing tools, with no explorer page ' +
+      'behind them. Not exposed until a page needs it.',
+  ],
+  [
+    'getfundeddelegation',
+    'a per-delegation operator query with no edge cache class assigned. Not ' +
+      'exposed until a page needs it.',
+  ],
+  [
+    'getkes',
+    'validator key-registration state for operators. No explorer page reads ' +
+      'it through this edge.',
+  ],
+  [
+    'getl2settlement',
+    'the L2 pages do not read this through /rpc; exposing it here would add ' +
+      'a second cached path to the same answer.',
+  ],
+  [
+    'getfinalitycertificate',
+    'about 1.6 MB per reply, built from canonical block bodies on the ' +
+      'consensus thread. Auditors query their own node or a public RPC.',
+  ],
+  [
+    'getlcproof',
+    'about 1.5 MB per reply, built on the consensus thread like ' +
+      'getfinalitycertificate. Provers query their own follower.',
+  ],
 ];
 
 const BY_NAME = new Map(EDGE_SURFACE.map((m) => [m.name, m]));

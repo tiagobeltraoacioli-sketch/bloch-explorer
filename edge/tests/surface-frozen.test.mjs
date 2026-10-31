@@ -62,7 +62,7 @@ function nodeSurfaceNames() {
     // of the RPC_SURFACE table from the separate surface branch.
     assert.ok(SOURCE.includes('mod method_registry;'), 'the node must attach its method registry');
     const registry = readFileSync(resolve(dirname(RPC_RS), 'rpc/method_registry.rs'), 'utf8');
-    const names = [...registry.matchAll(/=>\s*"([a-z_]+)"/g)].map(m => m[1]);
+    const names = [...registry.matchAll(/=>\s*"([a-z0-9_]+)"/g)].map(m => m[1]);
     assert.ok(names.length >= 10, 'the variant registry must contain the canonical methods');
     const dispatched = new Set(dispatchArmNames());
     for (const name of names) assert.ok(dispatched.has(name), `registry method ${name} must be routed`);
@@ -73,7 +73,7 @@ function nodeSurfaceNames() {
   const end = SOURCE.indexOf('\n];', start);
   assert.notEqual(end, -1, 'RPC_SURFACE must close at `\\n];`');
   const body = SOURCE.slice(start, end);
-  return [...body.matchAll(/name:\s*"([a-z_]+)"/g)].map((m) => m[1]);
+  return [...body.matchAll(/name:\s*"([a-z0-9_]+)"/g)].map((m) => m[1]);
 }
 
 /**
