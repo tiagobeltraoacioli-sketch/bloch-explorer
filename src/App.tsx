@@ -14,6 +14,12 @@ const G4Dashboard = lazy(() => import("./pages/G4Dashboard").then((m) => ({ defa
 const FinalityPage = lazy(() => import("./pages/Finality").then((m) => ({ default: m.FinalityPage })));
 const G4BlockPage = lazy(() => import("./pages/G4Block").then((m) => ({ default: m.G4BlockPage })));
 const G4BlocksPage = lazy(() => import("./pages/G4Blocks").then((m) => ({ default: m.G4BlocksPage })));
+const L2HomePage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2HomePage })));
+const L2BlocksPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2BlocksPage })));
+const L2BlockPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2BlockPage })));
+const L2TxPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2TxPage })));
+const L2AddressPage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2AddressPage })));
+const L2BridgePage = lazy(() => import("./pages/L2").then((m) => ({ default: m.L2BridgePage })));
 const TxAnswerPage = lazy(() => import("./pages/TxAnswer").then((m) => ({ default: m.TxAnswerPage })));
 const BalancePage = lazy(() => import("./pages/Balance").then((m) => ({ default: m.BalancePage })));
 const HashPage = lazy(() => import("./pages/Hash").then((m) => ({ default: m.HashPage })));
@@ -104,6 +110,33 @@ const ROUTES: NavRoute[] = [
   { pattern: "/", nav: "Atlas", group: "Chain", hint: "graphs, evidence and machine learning", render: () => <IntelligencePage /> },
   { pattern: "/chain", nav: "Chain", desktop: false, group: "Chain", hint: "head, finality, production", render: () => <G4Dashboard /> },
   { pattern: "/blocks", nav: "Blocks", group: "Chain", hint: "every slot, by epoch", render: () => <G4BlocksPage /> },
+  // The Bloch L2 (EVM, chain id 700770), read through /l2rpc. See src/pages/L2.tsx.
+  { pattern: "/l2", nav: "L2", group: "Chain", hint: "the EVM rollup: settlement, blocks, transactions, addresses", render: () => <L2HomePage /> },
+  { pattern: "/l2/bridge", render: () => <L2BridgePage /> },
+  {
+    pattern: "/l2/blocks/:from",
+    render: (p) => <L2BlocksPage from={Number(p.from)} />,
+    guard: (p) => /^\d{1,15}$/.test(p.from),
+    key: (p) => "l2bs" + p.from,
+  },
+  {
+    pattern: "/l2/block/:id",
+    render: (p) => <L2BlockPage id={p.id.toLowerCase()} />,
+    guard: (p) => /^\d{1,15}$/.test(p.id) || /^0x[0-9a-f]{64}$/i.test(p.id),
+    key: (p) => "l2b" + p.id,
+  },
+  {
+    pattern: "/l2/tx/:h",
+    render: (p) => <L2TxPage hash={p.h.toLowerCase()} />,
+    guard: (p) => /^0x[0-9a-f]{64}$/i.test(p.h),
+    key: (p) => "l2t" + p.h,
+  },
+  {
+    pattern: "/l2/address/:a",
+    render: (p) => <L2AddressPage address={p.a.toLowerCase()} />,
+    guard: (p) => /^0x[0-9a-f]{40}$/i.test(p.a),
+    key: (p) => "l2a" + p.a,
+  },
   { pattern: "/transactions", nav: "Txs", group: "Chain", hint: "where they landed; each one, when indexed", render: () => <TransactionsPage /> },
   { pattern: "/analytics", desktop: false, nav: "Analytics", group: "Chain", hint: "epochs, proposers, emission", render: () => <AnalyticsPage /> },
   { pattern: "/finality", desktop: false, nav: "Finality", group: "Chain", hint: "the guarantee and its support", render: () => <FinalityPage /> },
