@@ -199,6 +199,19 @@ export interface FinalityLevels {
   /** The follower verified the L1 block that installed this L2 genesis as FFG-final. */
   genesisFinalized: boolean | null;
   verifiedL1Blocks: number | null;
+  /** `bloch_finality.status.state`; null from an RPC that does not report one. */
+  state: string | null;
+  /** Age of the follower status at the RPC's answer, in seconds. */
+  ageS: number | null;
+  /** The settled block this RPC's database has not reached (`lagging`, `behind`). */
+  missingSettlement: number | null;
+  /** The RPC refused the tag with -32001: it cannot back this level now. */
+  safeClosed: boolean;
+  finalizedClosed: boolean;
+  /** The RPC's `safe` tag is above what the L1 head holds; `safe` here is lowered. */
+  safeTagAbove: number | null;
+  safeHash: string | null;
+  finalizedHash: string | null;
 }
 
 /** Per-block settlement location, from `bloch_settlement` when served. */
@@ -247,7 +260,10 @@ export function fmtGwei(wei: bigint): string {
 
 // ─── finality ───────────────────────────────────────────────────────────────
 
-export type Level = "finalized" | "safe" | "latest" | "unknown";
+export type Level = "finalized" | "safe" | "latest" | "unknown" | "closed" | "conflict";
+
+/** Above this the follower status counts as old (the monitor's WARN, `status_age_warn`). */
+export const STATUS_OLD_S = 300;
 
 export function parseFinality(raw: unknown, latestNumber?: number | null): FinalityLevels {
   const r = (raw ?? {}) as Record<string, any>;
@@ -268,7 +284,61 @@ export function parseFinality(raw: unknown, latestNumber?: number | null): Final
     trust: typeof r.trust === "string" ? r.trust : null,
     genesisFinalized: r.l2_genesis && typeof r.l2_genesis.finalized === "boolean" ? r.l2_genesis.finalized : null,
     verifiedL1Blocks: num(l1.verified_blocks),
+    state: r.status && typeof r.status.state === "string" ? r.status.state : null,
+    ageS: r.status ? num(r.status.age_s) : null,
+    missingSettlement: r.status ? num(r.status.missing_settlement) : null,
+    safeClosed: false,
+    finalizedClosed: false,
+    safeTagAbove: null,
+    safeHash: r.safe && typeof r.safe.hash === "string" ? r.safe.hash.toLowerCase() : null,
+    finalizedHash: r.finalized && typeof r.finalized.hash === "string" ? r.finalized.hash.toLowerCase() : null,
   };
+}
+
+/**
+ * `safe` as far as the L1 head still holds it. A settled RPC keeps its tag when the accepted settlement falls
+ * back in an L1 reorg; `l1.safe_settlement` names what is held now. Never below finalized.
+ */
+export function heldSafe(safe: number | null, finalized: number | null, raw: unknown): number | null {
+  if (safe === null) return null;
+  const l1 = ((raw ?? {}) as Record<string, any>).l1;
+  if (!l1 || typeof l1 !== "object" || !("safe_settlement" in l1)) return safe;
+  const n = l1.safe_settlement?.l2_number;
+  const held = typeof n === "number" ? Math.min(safe, n) : null;
+  if (held === null) return finalized;
+  return finalized === null ? held : Math.max(held, finalized);
+}
+
+export interface FinalityNotice {
+  severity: "warn" | "bad";
+  text: string;
+}
+
+/** What a reader must know about the levels below. Null when they are current. */
+export function finalityNotice(f: FinalityLevels | null): FinalityNotice | null {
+  if (!f) return null;
+  if (f.finalizedClosed) {
+    const why =
+      f.state === "starting" ? "it has not finished reading its follower status" :
+      f.state === "behind" ? `its database has not reached settled block ${f.missingSettlement ?? "?"}` :
+      f.state === "missing" ? "its follower status is missing" :
+      f.state === "invalid" ? "its follower status does not match its database: a foreign settlement or a fault" :
+      "it cannot back them now";
+    return { severity: "bad", text: `Finality is unavailable at this L2 RPC: ${why}. Blocks are not shown as safe or finalized until it can back them; this says nothing about whether they settled.` };
+  }
+  if (f.safeClosed) {
+    return { severity: "bad", text: "The safe level is closed at this L2 RPC: the settlement at the L1 head differs from its chain. Only finalized blocks are shown." };
+  }
+  if (f.safeTagAbove !== null) {
+    return { severity: "warn", text: `The L1 head no longer holds a settlement of L2 block ${f.safeTagAbove}, which this L2 RPC still tags safe (an L1 reorg). It is not shown as safe here.` };
+  }
+  if (f.state === "lagging") {
+    return { severity: "warn", text: `This L2 RPC is behind its follower: its database has not reached settled block ${f.missingSettlement ?? "?"}. The levels below are true but not current.` };
+  }
+  if (f.ageS !== null && f.ageS >= STATUS_OLD_S) {
+    return { severity: "warn", text: `The follower status behind these levels is ${Math.floor(f.ageS / 60)} minutes old. They are true but may not be current.` };
+  }
+  return null;
 }
 
 /** The strongest level the RPC reports for block `n`. Never stronger. */
@@ -276,6 +346,8 @@ export function levelOf(n: number, f: FinalityLevels | null): Level {
   if (!f) return "unknown";
   if (f.finalized !== null && n <= f.finalized) return "finalized";
   if (f.safe !== null && n <= f.safe) return "safe";
+  // A closed level says nothing about this block: do not call it unsettled.
+  if (f.finalizedClosed || f.safeClosed) return "closed";
   if (f.latest !== null && n <= f.latest) return "latest";
   return "unknown";
 }
@@ -297,6 +369,8 @@ export const LEVEL_TEXT: Record<Level, { label: string; pill: string; help: stri
     help: "Executed by the sequencer; its settlement is not yet accepted on the L1.",
   },
   unknown: { label: "Unknown", pill: "pill quiet", help: "The L2 RPC did not report a level for this block." },
+  closed: { label: "Unavailable", pill: "pill warn", help: "This L2 RPC cannot back a finality level for this block now. This says nothing about whether it settled." },
+  conflict: { label: "Conflict", pill: "pill bad", help: "This block differs from the settled block at the same height. It is not treated as settled." },
 };
 
 export function parseSettlement(raw: unknown): Settlement | null {
@@ -312,6 +386,31 @@ export function parseSettlement(raw: unknown): Settlement | null {
     l1Slot: typeof r.native_slot === "number" ? r.native_slot : null,
     l1Block: h(r.native_block),
   };
+}
+
+/**
+ * The level to display for one block, checked by hash and not by number only. A gateway routes finality calls and
+ * reads separately, so the levels and the block can come from different backends; and a page can hold a block read
+ * before a rewind.
+ */
+export function blockLevel(
+  block: { number: string; hash: string },
+  f: FinalityLevels | null,
+  settlement: Settlement | null | undefined,
+): Level {
+  const n = hexNum(block.number);
+  const hash = block.hash.toLowerCase();
+  const differs =
+    (settlement?.l2Number === n && settlement.l2Hash !== null && `0x${settlement.l2Hash}` !== hash) ||
+    (f?.finalized === n && f.finalizedHash !== null && f.finalizedHash !== hash) ||
+    (f?.safe === n && f.safeHash !== null && f.safeHash !== hash);
+  return differs ? "conflict" : levelOf(n, f);
+}
+
+/** The L1's accepted header hash is not the block this RPC serves at that height. */
+export function acceptedDiffers(accepted: string | null, served: string | null): boolean {
+  if (!accepted || !served) return false;
+  return accepted.replace(/^0x/, "").toLowerCase() !== served.replace(/^0x/, "").toLowerCase();
 }
 
 // ─── logs ───────────────────────────────────────────────────────────────────
@@ -442,6 +541,25 @@ export interface Head {
   chainId: number;
   finality: FinalityLevels;
   finalityServed: boolean;
+  /** Times the settled chain this page has seen was replaced. Reads made before the last one are void. */
+  rewinds: number;
+}
+
+/** The settled tip a poll saw, to compare with the next poll. */
+export interface SeenTip {
+  number: number;
+  hash: string;
+}
+
+/**
+ * Whether the settled chain moved other than forward: the tip fell, or the same height has another hash. Going up,
+ * `sameAtOld` is the hash now at the old height; a chain replaced while its tip also rose shows there.
+ */
+export function chainReplaced(seen: SeenTip | null, tip: SeenTip | null, sameAtOld: string | null): boolean {
+  if (!seen || !tip) return false;
+  if (tip.number < seen.number) return true;
+  if (tip.number === seen.number) return tip.hash !== seen.hash;
+  return sameAtOld !== null && sameAtOld !== seen.hash;
 }
 
 /** The settled bound: `safe`, else `finalized`, else null. Never `latest`. */
@@ -454,7 +572,7 @@ export function settledTip(f: FinalityLevels | null): number | null {
  * Settled head and finality levels in one round trip. The head is the
  * `safe` block, not the sequencer's latest one.
  */
-export async function readHead(fetchImpl: typeof fetch = fetch): Promise<Head> {
+export async function readHead(fetchImpl: typeof fetch = fetch): Promise<Omit<Head, "rewinds">> {
   const [fin, cid, s, f] = await l2Batch(
     [
       { method: "bloch_finality" },
@@ -466,10 +584,24 @@ export async function readHead(fetchImpl: typeof fetch = fetch): Promise<Head> {
   );
   const chainId = hexNum(ok<string>(cid));
   const n = (b: unknown) => (b && !(b instanceof L2RpcError) ? hexNum((b as L2Block).number) : null);
-  const tags = { safe: n(s), finalized: n(f) };
+  const closedTag = (b: unknown) => b instanceof L2RpcError && b.code === NOT_SETTLED;
+  const hashOf = (b: unknown) => (b && !(b instanceof L2RpcError) ? (b as L2Block).hash.toLowerCase() : null);
+  const finalized = n(f);
   const served = !(fin instanceof L2RpcError) && fin !== null;
+  // /l2rpc hides a tagged block above the bound, so a lowered level still reads its tag from bloch_finality.
+  const tagSafe = n(s) ?? (s instanceof L2RpcError || !served ? null : parseFinality(fin).safe);
+  const safe = heldSafe(tagSafe, finalized, served ? fin : null);
   // The tags the RPC serves are the bound; bloch_finality adds the L1 anchors.
-  const finality = served ? { ...parseFinality(fin), ...tags } : { ...parseFinality(null), ...tags };
+  const finality: FinalityLevels = {
+    ...parseFinality(served ? fin : null),
+    safe,
+    finalized,
+    safeClosed: closedTag(s),
+    finalizedClosed: closedTag(f),
+    safeTagAbove: tagSafe !== null && safe !== tagSafe ? tagSafe : null,
+    safeHash: safe !== null && safe === n(s) ? hashOf(s) : safe !== null && safe === finalized ? hashOf(f) : null,
+    finalizedHash: hashOf(f),
+  };
   return { head: settledTip(finality), chainId, finality, finalityServed: served };
 }
 

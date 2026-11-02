@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { handleL2Rpc, describeL2Rpc } from '../edge/l2rpc.js';
 import { handleL2Status } from '../edge/l2status.js';
 
-const root = join(fileURLToPath(new URL('..', import.meta.url)), 'dist');
+const root = process.env.DIST_DIR ?? join(fileURLToPath(new URL('..', import.meta.url)), 'dist');
 const wrangler = readFileSync(fileURLToPath(new URL('../wrangler.toml', import.meta.url)), 'utf8');
 const tomlVar = (k) => wrangler.match(new RegExp(`^${k}\\s*=\\s*"([^"]*)"`, 'm'))?.[1];
 const env = {

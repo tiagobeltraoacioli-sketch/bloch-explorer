@@ -19,6 +19,22 @@ Pages: `/l2`, `/l2/bridge`, `/l2/blocks/<from>`, `/l2/block/<number|hash>`, `/l2
    transaction, receipt or log above that bound is answered as absent (`eth_blockNumber` answers the safe number;
    state reads above it get `-32001`). The pages apply the same bound client-side and say so.
 
+### What the next settled RPC changes
+
+The bound and the levels follow `bloch_finality` and the tags, not block numbers alone:
+
+- **Closed levels.** A tag answering `-32001` means "this RPC cannot back the level now", not "not settled". The pages
+  show "Unavailable", never "none yet" or "not settled". With `safe` closed and `finalized` open (a foreign settlement at
+  the L1 head), the bound is `finalized`, and finalized blocks stay visible.
+- **`lagging`, an old status.** The levels stand, with a notice. The notice for age starts at 300 s, the monitor's WARN.
+- **L1 reorg.** The RPC keeps its `safe` tag when the accepted settlement falls back; `l1.safe_settlement` names what the
+  L1 head holds. The bound and the badges use the lower one, and state at the `safe` tag is refused meanwhile.
+- **Rewinds.** A poll that finds the settled chain replaced (tip lower, same height with another hash, or another hash at
+  the old height) makes the open page reread what it shows, within one poll (15 s). A new tip is compared at the old height.
+- **Two backends.** The gateway routes finality calls and reads separately, so a batch can read levels from one backend
+  and blocks from another. A block's badge is compared by hash with `bloch_settlement` and the tagged blocks ("Conflict").
+  A block between two settlements on a differing branch cannot be told apart by these reads.
+
 "Latest settlement finalized" combines both: the L2 RPC's `finalized` block compared with the accepted statement's
 L2 number. When the L2 RPC is unreachable the page says the RPC is not live and still shows the L1 record.
 

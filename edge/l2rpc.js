@@ -23,8 +23,10 @@
 //  4. Settled-only reads (default; `L2_SETTLED_ONLY=0` turns it off). The
 //     explorer shows only what the L1 has accepted: `latest` and `pending`
 //     are read as `safe`, and any block, transaction, receipt or log above
-//     the upstream's `safe` block is answered as absent. Every forwarded
-//     batch carries one `eth_getBlockByNumber("safe")` probe for that bound.
+//     the settled bound is answered as absent. Every forwarded batch carries
+//     probes for that bound (see `boundOf`): the `safe` and `finalized` tags
+//     and `bloch_finality`. A level the RPC has closed answers -32001; that
+//     means "this RPC cannot back it now", not "not settled".
 //     State reads (balance, nonce, code, eth_call) take only a tag or a
 //     block number at or below `safe`, never a block hash, because a hash
 //     cannot be placed against the bound before the call is made.
@@ -191,6 +193,9 @@ export function chainId(env) {
 
 const CHAIN_PROBE_ID = '__l2_chain_id_guard__';
 const SAFE_PROBE_ID = '__l2_safe_bound__';
+const FINALIZED_PROBE_ID = '__l2_finalized_bound__';
+const FINALITY_PROBE_ID = '__l2_finality_view__';
+const RESERVED_IDS = new Set([CHAIN_PROBE_ID, SAFE_PROBE_ID, FINALIZED_PROBE_ID, FINALITY_PROBE_ID]);
 
 /** Settled-only mode is on unless `L2_SETTLED_ONLY` is 0/false/off. */
 export function settledOnly(env) {
@@ -231,19 +236,48 @@ export function settleCall(call) {
 
 const qtyOf = (v) => (typeof v === 'string' && QTY.test(v) ? Number(BigInt(v)) : null);
 
+/** The code a settled RPC answers for a level it has closed; also the bound's refusal code here. */
+const LEVELS_CLOSED_MESSAGE = 'finality unavailable: the L2 RPC has closed this level; see bloch_finality.status';
+
 /**
- * Apply the settled bound to one upstream answer. `safe` is the upstream's
- * safe block number, or null when it has none (nothing is settled).
+ * The settled bound from one upstream's probes. `safe` is lowered to what the
+ * L1 head still holds: a settled RPC keeps its `safe` tag when the accepted
+ * settlement falls back in an L1 reorg, while `bloch_finality.l1.safe_settlement`
+ * names the settlement the L1 head holds now. A bound is never below finalized.
+ *
+ * `closed`: no level can be used and the RPC refused at least one of them.
+ * `safeRegressed`: the `safe` tag is above what the L1 head holds.
  */
-export function boundAnswer(call, answer, safe) {
+export function boundOf({ safe = null, finalized = null, finality = null, closed = false } = {}) {
+  let held = safe;
+  const l1 = finality && typeof finality === 'object' ? finality.l1 : null;
+  if (safe !== null && l1 && typeof l1 === 'object' && 'safe_settlement' in l1) {
+    const n = l1.safe_settlement && typeof l1.safe_settlement === 'object' ? l1.safe_settlement.l2_number : null;
+    held = Number.isSafeInteger(n) ? Math.min(safe, n) : null;
+  }
+  const bound = held === null ? finalized : finalized === null ? held : Math.max(held, finalized);
+  return { bound, safe, finalized, closed: bound === null && closed, safeRegressed: safe !== null && bound !== safe };
+}
+
+/** A view of the probes, whichever form `boundAnswer` was handed. */
+function asBound(b) {
+  return b && typeof b === 'object' ? b : boundOf({ safe: b ?? null });
+}
+
+/**
+ * Apply the settled bound to one upstream answer. `limit` is a `boundOf`
+ * result, or a block number or null (nothing is settled).
+ */
+export function boundAnswer(call, answer, limit) {
   if (!answer || 'error' in answer) return answer;
+  const { bound: safe, closed } = asBound(limit);
   const above = (n) => n === null || safe === null || n > safe;
   const r = answer.result;
   const none = { jsonrpc: '2.0', id: call.id, result: null };
   switch (call.method) {
     case 'eth_blockNumber':
       return safe === null
-        ? rpcError(call.id, NOT_SETTLED, 'no L2 block is settled on the L1 yet')
+        ? rpcError(call.id, NOT_SETTLED, closed ? LEVELS_CLOSED_MESSAGE : 'no L2 block is settled on the L1 yet')
         : { jsonrpc: '2.0', id: call.id, result: '0x' + safe.toString(16) };
     case 'eth_getBlockByNumber':
     case 'eth_getBlockByHash':
@@ -269,11 +303,14 @@ export function boundAnswer(call, answer, safe) {
 }
 
 /** State reads at an explicit block number above the bound are refused. */
-function stateAboveBound(call, safe) {
+function stateAboveBound(call, limit) {
   if (!STATE_METHODS.has(call.method)) return false;
-  const n = qtyOf(call.params[1]);
-  if (call.params[1] === 'safe' || call.params[1] === 'finalized') return safe === null;
-  return n !== null && (safe === null || n > safe);
+  const tag = call.params[1];
+  // The tag's own state is above what the L1 head holds, so it cannot be served as settled.
+  if (tag === 'safe') return limit.safe === null || limit.safeRegressed;
+  if (tag === 'finalized') return limit.finalized === null;
+  const n = qtyOf(tag);
+  return n !== null && (limit.bound === null || n > limit.bound);
 }
 
 function json(body, status = 200, extra = {}) {
@@ -308,7 +345,11 @@ async function readCapped(res, cap) {
 
 async function forwardOnce(url, calls, expectChain, fetchImpl, settled) {
   const probes = [{ jsonrpc: '2.0', id: CHAIN_PROBE_ID, method: 'eth_chainId', params: [] }];
-  if (settled) probes.push({ jsonrpc: '2.0', id: SAFE_PROBE_ID, method: 'eth_getBlockByNumber', params: ['safe', false] });
+  if (settled) {
+    probes.push({ jsonrpc: '2.0', id: SAFE_PROBE_ID, method: 'eth_getBlockByNumber', params: ['safe', false] });
+    probes.push({ jsonrpc: '2.0', id: FINALIZED_PROBE_ID, method: 'eth_getBlockByNumber', params: ['finalized', false] });
+    probes.push({ jsonrpc: '2.0', id: FINALITY_PROBE_ID, method: 'bloch_finality', params: [] });
+  }
   const batch = [...probes, ...calls];
   const res = await fetchImpl(url, {
     method: 'POST',
@@ -327,19 +368,28 @@ async function forwardOnce(url, calls, expectChain, fetchImpl, settled) {
     err.chainMismatch = true;
     throw err;
   }
-  let safe = null;
+  let limit = boundOf();
   if (settled) {
-    const sp = byId.get(SAFE_PROBE_ID);
-    const n = sp && sp.result ? qtyOf(sp.result.number) : null;
-    safe = Number.isSafeInteger(n) ? n : null;
+    const level = (id) => {
+      const n = byId.get(id)?.result ? qtyOf(byId.get(id).result.number) : null;
+      return Number.isSafeInteger(n) ? n : null;
+    };
+    const refused = (id) => byId.get(id)?.error?.code === NOT_SETTLED;
+    limit = boundOf({
+      safe: level(SAFE_PROBE_ID),
+      finalized: level(FINALIZED_PROBE_ID),
+      finality: byId.get(FINALITY_PROBE_ID)?.result ?? null,
+      closed: refused(SAFE_PROBE_ID) || refused(FINALIZED_PROBE_ID),
+    });
   }
   return calls.map((c) => {
     const r = byId.get(c.id);
     if (!r) return rpcError(c.id, -32603, 'upstream returned no answer for this call');
     const a = 'error' in r ? { jsonrpc: '2.0', id: c.id, error: r.error } : { jsonrpc: '2.0', id: c.id, result: r.result ?? null };
     if (!settled) return a;
-    if (stateAboveBound(c, safe)) return rpcError(c.id, NOT_SETTLED, 'that L2 block is not settled on the L1 yet');
-    return boundAnswer(c, a, safe);
+    if ('error' in a && a.error?.code === NOT_SETTLED) return a;
+    if (stateAboveBound(c, limit)) return rpcError(c.id, NOT_SETTLED, limit.closed ? LEVELS_CLOSED_MESSAGE : 'that L2 block is not settled on the L1 yet');
+    return boundAnswer(c, a, limit);
   });
 }
 
@@ -369,7 +419,7 @@ export async function handleL2Rpc(request, env, fetchImpl = fetch) {
   const ids = new Set();
   for (const c of checked) {
     if (!c.call) continue;
-    if (ids.has(c.call.id) || c.call.id === CHAIN_PROBE_ID || c.call.id === SAFE_PROBE_ID) return json(rpcError(null, -32600, 'duplicate or reserved id in batch'), 400);
+    if (ids.has(c.call.id) || RESERVED_IDS.has(c.call.id)) return json(rpcError(null, -32600, 'duplicate or reserved id in batch'), 400);
     ids.add(c.call.id);
   }
   const calls = checked.filter((c) => c.call).map((c) => c.call);

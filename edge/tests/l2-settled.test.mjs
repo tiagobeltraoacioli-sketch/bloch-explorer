@@ -5,13 +5,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { handleL2Rpc, settleCall, boundAnswer, settledOnly, describeL2Rpc, NOT_SETTLED } from '../l2rpc.js';
+import { handleL2Rpc, settleCall, boundAnswer, boundOf, settledOnly, describeL2Rpc, NOT_SETTLED } from '../l2rpc.js';
 import { readL2Status, handleL2Status, consensusView, QUORUM } from '../l2status.js';
 import { onRequestGet as statusGet } from '../../functions/l2status.js';
 import {
   parseL2Settlement, parseL2Status, decodeStatement, isClaimed, withdrawalStage, fmtSats, l2Phase, epochOfSlot, timeOfSlot,
 } from '../../src/lib/l2settlement.ts';
-import { decodeWithdrawal, settledTip, parseFinality, readHead, OUTBOX, WITHDRAWAL_INITIATED_TOPIC, methodOf } from '../../src/lib/l2.ts';
+import { decodeWithdrawal, settledTip, parseFinality, readHead, OUTBOX, WITHDRAWAL_INITIATED_TOPIC, methodOf, finalityNotice, levelOf, blockLevel, heldSafe, chainReplaced, acceptedDiffers } from '../../src/lib/l2.ts';
 
 const fx = (name) => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
 const SETTLEMENT = fx('getl2settlement-mainnet-20261030.json').result;
@@ -310,4 +310,114 @@ test('outbox WithdrawalInitiated logs decode; look-alikes do not', () => {
   assert.equal(decodeWithdrawal({ ...log, address: A }), null, 'same event from another contract');
   assert.equal(decodeWithdrawal({ ...log, data: '0x' + 'f'.repeat(128) }), null, 'dirty address word');
   assert.equal(methodOf('0xb769844a' + 'be'.repeat(32)), 'initiateWithdrawal(bytes32)');
+});
+
+// ─── the next settled RPC: closed levels, lagging, L1 reorg ─────────────────
+
+test('boundOf: safe closed, finalized open: the bound is finalized', () => {
+  const b = boundOf({ safe: null, finalized: 4, finality: { l1: { safe_settlement: { l2_number: 6 } } }, closed: true });
+  assert.equal(b.bound, 4);
+  assert.equal(b.closed, false);
+});
+
+test('boundOf: both closed reads as closed, not as nothing settled', () => {
+  const b = boundOf({ closed: true });
+  assert.equal(b.bound, null);
+  assert.equal(b.closed, true);
+  const a = boundAnswer({ id: 1, method: 'eth_blockNumber', params: [] }, { jsonrpc: '2.0', id: 1, result: '0x6' }, b);
+  assert.equal(a.error.code, -32001);
+  assert.match(a.error.message, /closed/);
+  assert.doesNotMatch(a.error.message, /no L2 block is settled/);
+});
+
+test('boundOf: an L1 reorg lowers the bound below the safe tag, never below finalized', () => {
+  const view = (n) => ({ l1: { safe_settlement: n === null ? null : { l2_number: n } } });
+  assert.deepEqual(
+    (({ bound, safeRegressed }) => ({ bound, safeRegressed }))(boundOf({ safe: 6, finalized: 4, finality: view(5) })),
+    { bound: 5, safeRegressed: true },
+  );
+  assert.equal(boundOf({ safe: 6, finalized: 4, finality: view(null) }).bound, 4);
+  assert.equal(boundOf({ safe: 6, finalized: 4, finality: view(2) }).bound, 4);
+  // Ahead of this database: the tag stands.
+  assert.deepEqual(
+    (({ bound, safeRegressed }) => ({ bound, safeRegressed }))(boundOf({ safe: 6, finalized: 4, finality: view(9) })),
+    { bound: 6, safeRegressed: false },
+  );
+  // An RPC that reports no view: the tag stands.
+  assert.equal(boundOf({ safe: 6, finalized: 4, finality: null }).bound, 6);
+});
+
+test('a block number form of boundAnswer still works', () => {
+  const call = { id: 1, method: 'eth_getBlockByNumber', params: ['0x5', false] };
+  const answer = { jsonrpc: '2.0', id: 1, result: { number: '0x5' } };
+  assert.equal(boundAnswer(call, answer, 4).result, null);
+  assert.equal(boundAnswer(call, answer, 5).result.number, '0x5');
+});
+
+test('finality notices name closed, lagging, old and lowered levels; a current view has none', () => {
+  const f = { ...parseFinality({ status: { state: 'ok', age_s: 3 } }) };
+  assert.equal(finalityNotice(f), null);
+  assert.equal(finalityNotice({ ...f, ageS: 299 }), null);
+  assert.match(finalityNotice({ ...f, ageS: 4000 }).text, /66 minutes old/);
+  assert.match(finalityNotice({ ...f, state: 'lagging', missingSettlement: 8 }).text, /has not reached settled block 8/);
+  assert.equal(finalityNotice({ ...f, finalizedClosed: true, state: 'invalid' }).severity, 'bad');
+  assert.match(finalityNotice({ ...f, safeClosed: true }).text, /safe level is closed/);
+  assert.match(finalityNotice({ ...f, safeTagAbove: 6 }).text, /L2 block 6/);
+  // A v2.1 RPC reports no state.
+  assert.equal(finalityNotice(parseFinality({})), null);
+});
+
+test('levelOf: a closed level never calls a block unsettled, and never promotes it', () => {
+  const closed = { ...parseFinality({ latest: { number: '0x6' } }), finalizedClosed: true, safeClosed: true };
+  assert.equal(levelOf(4, closed), 'closed');
+  const safeClosed = { ...parseFinality({ latest: { number: '0x6' }, finalized: { number: '0x4' } }), safeClosed: true };
+  assert.equal(levelOf(4, safeClosed), 'finalized');
+  assert.equal(levelOf(6, safeClosed), 'closed');
+});
+
+test('blockLevel compares by hash: another branch at a settled height is a conflict', () => {
+  const f = { ...parseFinality({ finalized: { number: '0x4', hash: '0xAA' }, safe: { number: '0x6', hash: '0xbb' } }) };
+  assert.equal(blockLevel({ number: '0x4', hash: '0xaa' }, f, null), 'finalized');
+  assert.equal(blockLevel({ number: '0x4', hash: '0xcc' }, f, null), 'conflict');
+  assert.equal(blockLevel({ number: '0x6', hash: '0xcc' }, f, null), 'conflict');
+  const settlement = { l2Number: 3, l2Hash: 'dd', commitment: null, l1Slot: null, l1Block: null };
+  assert.equal(blockLevel({ number: '0x3', hash: '0xdd' }, f, settlement), 'finalized');
+  assert.equal(blockLevel({ number: '0x3', hash: '0xee' }, f, settlement), 'conflict');
+});
+
+test('heldSafe lowers the tag to what the L1 head holds', () => {
+  const view = (n) => ({ l1: { safe_settlement: n === null ? null : { l2_number: n } } });
+  assert.equal(heldSafe(6, 4, view(5)), 5);
+  assert.equal(heldSafe(6, 4, view(null)), 4);
+  assert.equal(heldSafe(6, 4, view(9)), 6);
+  assert.equal(heldSafe(6, 4, {}), 6);
+  assert.equal(heldSafe(null, 4, view(5)), null);
+});
+
+test('chainReplaced: a fall, the same height with another hash, or another hash at the old height', () => {
+  const seen = { number: 6, hash: 'a' };
+  assert.equal(chainReplaced(null, seen, null), false);
+  assert.equal(chainReplaced(seen, { number: 6, hash: 'a' }, null), false);
+  assert.equal(chainReplaced(seen, { number: 7, hash: 'b' }, 'a'), false);
+  assert.equal(chainReplaced(seen, { number: 5, hash: 'b' }, null), true);
+  assert.equal(chainReplaced(seen, { number: 6, hash: 'b' }, null), true);
+  assert.equal(chainReplaced(seen, { number: 8, hash: 'c' }, 'z'), true);
+});
+
+test('acceptedDiffers ignores the 0x prefix and case, and an absent side', () => {
+  assert.equal(acceptedDiffers('AA', '0xaa'), false);
+  assert.equal(acceptedDiffers('aa', '0xbb'), true);
+  assert.equal(acceptedDiffers(null, '0xbb'), false);
+});
+
+test('readHead: a safe tag hidden by the edge after an L1 reorg reads as the settlement the L1 head holds', async () => {
+  const fin = { latest: { number: '0x6', hash: '0x66' }, safe: { number: '0x6', hash: '0x66' }, finalized: { number: '0x4', hash: '0x44' }, l1: { safe_settlement: { l2_number: 5 } }, status: { state: 'ok', age_s: 1 } };
+  const answers = [fin, '0xab162', null, { number: '0x4', hash: '0x44' }];
+  const fetchImpl = async (_u, o) => new Response(JSON.stringify(JSON.parse(o.body).map((c, i) => ({ jsonrpc: '2.0', id: c.id, result: answers[i] }))));
+  const h = await readHead(fetchImpl);
+  assert.equal(h.finality.safe, 5);
+  assert.equal(h.finality.safeTagAbove, 6);
+  assert.equal(h.head, 5);
+  assert.equal(levelOf(5, h.finality), 'safe');
+  assert.equal(levelOf(6, h.finality), 'latest');
 });

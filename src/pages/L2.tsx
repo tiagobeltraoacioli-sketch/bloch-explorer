@@ -16,13 +16,19 @@
 // transactions of an address are found by reading a stated range of blocks.
 // Finality badges show the L2 RPC's own `safe` / `finalized` tags.
 
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useRouter } from "../lib/router";
 import { Copyable, KV } from "../components/ui";
 import { fmtInt, fmtTime, timeAgo, short } from "../lib/format";
 import { pollWhileVisible } from "../lib/polling";
 import {
+  acceptedDiffers,
+  blockLevel,
+  NOT_SETTLED,
+  chainReplaced,
+  finalityNotice,
   FinalityLevels,
+  SeenTip,
   L2Block,
   L2Log,
   L2Receipt,
@@ -101,13 +107,28 @@ function useLoad<T>(fn: () => Promise<T>, deps: unknown[]) {
 function useHead() {
   const [head, setHead] = useState<(Head & { at: number }) | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const seen = useRef<SeenTip | null>(null);
+  const rewinds = useRef(0);
   useEffect(
     () =>
       pollWhileVisible(async () => {
         try {
           const h = await readHead();
           servedChainId = h.chainId;
-          setHead({ ...h, at: Date.now() });
+          // Compare against the tag's own block, so a closed level and a reopening keep the last tip seen.
+          const f = h.finality;
+          const tip: SeenTip | null =
+            f.safe !== null && f.safeHash ? { number: f.safe, hash: f.safeHash } : f.finalized !== null && f.finalizedHash ? { number: f.finalized, hash: f.finalizedHash } : null;
+          if (tip) {
+            let atOld: string | null = null;
+            if (seen.current && tip.number > seen.current.number) {
+              const old = await l2Call<L2Block | null>("eth_getBlockByNumber", ["0x" + seen.current.number.toString(16), false]).catch(() => null);
+              atOld = old ? old.hash.toLowerCase() : null;
+            }
+            if (chainReplaced(seen.current, tip, atOld)) rewinds.current += 1;
+            seen.current = tip;
+          }
+          setHead({ ...h, rewinds: rewinds.current, at: Date.now() });
           setError(null);
         } catch (e) {
           setError(e instanceof Error ? e.message : String(e));
@@ -119,6 +140,12 @@ function useHead() {
 }
 
 let servedChainId: number | null = null;
+
+/** Changes when a level opens, closes or moves, so that a page rereads what it shows at that level. */
+const levelKey = (head: Head | null) => {
+  const f = head?.finality;
+  return f ? `${f.safe}:${f.finalized}:${f.safeHash}:${f.finalizedHash}` : "";
+};
 
 /** The L1 settlement record (GET /l2status), polled. */
 function useL2Status() {
@@ -272,20 +299,33 @@ export function L2Search() {
   );
 }
 
+/** Says when the levels on this page are closed, lowered or not current. */
+function FinalityBanner({ head }: { head: Head | null }) {
+  const notice = finalityNotice(head?.finality ?? null);
+  if (!notice) return null;
+  return (
+    <div className={"card l2-live l2-live-wait"} role="status">
+      <span className={"pill pill-sm " + (notice.severity === "bad" ? "bad" : "warn")}>{notice.severity === "bad" ? "closed" : "note"}</span> {notice.text}
+    </div>
+  );
+}
+
 function FinalityStrip({ head, error }: ReturnType<typeof useHead>) {
   if (!head && error) return null;
   if (!head) return <Loading />;
   const f = head.finality;
   return (
+    <>
+    <FinalityBanner head={head} />
     <div className="g4-grid card l2-finality">
       <div className="g4-stat">
         <span className="g4-k">Safe (shown here)</span>
-        <span className="g4-v">{f.safe === null ? "none yet" : <BlockLink n={f.safe} />}</span>
+        <span className="g4-v">{f.safeClosed ? "unavailable" : f.safe === null ? "none yet" : <BlockLink n={f.safe} />}</span>
         <span className="g4-dim">settlement accepted at the L1 head</span>
       </div>
       <div className="g4-stat">
         <span className="g4-k">Finalized</span>
-        <span className="g4-v">{f.finalized === null ? "none yet" : <BlockLink n={f.finalized} />}</span>
+        <span className="g4-v">{f.finalizedClosed ? "unavailable" : f.finalized === null ? "none yet" : <BlockLink n={f.finalized} />}</span>
         <span className="g4-dim">settlement in an FFG-finalized L1 block</span>
       </div>
       <div className="g4-stat">
@@ -301,6 +341,7 @@ function FinalityStrip({ head, error }: ReturnType<typeof useHead>) {
         <span className="g4-dim">{f.l1FinalizedEpoch !== null ? `epoch ${fmtInt(f.l1FinalizedEpoch)}, as replayed by the L2 follower` : head.finalityServed ? "" : "bloch_finality not served"}</span>
       </div>
     </div>
+    </>
   );
 }
 
@@ -383,6 +424,9 @@ function L1StatusPanel({ ls, head }: { ls: ReturnType<typeof useL2Status>; head:
   const stmt = acc?.statement ?? null;
   const fin = head?.finality.finalized ?? null;
   const accFinalized = stmt && fin !== null ? stmt.l2Number <= fin : null;
+  const finClosed = head?.finality.finalizedClosed ?? false;
+  const accepted = useLoad(async () => (stmt ? l2Call<L2Block | null>("eth_getBlockByNumber", ["0x" + stmt.l2Number.toString(16), false]).catch(() => null) : null), [stmt?.l2Number ?? null, head?.rewinds ?? 0]);
+  const differs = acceptedDiffers(stmt?.l2HeaderHash ?? null, accepted.data?.hash ?? null);
   const rows: [string, ReactNode][] = [
     ["Chain id", <>{rec.chainId ?? "not reported"} {rec.chainId !== null && rec.chainId !== st.expectedChainId && <span className="pill bad pill-sm">expected {st.expectedChainId}</span>}</>],
     [
@@ -416,8 +460,10 @@ function L1StatusPanel({ ls, head }: { ls: ReturnType<typeof useL2Status>; head:
       "Latest settlement finalized",
       !acc ? (
         <span>none</span>
+      ) : differs ? (
+        <><LevelPill level="conflict" /> the L1 accepted another block at this height than the L2 RPC serves: a foreign settlement or a fault</>
       ) : accFinalized === null ? (
-        <span className="g4-dim">unknown: the L2 RPC did not report its finalized block</span>
+        <span className="g4-dim">{finClosed ? "unknown: finality is unavailable at this L2 RPC" : "unknown: the L2 RPC did not report its finalized block"}</span>
       ) : accFinalized ? (
         <><LevelPill level="finalized" /> the L2 RPC reports block {fmtInt(fin!)} finalized</>
       ) : (
@@ -660,8 +706,8 @@ export function L2BlocksPage({ from }: { from: number }) {
 
 // ─── /l2/block/:id ──────────────────────────────────────────────────────────
 
-function SettlementPanel({ n, finality, settlement }: { n: number; finality: FinalityLevels | null; settlement: Settlement | null | undefined }) {
-  const level = levelOf(n, finality);
+function SettlementPanel({ n, hash, finality, settlement }: { n: number; hash: string; finality: FinalityLevels | null; settlement: Settlement | null | undefined }) {
+  const level = blockLevel({ number: "0x" + n.toString(16), hash }, finality, settlement);
   const rows: [string, ReactNode][] = [["Status", <><LevelPill level={level} /> <span className="g4-dim">{LEVEL_TEXT[level].help}</span></>]];
   if (settlement && settlement.l2Number === n) {
     if (settlement.l1Slot !== null) rows.push(["L1 block with the settlement", <Link to={`/slot/${settlement.l1Slot}`}>slot {fmtInt(settlement.l1Slot)}</Link>]);
@@ -706,17 +752,19 @@ export function L2BlockPage({ id }: { id: string }) {
     if (Array.isArray(rc)) for (const r of rc as L2Receipt[]) receipts.set(r.transactionHash.toLowerCase(), r);
     const settlement = await readSettlement(hexNum(block.number));
     return { block, receipts, settlement };
-  }, [id]);
+  }, [id, hs.head?.rewinds ?? 0, levelKey(hs.head)]);
+  const closedHere = hs.head?.finality.finalizedClosed || hs.head?.finality.safeClosed;
   if (data.error) return <Shell title="L2 block"><Failure error={data.error} onRetry={data.reload} /></Shell>;
   if (data.loading && !data.data) return <Shell title="L2 block"><Loading /></Shell>;
   if (!data.data) {
     return (
       <Shell title="L2 block not found">
         <p className="page-lede">
-          No settled L2 block <code>{id}</code>
+          {closedHere ? <>Block <code>{id}</code> cannot be shown as settled by this L2 RPC now</> : <>No settled L2 block <code>{id}</code></>}
           {hs.head?.head != null ? <> (the newest settled block is <BlockLink n={hs.head.head} />)</> : null}. This explorer shows a block
           only once the L1 has accepted its settlement; a block the sequencer executed but has not settled yet is not shown.
         </p>
+        <FinalityBanner head={hs.head} />
       </Shell>
     );
   }
@@ -725,7 +773,8 @@ export function L2BlockPage({ id }: { id: string }) {
   const txs = b.transactions.filter((t): t is L2Tx => typeof t !== "string");
   const conf = hs.head?.head != null ? hs.head.head - n + 1 : null;
   return (
-    <Shell title={<>L2 block {fmtInt(n)} <LevelPill level={levelOf(n, hs.head?.finality ?? null)} /></>}>
+    <Shell title={<>L2 block {fmtInt(n)} <LevelPill level={blockLevel(b, hs.head?.finality ?? null, settlement)} /></>}>
+      <FinalityBanner head={hs.head} />
       <section className="card">
         <KV
           rows={[
@@ -747,7 +796,7 @@ export function L2BlockPage({ id }: { id: string }) {
           {hs.head?.head != null && n < hs.head.head && <Link to={`/l2/block/${n + 1}`}>Next block</Link>}
         </p>
       </section>
-      <SettlementPanel n={n} finality={hs.head?.finality ?? null} settlement={settlement} />
+      <SettlementPanel n={n} hash={b.hash} finality={hs.head?.finality ?? null} settlement={settlement} />
       <section className="card">
         <h2 className="snap-h2">Transactions</h2>
         <TxTable rows={txs.map((tx) => ({ tx }))} receipts={receipts} />
@@ -824,12 +873,13 @@ export function L2TxPage({ hash }: { hash: string }) {
     const tokens = [...new Set((receipt?.logs ?? []).map(decodeTransfer).filter((x): x is TokenTransfer => !!x && x.standard === "ERC-20").map((x) => x.token))];
     const meta = tokens.length ? await readTokenMeta(tokens) : new Map<string, TokenMeta>();
     return { tx, receipt, timestamp, meta };
-  }, [hash]);
+  }, [hash, hs.head?.rewinds ?? 0, levelKey(hs.head)]);
   if (data.error) return <Shell title="L2 transaction"><Failure error={data.error} onRetry={data.reload} /></Shell>;
   if (data.loading && !data.data) return <Shell title="L2 transaction"><Loading /></Shell>;
   if (!data.data) {
     return (
       <Shell title="L2 transaction not found">
+        <FinalityBanner head={hs.head} />
         <p className="page-lede">
           No settled L2 transaction <code>{hash}</code>. A transaction appears here once the block that includes it is settled on the
           L1 (accepted, shown as Safe); until then it is not shown, even if the sequencer has already executed it.
@@ -839,10 +889,11 @@ export function L2TxPage({ hash }: { hash: string }) {
   }
   const { tx, receipt, timestamp, meta } = data.data;
   const n = tx.blockNumber ? hexNum(tx.blockNumber) : null;
-  const level = n === null ? "unknown" : levelOf(n, hs.head?.finality ?? null);
+  const level = n === null ? "unknown" : tx.blockHash ? blockLevel({ number: tx.blockNumber!, hash: tx.blockHash }, hs.head?.finality ?? null, null) : levelOf(n, hs.head?.finality ?? null);
   const gasPrice = receipt ? hexBig(receipt.effectiveGasPrice) : hexBig(tx.gasPrice ?? tx.maxFeePerGas ?? "0x0");
   return (
     <Shell title={<>L2 transaction {n !== null && <LevelPill level={level} />}</>}>
+      <FinalityBanner head={hs.head} />
       <section className="card">
         <KV
           rows={[
@@ -900,6 +951,7 @@ export function L2AddressPage({ address }: { address: string }) {
     return {
       balance: hexBig(ok<string>(bal)),
       finalizedBalance: fbal instanceof L2RpcError || fbal === null ? null : hexBig(fbal as string),
+      finalizedRefused: fbal instanceof L2RpcError && fbal.code === NOT_SETTLED,
       nonce: hexNum(ok<string>(nonce)),
       code: typeof code === "string" ? code : "0x",
       transfers,
@@ -907,7 +959,7 @@ export function L2AddressPage({ address }: { address: string }) {
       holdings,
       tokenFeed,
     };
-  }, [a]);
+  }, [a, hs.head?.rewinds ?? 0]);
 
   const [scan, setScan] = useState<AddressScan | null>(null);
   const [scanErr, setScanErr] = useState<string | null>(null);
@@ -931,6 +983,12 @@ export function L2AddressPage({ address }: { address: string }) {
   useEffect(() => {
     if (head !== null && scan === null && !scanning && !scanErr) void runScan(head, null);
   }, [head, scan, scanning, scanErr, runScan]);
+  // A scan read before the settled chain was replaced lists transactions of the old branch.
+  const rewinds = hs.head?.rewinds ?? 0;
+  useEffect(() => {
+    setScan(null);
+    setScanErr(null);
+  }, [rewinds]);
 
   if (!isAddress(address)) return <Shell title="Not an address"><p className="page-lede">Expected 0x followed by 40 hex characters.</p></Shell>;
   const d = base.data;
@@ -944,7 +1002,7 @@ export function L2AddressPage({ address }: { address: string }) {
           rows={[
             ["Address", <Copyable text={a} />],
             ["Balance (safe)", d ? fmtNative(d.balance, 18) : base.error ? "unavailable" : "…"],
-            ["Balance (finalized)", d ? (d.finalizedBalance === null ? <span className="g4-dim">no finalized block yet</span> : fmtNative(d.finalizedBalance, 18)) : "…"],
+            ["Balance (finalized)", d ? (d.finalizedBalance === null ? <span className="g4-dim">{d.finalizedRefused ? "unavailable at this L2 RPC" : "no finalized block yet"}</span> : fmtNative(d.finalizedBalance, 18)) : "…"],
             ["Nonce (settled transactions sent)", d ? fmtInt(d.nonce) : "…"],
             ["Type", d ? (d.code === "0x" ? "Externally owned account" : `Contract (${fmtInt((d.code.length - 2) / 2)} bytes of code)`) : "…"],
             ...(isToken && selfMeta
@@ -999,7 +1057,7 @@ export function L2AddressPage({ address }: { address: string }) {
         {d && <p className="g4-dim">{fmtInt(d.transfers.length)} ERC-20/ERC-721 transfers from or to this address in the whole chain{d.transfers.length > 100 ? "; the latest 100 shown" : ""}.</p>}
       </section>
 
-      <AddressWithdrawals address={a} settledTop={head} />
+      <AddressWithdrawals address={a} settledTop={head} rewinds={rewinds} />
 
       <section className="card">
         <h2 className="snap-h2">Transactions</h2>
@@ -1125,7 +1183,7 @@ export function L2BridgePage() {
   const ls = useL2Status();
   const rec = ls.status?.record ?? null;
   const settledTop = hs.head?.head ?? null;
-  const wd = useLoad(async () => (settledTop === null ? null : readWithdrawals()), [settledTop]);
+  const wd = useLoad(async () => (settledTop === null ? null : readWithdrawals()), [settledTop, hs.head?.rewinds ?? 0]);
   const w = rec?.withdrawals;
   return (
     <Shell
@@ -1297,9 +1355,9 @@ export function L2BridgePage() {
   );
 }
 
-function AddressWithdrawals({ address, settledTop }: { address: string; settledTop: number | null }) {
+function AddressWithdrawals({ address, settledTop, rewinds }: { address: string; settledTop: number | null; rewinds: number }) {
   const ls = useL2Status();
-  const wd = useLoad(async () => (settledTop === null ? null : (await readWithdrawals()).filter((w) => w.sender === address)), [address, settledTop]);
+  const wd = useLoad(async () => (settledTop === null ? null : (await readWithdrawals()).filter((w) => w.sender === address)), [address, settledTop, rewinds]);
   if (!wd.data || wd.data.length === 0) return null;
   return (
     <section className="card">
