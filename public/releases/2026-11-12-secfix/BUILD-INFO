@@ -1,0 +1,8 @@
+artifact_kind=canonical-container-candidate
+source_commit=7f1c116e4e172d6d4e14261adc87d2f01b15ce61
+source_date_epoch=1794434407
+debian_snapshot=20260917T000000Z
+target=x86_64-unknown-linux-gnu
+binary_sha256=636b8e1e18b7de5b815db180887ed67847ec76549b30536c90093bdfc89cef8d
+signed=true
+deployment_authorized=true

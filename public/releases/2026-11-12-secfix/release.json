@@ -1,0 +1,32 @@
+{
+  "release": "bloch-pos-2026-11-12-secfix",
+  "source_commit": "7f1c116e4e172d6d4e14261adc87d2f01b15ce61",
+  "platform": "linux-x86_64",
+  "binary": "bloch-pos",
+  "binary_sha256": "636b8e1e18b7de5b815db180887ed67847ec76549b30536c90093bdfc89cef8d",
+  "checksum_manifest": "SHA256SUMS",
+  "checksum_signature": "SHA256SUMS.minisig",
+  "minisign_public_key": "bloch-release-20260922.pub",
+  "minisign_key_id": "1A5D96A5C4955EF7",
+  "upgrade_only": true,
+  "new_hard_forks_armed": false,
+  "activations": [
+    {"name": "HF3 KES enforcement (unchanged from 78d4921c)", "epoch": 8620, "utc": "2026-11-17T16:11:19Z"}
+  ],
+  "signed": true,
+  "status": "release-qualified",
+  "qualification": {
+    "tests_passed": 4363,
+    "tests_failed": 0,
+    "tests_ignored": 75,
+    "replayed_blocks": 218442,
+    "replayed_head_slot": 259216,
+    "replayed_state_root": "04ac3473267c324ac87236a1fb5cc847f17184a4c49e99bad4fcfabf78e1899a",
+    "replay_identical_to": "fa9803671dbf426228a7ded5f569cfcad7b299c2",
+    "gates_armed": 0,
+    "gates_inert": 6
+  },
+  "previous_release": "node-78d4921c-hf123",
+  "github_tag": "node-7f1c116e-secfix",
+  "website": "https://blochl1.com/releases/2026-11-12-secfix/"
+}

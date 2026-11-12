@@ -16,21 +16,21 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Upgrade release updated October 29, 2026. Other qualification records retain their original dates.</p>
+      <p className="guide-date">Upgrade release updated November 12, 2026. Other qualification records retain their original dates.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>October 29 required upgrade: network upgrades HF1, HF2, HF3</h2>
-      <p>Signed Linux x86-64 release from commit <code>78d4921c3ec6ba41829f3878eed47f8d3bb96230</code>. It schedules three network upgrades: HF1 at epoch 7180 (2026-11-01 16:11 UTC, second step at epoch 7186), HF2 at epoch 7270 (2026-11-02 16:11 UTC) and HF3 at epoch 7360 (2026-11-03 16:11 UTC), with KES enforcement at epoch 8620 (2026-11-17 16:11 UTC). <strong>Install it before epoch 7180.</strong> A node that is not upgraded will not follow the upgraded chain from epoch 7180. L2 infrastructure and indexers must install builds made against this release before epoch 7178 (2026-11-01 15:39 UTC).</p>
-      <div className="guide-actions"><a href="/releases/2026-10-29-hf123/bloch-pos" download>Download signed binary</a><a href="/releases/2026-10-29-hf123/README.md">Upgrade and verification instructions</a></div>
+      <h2>November 12 recommended upgrade: security hardening</h2>
+      <p>Signed Linux x86-64 release from commit <code>7f1c116e4e172d6d4e14261adc87d2f01b15ce61</code>, with security hardening from an internal review of the node. It schedules no new network upgrade and keeps the October 29 schedule, including KES enforcement at epoch 8620 (2026-11-17 16:11 UTC). During the November 12 finality stall, nodes on this build kept up while nodes on the previous build stopped answering and attesting. <strong>All validators are encouraged to upgrade.</strong></p>
+      <div className="guide-actions"><a href="/releases/2026-11-12-secfix/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-12-secfix/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-10-29-hf123/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-10-29-hf123/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-10-29-hf123/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-10-29-hf123/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-10-29-hf123/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-78d4921c-hf123">GitHub release</a></li>
+        <li><a href="/releases/2026-11-12-secfix/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-12-secfix/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-12-secfix/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-11-12-secfix/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-12-secfix/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-7f1c116e-secfix">GitHub release</a></li>
       </ul>
-      <p>Expected SHA-256: <code>700631b040a3a4b2299017162dd4a2c5f521bb49d5fa3c9ed677ba285673794e</code>.</p>
-      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. Verify the signature before installation and allow the normal 64-slot observation before expecting a new attestation. From epoch 7360 each validator registers a forward-secure (KES) key once, before epoch 8620; see the instructions. This upgrade bundle contains no keys or fresh bootstrap checkpoint.</p>
-      <p><a href="/releases/2026-10-21-node-hardening/README.md">Previous signed release — October 21</a></p>
+      <p>Expected SHA-256: <code>636b8e1e18b7de5b815db180887ed67847ec76549b30536c90093bdfc89cef8d</code>.</p>
+      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys or fresh bootstrap checkpoint.</p>
+      <p><a href="/releases/2026-10-29-hf123/README.md">Previous signed release — October 29 (HF1, HF2, HF3)</a></p>
     </section>
     <section className="guide-section" aria-label="Start a new validator">
       <h2>Start a new validator</h2>
