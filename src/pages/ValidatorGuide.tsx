@@ -16,20 +16,21 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Upgrade release updated November 12, 2026. Other qualification records retain their original dates.</p>
+      <p className="guide-date">Upgrade release updated November 13, 2026. Other qualification records retain their original dates.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>November 12 recommended upgrade: security hardening</h2>
-      <p>Signed Linux x86-64 release from commit <code>7f1c116e4e172d6d4e14261adc87d2f01b15ce61</code>, with security hardening from an internal review of the node. It schedules no new network upgrade and keeps the October 29 schedule, including KES enforcement at epoch 8620 (2026-11-17 16:11 UTC). During the November 12 finality stall, nodes on this build kept up while nodes on the previous build stopped answering and attesting. <strong>All validators are encouraged to upgrade.</strong></p>
-      <div className="guide-actions"><a href="/releases/2026-11-12-secfix/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-12-secfix/README.md">Upgrade and verification instructions</a></div>
+      <h2>November 13 mandatory upgrade: required before epoch 8620</h2>
+      <p>Signed Linux x86-64 release from commit <code>906336fd35f157dac380523b59dee8a5a325175a</code>. <strong>Every node — validators, observers and exchange nodes — must run it before epoch 8620 (2026-11-17 16:11 UTC).</strong> KES enforcement activates at that epoch as scheduled, and this release arms two follow-up rules of the same fork at the same epoch: the vote slot-epoch binding and the KES first-key floor. A node still on an earlier release can leave the canonical chain from epoch 8620 on. Nothing changes before that epoch. The release includes the November 12 security hardening and a node-local <code>--reject-block-root</code> option for nodes left on the abandoned branch of the November 12 finality stall.</p>
+      <div className="guide-actions"><a href="/releases/2026-11-13-kes-followups/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-13-kes-followups/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-11-12-secfix/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-12-secfix/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-12-secfix/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-11-12-secfix/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-12-secfix/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-7f1c116e-secfix">GitHub release</a></li>
+        <li><a href="/releases/2026-11-13-kes-followups/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-13-kes-followups/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-13-kes-followups/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-11-13-kes-followups/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-13-kes-followups/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-906336fd-kes-followups">GitHub release</a></li>
       </ul>
-      <p>Expected SHA-256: <code>636b8e1e18b7de5b815db180887ed67847ec76549b30536c90093bdfc89cef8d</code>.</p>
-      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys or fresh bootstrap checkpoint.</p>
+      <p>Expected SHA-256: <code>dfe9ce67eb265c3cca9309bf68ce6537ce5637251d3c7691c3532de59cbc440e</code>.</p>
+      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys.</p>
+      <p><a href="/releases/2026-11-12-secfix/README.md">Previous signed release — November 12 (security hardening)</a></p>
       <p><a href="/releases/2026-10-29-hf123/README.md">Previous signed release — October 29 (HF1, HF2, HF3)</a></p>
     </section>
     <section className="guide-section" aria-label="Start a new validator">
