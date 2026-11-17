@@ -16,20 +16,21 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Upgrade release updated November 13, 2026. Other qualification records retain their original dates.</p>
+      <p className="guide-date">Upgrade release updated November 16, 2026. Other qualification records retain their original dates.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>November 13 mandatory upgrade: required before epoch 8620</h2>
-      <p>Signed Linux x86-64 release from commit <code>906336fd35f157dac380523b59dee8a5a325175a</code>. <strong>Every node — validators, observers and exchange nodes — must run it before epoch 8620 (2026-11-17 16:11 UTC).</strong> KES enforcement activates at that epoch as scheduled, and this release arms two follow-up rules of the same fork at the same epoch: the vote slot-epoch binding and the KES first-key floor. A node still on an earlier release can leave the canonical chain from epoch 8620 on. Nothing changes before that epoch. The release includes the November 12 security hardening and a node-local <code>--reject-block-root</code> option for nodes left on the abandoned branch of the November 12 finality stall.</p>
-      <div className="guide-actions"><a href="/releases/2026-11-13-kes-followups/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-13-kes-followups/README.md">Upgrade and verification instructions</a></div>
+      <h2>November 15 recommended upgrade: KES bind liveness and hardening</h2>
+      <p>Signed Linux x86-64 release from commit <code>0067547f1cd8f740fa1b814361526a80be178885</code>. It builds on the November 13 mandatory release and adds no hard fork and no new activation: it carries the same epoch-8620 rules, and a full replay of mainnet history reproduces the canonical chain bit for bit. <strong>Every node must still run the November 13 release or this one before epoch 8620 (2026-11-17 16:11 UTC)</strong>; running this one satisfies that requirement. It is <strong>recommended for every node before the network binds KES keys</strong> (the bind is announced in advance on the official channels): block production and admission stay live through empty epochs and sibling heads around the bind. It also includes security hardening from the November 14 audit, dependency updates, and optional monitoring hooks that are off by default.</p>
+      <div className="guide-actions"><a href="/releases/2026-11-15-node-local/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-15-node-local/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-11-13-kes-followups/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-13-kes-followups/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-13-kes-followups/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-11-13-kes-followups/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-13-kes-followups/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-906336fd-kes-followups">GitHub release</a></li>
+        <li><a href="/releases/2026-11-15-node-local/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-15-node-local/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-15-node-local/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-11-15-node-local/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-15-node-local/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-0067547f-node-local">GitHub release</a></li>
       </ul>
-      <p>Expected SHA-256: <code>dfe9ce67eb265c3cca9309bf68ce6537ce5637251d3c7691c3532de59cbc440e</code>.</p>
-      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor and chain data. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys.</p>
+      <p>Expected SHA-256: <code>2c9547c0f68e6f69587cd7ed1e97c3a912304fd23b453bf3eb646e65200755e3</code>.</p>
+      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor, chain data and flags; no new flag is required. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys.</p>
+      <p><a href="/releases/2026-11-13-kes-followups/README.md">Previous signed release — November 13 (mandatory before epoch 8620)</a></p>
       <p><a href="/releases/2026-11-12-secfix/README.md">Previous signed release — November 12 (security hardening)</a></p>
       <p><a href="/releases/2026-10-29-hf123/README.md">Previous signed release — October 29 (HF1, HF2, HF3)</a></p>
     </section>
