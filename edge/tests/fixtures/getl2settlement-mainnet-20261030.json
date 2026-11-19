@@ -1,0 +1,72 @@
+{
+ "_source": "getl2settlement from 80.240.16.185:8080 (L1 mainnet, read-only), 2026-10-30",
+ "result": {
+  "asynchronous": true,
+  "native_height": 34536,
+  "network": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966",
+  "genesis": "9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415",
+  "chain_id": 700770,
+  "source": {
+   "block": "618c9b80cebda5b5bda0b0c7d79e19dae8dc24e773aa94a2c135eb805ff0dc9f",
+   "slot": 187200,
+   "height": 1,
+   "commitment": "ce03aaebb03896b231c4605ebfb8eaf7b8e76d0df15eae8e9553fee42e5f7668",
+   "inbox_root": "aeaaac645079e68181cbc33803e6bc21d565f016d3fecdb0845d0502e59b0ecd",
+   "inbox_count": 0,
+   "consumed_start": 0,
+   "consumed_end": 0,
+   "pending": [],
+   "request": "f47d3e498ff978e34471dafff5f94fe139fc3ff489b1a00f469c030258311966\n9953da73a2794e190b1c551a787f39d6486a288f40b69ecc361281d5a893e415\n618c9b80cebda5b5bda0b0c7d79e19dae8dc24e773aa94a2c135eb805ff0dc9f\n187200\n1\nce03aaebb03896b231c4605ebfb8eaf7b8e76d0df15eae8e9553fee42e5f7668\naeaaac645079e68181cbc33803e6bc21d565f016d3fecdb0845d0502e59b0ecd\n"
+  },
+  "profile": {
+   "activated": true,
+   "deposits": true,
+   "user_transactions": true
+  },
+  "inbox": {
+   "count": 0,
+   "consumed": 0,
+   "escrow_sat": "0"
+  },
+  "data_availability": [],
+  "withdrawals": {
+   "root": "27ae5ba08d7291c96c8cbddcc148bf48a6d68c7974b94356f53754ef6171d757",
+   "count": 0,
+   "roots": [],
+   "finalized_claims_from_height": 0,
+   "finalized_checkpoint": {
+    "epoch": 7020,
+    "root": "d65248bb07a4d99be92397987ebe6a8049bc7df6bb6f343e03599c0e03b811ba",
+    "own_root": null,
+    "own_chain_rule_active": false
+   },
+   "claimable": null,
+   "claimable_large": null,
+   "delay_blocks": 64,
+   "matured": null,
+   "claimed": {
+    "count": 0,
+    "floor": 0,
+    "words": []
+   },
+   "large_claim_sat": "10000000000",
+   "large_delay_blocks": 2880,
+   "retention_blocks": 2880,
+   "matured_large": null,
+   "release_window": {
+    "window": 11,
+    "blocks": 2880,
+    "bps": 1000,
+    "floor_sat": "1000000000",
+    "released_sat": "0",
+    "cap_sat": "1000000000",
+    "remaining_sat": "1000000000"
+   },
+   "attestor_set": "1c06adbb7fef042f58d7efd11587689e324c036c3b467081a63b1cf79caccc4b",
+   "attested_claim_sat": "10000000000",
+   "released_sat": "0",
+   "escrow_conserved": true
+  },
+  "accepted": null
+ }
+}

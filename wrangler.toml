@@ -120,3 +120,25 @@ G4_ARCHIVAL_2 = "http://45.77.67.251.nip.io:8080/"
 # The comment that used to live here — the 1003 measurement and the
 # dashboard-overrides-on-deploy warning — is preserved above, because both
 # facts are still true and both were learned expensively.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCH L2 (EVM, chain id 700770): the /l2 explorer pages
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# /l2rpc (functions/l2rpc.js, policy in edge/l2rpc.js) forwards allowlisted
+# read-only JSON-RPC to L2_RPC_URL and refuses every answer if the upstream's
+# eth_chainId is not L2_CHAIN_ID. L2_RPC_URL is the PUBLIC L2 RPC (the gateway
+# in front of bloch-l2-settled-rpc), never a validator or sequencer port.
+# Space-separated values are fallbacks, tried in order. Same 1003 rule as above:
+# a hostname, never a bare IP. If the gateway is a Worker on this zone it must
+# be on a Custom Domain (a Worker cannot fetch a same-zone Worker route).
+# See docs/L2-EXPLORER.md.
+# Placeholder: l2rpc.blochl1.com has no DNS record yet (2026-10-30); until it
+# answers, /l2 shows the L1 settlement record and says the RPC is not live.
+L2_RPC_URL = "https://l2rpc.blochl1.com/"
+L2_CHAIN_ID = "700770"
+# Settled-only reads (default on): latest/pending are read as safe and nothing
+# above the upstream's safe block is served. "0" turns the bound off.
+L2_SETTLED_ONLY = "1"
+# GET /l2status reads getl2settlement from EXPLORER_ARCHIVALS + EXPLORER_FLEET
+# above and serves it with the number of observers that agree (quorum 2).
