@@ -1,0 +1,2 @@
+bloch-pos-node 0.1.0-mainnet (4cd9b887b2a2a171b26b55da5c53d08c427def1a)+ws-release-anchor (Genesis-4, block version 0xb10c0005)
+source-digest sha3-256:28b7bbc78bf8db1b4d8e3cb84b004564d8b05424a33d1c5238b700845aad09b8 (388 files, 11706702 bytes) commit-source:asserted tree:asserted-clean

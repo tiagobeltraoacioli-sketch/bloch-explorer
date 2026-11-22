@@ -16,20 +16,29 @@ export function ValidatorGuidePage() {
       <span className="eyebrow">GENESIS-4 / OPERATIONS GUIDE</span>
       <h1>How to run a Bloch validator</h1>
       <p>Installation, identity, synchronization and maintenance with the new validator binary.</p>
-      <p className="guide-date">Upgrade release updated November 16, 2026. Other qualification records retain their original dates.</p>
+      <p className="guide-date">Upgrade release updated November 22, 2026. Other qualification records retain their original dates.</p>
       <div className="guide-actions"><a href="/docs/validator-onboarding.md" download>Download guide (.md)</a><Link to="/validators">View validators →</Link><Link to="/validators/queues">View queues →</Link></div>
     </header>
     <ValidatorAdmissionStatus />
     <section className="guide-section" aria-label="Validator upgrade release">
-      <h2>November 15 recommended upgrade: KES bind liveness and hardening</h2>
-      <p>Signed Linux x86-64 release from commit <code>0067547f1cd8f740fa1b814361526a80be178885</code>. It builds on the November 13 mandatory release and adds no hard fork and no new activation: it carries the same epoch-8620 rules, and a full replay of mainnet history reproduces the canonical chain bit for bit. <strong>Every node must still run the November 13 release or this one before epoch 8620 (2026-11-17 16:11 UTC)</strong>; running this one satisfies that requirement. It is <strong>recommended for every node before the network binds KES keys</strong> (the bind is announced in advance on the official channels): block production and admission stay live through empty epochs and sibling heads around the bind. It also includes security hardening from the November 14 audit, dependency updates, and optional monitoring hooks that are off by default.</p>
-      <div className="guide-actions"><a href="/releases/2026-11-15-node-local/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-15-node-local/README.md">Upgrade and verification instructions</a></div>
+      <h2>November 19 recommended upgrade: the release for the KES bind</h2>
+      <p>Signed Linux x86-64 release from commit <code>4cd9b887b2a2a171b26b55da5c53d08c427def1a</code>. It adds no hard fork and arms no gate: it carries the same rules as the November 15 release, and a full replay of mainnet history reproduces the canonical chain bit for bit. <strong>It is recommended for every node before the network binds KES keys.</strong> It keeps block admission live around the bind without a restart, makes finality proofs refuse stale KES state, contains faults in layer-2 pre-validation, adds off-by-default mesh options, and renews the built-in release checkpoint to epoch 8742, valid for fresh installs until epoch 10758 (2026-12-11 10:19 UTC); the checkpoint of the November 15 release stops accepting fresh installs on 2026-11-25, so new nodes should start from this one.</p>
+      <div className="guide-actions"><a href="/releases/2026-11-19-kes-bind/bloch-pos" download>Download signed binary</a><a href="/releases/2026-11-19-kes-bind/README.md">Upgrade and verification instructions</a></div>
       <ul>
-        <li><a href="/releases/2026-11-15-node-local/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-15-node-local/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-15-node-local/bloch-release-20260922.pub" download>Minisign public key</a></li>
-        <li><a href="/releases/2026-11-15-node-local/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-15-node-local/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-0067547f-node-local">GitHub release</a></li>
+        <li><a href="/releases/2026-11-19-kes-bind/SHA256SUMS">Checksum manifest</a> · <a href="/releases/2026-11-19-kes-bind/SHA256SUMS.minisig" download>Minisign signature</a> · <a href="/releases/2026-11-19-kes-bind/bloch-release-20260922.pub" download>Minisign public key</a></li>
+        <li><a href="/releases/2026-11-19-kes-bind/BUILD-INFO">Build provenance</a> · <a href="/releases/2026-11-19-kes-bind/release.json">Release metadata</a> · <a href="https://github.com/tiagobeltraoacioli-sketch/bloch-sis-pow/releases/tag/node-4cd9b887-kes-bind">GitHub release</a></li>
       </ul>
-      <p>Expected SHA-256: <code>2c9547c0f68e6f69587cd7ed1e97c3a912304fd23b453bf3eb646e65200755e3</code>.</p>
-      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor, chain data and flags; no new flag is required. The first start replays the chain from genesis (about 70 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys.</p>
+      <p>Expected SHA-256: <code>7d453d4f8d739cdb297a16dc4e34ece976d3a234df8ed6f44215cf2ead6db3a4</code>.</p>
+      <p>Upgrade an existing synchronized Genesis-4 node while preserving its identity, signing records, signer anchor, chain data and flags; no new flag is required. The first start replays the chain from genesis (roughly 50 to 90 minutes on a validator-class host), then waits the normal 64-slot observation before the first attestation. Upgrade validators that share a key set one at a time. This upgrade bundle contains no keys.</p>
+      <h3>KES keys</h3>
+      <p>KES binds on chain on its own, two epochs after the first epoch boundary at which validators with a registered KES key hold at least 90% of the effective stake. Until then every validator signs with its static key, and a validator that never registers keeps signing with its static key afterwards. To register:</p>
+      <ul>
+        <li>Generate the key beside <code>validator.key</code>, with the same keystore unlock environment as the node: <code>bloch-pos kes keygen --dir &lt;data-dir&gt;</code>. It never overwrites an existing <code>validator.kes</code>.</li>
+        <li>Restart the node on this release and check its log for <code>KES key loaded</code>. The node reads the key only at start, so <strong>a registered validator must have its key loaded before the bind</strong>.</li>
+        <li>Prepare the one-time registration, <code>bloch-pos kes register --dir &lt;data-dir&gt; --genesis &lt;manifest&gt; --out &lt;file&gt;</code>, and broadcast the hex in <code>&lt;file&gt;</code> with <code>sendrawtransaction</code> through your own node at once. Do not share the file.</li>
+        <li>The node evolves the key in place: never keep copies of <code>validator.kes</code> and never run two copies of the same validator.</li>
+      </ul>
+      <p><a href="/releases/2026-11-15-node-local/README.md">Previous signed release — November 15 (recommended before the KES bind)</a></p>
       <p><a href="/releases/2026-11-13-kes-followups/README.md">Previous signed release — November 13 (mandatory before epoch 8620)</a></p>
       <p><a href="/releases/2026-11-12-secfix/README.md">Previous signed release — November 12 (security hardening)</a></p>
       <p><a href="/releases/2026-10-29-hf123/README.md">Previous signed release — October 29 (HF1, HF2, HF3)</a></p>
